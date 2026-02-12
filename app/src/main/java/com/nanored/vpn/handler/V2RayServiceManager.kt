@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 import libv2ray.CoreCallbackHandler
 import libv2ray.CoreController
 import java.lang.ref.SoftReference
+import com.nanored.vpn.telemetry.NanoredTelemetry
 
 object V2RayServiceManager {
 
@@ -175,6 +176,11 @@ object V2RayServiceManager {
 
         try {
             MessageUtil.sendMsg2UI(service, AppConfig.MSG_STATE_START_SUCCESS, "")
+
+            // Start telemetry session
+            val serverName = currentConfig?.server.orEmpty()
+            val protocol = currentConfig?.configType?.name.orEmpty()
+            NanoredTelemetry.startSession(serverAddress = serverName, protocol = protocol)
             //NotificationManager.showNotification(currentConfig)
             NotificationManager.startSpeedNotification(currentConfig)
 
@@ -193,6 +199,12 @@ object V2RayServiceManager {
     fun stopCoreLoop(): Boolean {
         val service = getService() ?: return false
 
+
+        // End telemetry session with traffic stats
+        NanoredTelemetry.endSession(
+            bytesDownloaded = NotificationManager.getTotalDownloadBytes(),
+            bytesUploaded = NotificationManager.getTotalUploadBytes()
+        )
         if (coreController.isRunning) {
             CoroutineScope(Dispatchers.IO).launch {
                 try {

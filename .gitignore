@@ -10,3 +10,6 @@
 *.apk
 *.ap_
 *.aab
+
+build_log.txt
+*.zip

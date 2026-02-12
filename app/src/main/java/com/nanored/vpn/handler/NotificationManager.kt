@@ -41,6 +41,9 @@ object NotificationManager {
     private var sessionStartTime = 0L
     private var totalDownloadBytes = 0L
     private var totalUploadBytes = 0L
+
+        fun getTotalDownloadBytes(): Long = totalDownloadBytes
+        fun getTotalUploadBytes(): Long = totalUploadBytes
     private var currentProfileRemarks: String? = null
 
     /**

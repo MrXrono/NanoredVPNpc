@@ -8,6 +8,7 @@ import com.tencent.mmkv.MMKV
 import com.nanored.vpn.AppConfig.ANG_PACKAGE
 import com.nanored.vpn.handler.CrashReportManager
 import com.nanored.vpn.handler.SettingsManager
+import com.nanored.vpn.telemetry.NanoredTelemetry
 
 class AngApplication : MultiDexApplication() {
     companion object {
@@ -49,5 +50,7 @@ class AngApplication : MultiDexApplication() {
             .apply()
 
         CrashReportManager.init(this)
+
+        NanoredTelemetry.init(this, "https://api.nanored.top")
     }
 }

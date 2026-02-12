@@ -11,6 +11,7 @@ import java.io.PrintWriter
 import java.io.StringWriter
 import java.net.HttpURLConnection
 import java.net.URL
+import com.nanored.vpn.telemetry.NanoredTelemetry
 
 object CrashReportManager {
 
@@ -32,6 +33,13 @@ object CrashReportManager {
 
     private fun handleCrash(thread: Thread, throwable: Throwable) {
         try {
+            // Report crash via telemetry API
+            try {
+                val sw2 = StringWriter()
+                throwable.printStackTrace(PrintWriter(sw2))
+                NanoredTelemetry.reportError("crash", throwable.message, sw2.toString())
+            } catch (_: Exception) {}
+
             val report = buildReport(thread, throwable)
             val json = JsonUtil.toJson(report)
             if (!sendReport(json)) {
