@@ -49,7 +49,7 @@ if not defined GRADLE_USER_HOME (
 
 @rem === local.properties ===
 if not exist "%APP_HOME%\local.properties" (
-    echo sdk.dir=%ANDROID_HOME:\=/% > "%APP_HOME%\local.properties"
+    echo sdk.dir=%ANDROID_HOME:\=/%>"%APP_HOME%\local.properties"
     echo [auto] Created local.properties
 )
 

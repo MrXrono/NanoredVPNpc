@@ -76,7 +76,7 @@ android {
         variant.outputs
             .map { it as com.android.build.gradle.internal.api.ApkVariantOutputImpl }
             .forEach { output ->
-                output.outputFileName = "NanoredVPN_${variant.versionName}.apk"
+                output.outputFileName = "nanored_app_v${variant.versionName}.apk"
             }
     }
 
