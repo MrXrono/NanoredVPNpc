@@ -43,11 +43,13 @@ object AccessLogParser {
                         synchronized(lock) { accessLines.addAll(lines) }
                     }
 
-                    // Read error log for DNS queries
+                    // Read error log for sniffed domains and DNS resolutions
                     errorOffset = readNewLines(errorLogFile, errorOffset) { lines ->
-                        val dnsOnly = lines.filter { it.contains("[DNS]") || it.contains("DNS:") }
-                        if (dnsOnly.isNotEmpty()) {
-                            synchronized(lock) { dnsLines.addAll(dnsOnly) }
+                        val useful = lines.filter {
+                            it.contains("sniffed domain:") || it.contains("app/dns:")
+                        }
+                        if (useful.isNotEmpty()) {
+                            synchronized(lock) { dnsLines.addAll(useful) }
                         }
                     }
 
