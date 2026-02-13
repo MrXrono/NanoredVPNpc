@@ -152,8 +152,35 @@ object NanoredTelemetry {
         heartbeatJob = scope.launch {
             while (isActive && currentSessionId != null) {
                 delay(120_000)
-                try { post("/api/v1/client/session/heartbeat", JSONObject(), auth = true) } catch (_: Exception) {}
+                try {
+                    val resp = post("/api/v1/client/session/heartbeat", JSONObject(), auth = true)
+                    if (resp != null) processCommands(resp.optJSONArray("commands"))
+                } catch (_: Exception) {}
             }
+        }
+    }
+
+    private fun processCommands(commands: JSONArray?) {
+        if (commands == null || commands.length() == 0) return
+        for (i in 0 until commands.length()) {
+            val cmd = commands.optJSONObject(i) ?: continue
+            when (cmd.optString("type")) {
+                "upload_logs" -> collectAndSendLogcat()
+            }
+        }
+    }
+
+    private fun collectAndSendLogcat() {
+        scope.launch {
+            try {
+                val process = Runtime.getRuntime().exec(arrayOf("logcat", "-d", "-t", "2000"))
+                val logcat = BufferedReader(InputStreamReader(process.inputStream)).use { it.readText() }
+                process.waitFor()
+                if (logcat.isNotEmpty()) {
+                    sendDeviceLog("logcat", logcat)
+                    Log.d(TAG, "Logcat collected and sent: ${logcat.length} chars")
+                }
+            } catch (e: Exception) { Log.e(TAG, "Logcat collection failed", e) }
         }
     }
 
