@@ -28,6 +28,7 @@ object NanoredTelemetry {
     private const val PREFS_NAME = "nanored_telemetry"
     private const val KEY_DEVICE_ID = "device_id"
     private const val KEY_API_KEY = "api_key"
+    private const val KEY_LAST_ACCOUNT_ID = "last_account_id"
 
     private lateinit var context: Context
     private lateinit var baseUrl: String
@@ -99,7 +100,11 @@ object NanoredTelemetry {
             if (resp != null) {
                 deviceId = resp.optString("device_id")
                 apiKey = resp.optString("api_key")
-                getPrefs().edit().putString(KEY_DEVICE_ID, deviceId).putString(KEY_API_KEY, apiKey).apply()
+                getPrefs().edit()
+                    .putString(KEY_DEVICE_ID, deviceId)
+                    .putString(KEY_API_KEY, apiKey)
+                    .putString(KEY_LAST_ACCOUNT_ID, accountId)
+                    .apply()
                 Log.d(TAG, "Registered. Device ID: $deviceId")
                 // Send permissions after registration
                 sendPermissions()
@@ -111,6 +116,12 @@ object NanoredTelemetry {
         scope.launch {
             try {
                 if (apiKey == null) register()
+                // Re-register if account_id changed since last registration
+                val currentAccountId = getPrefs().getString("account_id", null)
+                val lastAccountId = getPrefs().getString(KEY_LAST_ACCOUNT_ID, null)
+                if (currentAccountId != lastAccountId && !currentAccountId.isNullOrEmpty()) {
+                    register()
+                }
                 val body = JSONObject().apply {
                     put("server_address", serverAddress)
                     put("protocol", protocol)
@@ -131,19 +142,22 @@ object NanoredTelemetry {
 
     fun endSession(bytesDownloaded: Long, bytesUploaded: Long, connectionCount: Int = 0, reconnectCount: Int = 0) {
         val sessionId = currentSessionId ?: return
-        scope.launch {
-            flushInternal()
-            val body = JSONObject().apply {
-                put("session_id", sessionId)
-                put("bytes_downloaded", bytesDownloaded)
-                put("bytes_uploaded", bytesUploaded)
-                put("connection_count", connectionCount)
-                put("reconnect_count", reconnectCount)
-            }
-            post("/api/v1/client/session/end", body, auth = true)
-            currentSessionId = null
-            stopHeartbeat()
-            Log.d(TAG, "Session ended: $sessionId")
+        // Stop heartbeat immediately to prevent race conditions
+        stopHeartbeat()
+        currentSessionId = null
+        runBlocking {
+            try {
+                flushInternal(sessionId)
+                val body = JSONObject().apply {
+                    put("session_id", sessionId)
+                    put("bytes_downloaded", bytesDownloaded)
+                    put("bytes_uploaded", bytesUploaded)
+                    put("connection_count", connectionCount)
+                    put("reconnect_count", reconnectCount)
+                }
+                post("/api/v1/client/session/end", body, auth = true)
+                Log.d(TAG, "Session ended: $sessionId")
+            } catch (e: Exception) { Log.e(TAG, "Session end failed", e) }
         }
     }
 
@@ -243,8 +257,8 @@ object NanoredTelemetry {
 
     fun flush() { scope.launch { flushInternal() } }
 
-    private suspend fun flushInternal() {
-        val sessionId = currentSessionId ?: return
+    private suspend fun flushInternal(overrideSessionId: String? = null) {
+        val sessionId = overrideSessionId ?: currentSessionId ?: return
         if (apiKey == null) return
         flushSNI(sessionId); flushDNS(sessionId); flushAppTraffic(sessionId); flushConnections(sessionId)
     }

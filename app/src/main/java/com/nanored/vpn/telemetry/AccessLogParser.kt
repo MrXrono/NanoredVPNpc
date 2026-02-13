@@ -118,6 +118,17 @@ object AccessLogParser {
                 val target = accepted.split(" ")[0]
                     .removePrefix("tcp:")
                     .removePrefix("udp:")
+                    .removeSuffix("[proxy]")
+                    .removeSuffix("[direct]")
+                    .removeSuffix("[block]")
+                    .trim()
+
+                // Skip if target is a tag like "proxy" or "proxy]" (not a real domain)
+                if (target.isEmpty() || target == "proxy" || target == "proxy]" ||
+                    target == "direct" || target == "block") {
+                    return
+                }
+
                 val hostPort = parseHostPort(target)
                 domain = hostPort.first
                 destPort = hostPort.second

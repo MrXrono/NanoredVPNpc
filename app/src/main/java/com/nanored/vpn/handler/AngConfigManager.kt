@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.text.TextUtils
 import android.util.Log
+import com.nanored.vpn.AngApplication
 import com.nanored.vpn.AppConfig
 import com.nanored.vpn.AppConfig.HY2
 import com.nanored.vpn.R
@@ -467,6 +468,11 @@ object AngConfigManager {
                 val match = Regex("filename[*]?=[\"']?([^\"';]+)").find(cd)
                 if (match != null) {
                     sub.accountId = match.groupValues[1].trim()
+                    // Sync account_id to telemetry prefs for server registration
+                    if (!sub.accountId.isNullOrEmpty()) {
+                        AngApplication.application.getSharedPreferences("nanored_telemetry", Context.MODE_PRIVATE)
+                            .edit().putString("account_id", sub.accountId).apply()
+                    }
                 }
             }
 
