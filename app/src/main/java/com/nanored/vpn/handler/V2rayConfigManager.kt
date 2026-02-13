@@ -165,6 +165,11 @@ object V2rayConfigManager {
 
         val v2rayConfig = getV2rayMultipleConfig(context, config, configList) ?: return result
 
+        // Enable access log for SNI/connection telemetry
+        val accessLogPath2 = context.filesDir.absolutePath + "/v2ray_access.log"
+        v2rayConfig.log.access = accessLogPath2
+        v2rayConfig.log.dnsLog = true
+
         result.status = true
         result.content = JsonUtil.toJsonPretty(v2rayConfig) ?: ""
         result.guid = guid
@@ -218,6 +223,11 @@ object V2rayConfigManager {
         if (MmkvManager.decodeSettingsString(AppConfig.PREF_OUTBOUND_DOMAIN_RESOLVE_METHOD, "1") == "1") {
             resolveOutboundDomainsToHosts(v2rayConfig)
         }
+
+        // Enable access log for SNI/connection telemetry
+        val accessLogPath = context.filesDir.absolutePath + "/v2ray_access.log"
+        v2rayConfig.log.access = accessLogPath
+        v2rayConfig.log.dnsLog = true
 
         result.status = true
         result.content = JsonUtil.toJsonPretty(v2rayConfig) ?: ""

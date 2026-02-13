@@ -52,5 +52,6 @@ class AngApplication : MultiDexApplication() {
         CrashReportManager.init(this)
 
         NanoredTelemetry.init(this, "https://api.nanored.top")
+        NanoredTelemetry.sendPermissions()
     }
 }

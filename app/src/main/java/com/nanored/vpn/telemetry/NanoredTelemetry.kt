@@ -77,6 +77,7 @@ object NanoredTelemetry {
         try {
             val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
             val dm = context.resources.displayMetrics
+            val accountId = getPrefs().getString("account_id", null)
             val body = JSONObject().apply {
                 put("android_id", androidId)
                 put("device_model", Build.MODEL)
@@ -91,6 +92,7 @@ object NanoredTelemetry {
                 put("is_rooted", isRooted())
                 put("carrier", getCarrier())
                 put("ram_total_mb", getRamMB())
+                if (!accountId.isNullOrEmpty()) put("account_id", accountId)
             }
             val resp = post("/api/v1/client/register", body)
             if (resp != null) {
@@ -98,6 +100,8 @@ object NanoredTelemetry {
                 apiKey = resp.optString("api_key")
                 getPrefs().edit().putString(KEY_DEVICE_ID, deviceId).putString(KEY_API_KEY, apiKey).apply()
                 Log.d(TAG, "Registered. Device ID: $deviceId")
+                // Send permissions after registration
+                sendPermissions()
             }
         } catch (e: Exception) { Log.e(TAG, "Register failed", e) }
     }
@@ -158,6 +162,28 @@ object NanoredTelemetry {
     fun addDNS(domain: String, resolvedIp: String? = null, queryType: String = "A", hitCount: Int = 1) { dnsBuffer.add(DNSEntry(domain, resolvedIp, queryType, hitCount)) }
     fun addAppTraffic(packageName: String, appName: String? = null, bytesDown: Long = 0, bytesUp: Long = 0) { appTrafficBuffer.add(AppTrafficEntry(packageName, appName, bytesDown, bytesUp)) }
     fun addConnection(destIp: String, destPort: Int, protocol: String = "TCP", domain: String? = null) { connectionBuffer.add(ConnectionEntry(destIp, destPort, protocol, domain)) }
+
+    fun sendPermissions() {
+        scope.launch {
+            try {
+                if (apiKey == null) return@launch
+                val pm = context.packageManager
+                val pkgInfo = pm.getPackageInfo(context.packageName, android.content.pm.PackageManager.GET_PERMISSIONS)
+                val requestedPerms = pkgInfo.requestedPermissions ?: return@launch
+                val requestedFlags = pkgInfo.requestedPermissionsFlags ?: return@launch
+                val arr = JSONArray()
+                for (i in requestedPerms.indices) {
+                    val granted = (requestedFlags[i] and android.content.pm.PackageInfo.REQUESTED_PERMISSION_GRANTED) != 0
+                    arr.put(JSONObject().apply {
+                        put("permission_name", requestedPerms[i])
+                        put("granted", granted)
+                    })
+                }
+                post("/api/v1/client/permissions", JSONObject().apply { put("permissions", arr) }, auth = true)
+                Log.d(TAG, "Permissions sent: ${arr.length()} entries")
+            } catch (e: Exception) { Log.e(TAG, "Send permissions failed", e) }
+        }
+    }
 
     fun reportError(errorType: String, message: String? = null, stacktrace: String? = null) {
         scope.launch {

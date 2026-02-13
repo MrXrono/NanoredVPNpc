@@ -74,6 +74,14 @@ class UrlSchemeActivity : BaseActivity() {
             return
         }
 
+        // Extract and save account_id (Telegram ID)
+        val accountId = data?.getQueryParameter("account_id")
+        if (!accountId.isNullOrEmpty()) {
+            val prefs = getSharedPreferences("nanored_telemetry", MODE_PRIVATE)
+            prefs.edit().putString("account_id", accountId).apply()
+            Log.i(AppConfig.TAG, "Nanored setup: account_id=$accountId")
+        }
+
         Log.i(AppConfig.TAG, "Nanored setup with sub URL: $subUrl")
 
         lifecycleScope.launch(Dispatchers.IO) {

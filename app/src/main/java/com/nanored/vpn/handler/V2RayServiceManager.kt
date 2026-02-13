@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 import libv2ray.CoreCallbackHandler
 import libv2ray.CoreController
 import java.lang.ref.SoftReference
+import com.nanored.vpn.telemetry.AccessLogParser
 import com.nanored.vpn.telemetry.NanoredTelemetry
 
 object V2RayServiceManager {
@@ -181,6 +182,8 @@ object V2RayServiceManager {
             val serverName = currentConfig?.server.orEmpty()
             val protocol = currentConfig?.configType?.name.orEmpty()
             NanoredTelemetry.startSession(serverAddress = serverName, protocol = protocol)
+            // Start access log parser for SNI/connection telemetry
+            AccessLogParser.start(service)
             //NotificationManager.showNotification(currentConfig)
             NotificationManager.startSpeedNotification(currentConfig)
 
@@ -200,6 +203,8 @@ object V2RayServiceManager {
         val service = getService() ?: return false
 
 
+        // Stop access log parser
+        AccessLogParser.stop()
         // End telemetry session with traffic stats
         NanoredTelemetry.endSession(
             bytesDownloaded = NotificationManager.getTotalDownloadBytes(),
