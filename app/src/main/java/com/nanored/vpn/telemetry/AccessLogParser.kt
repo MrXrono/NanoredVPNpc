@@ -63,7 +63,7 @@ object AccessLogParser {
                     }
 
                     // Truncate log periodically to avoid large files
-                    if (fileOffset > 512_000) {
+                    if (fileOffset > 1_000_000) {
                         try {
                             logFile.writeText("")
                             fileOffset = 0
@@ -72,7 +72,7 @@ object AccessLogParser {
                 } catch (e: Exception) {
                     Log.e(TAG, "Parse error", e)
                 }
-                delay(10000) // Parse every 10 seconds
+                delay(15000) // Parse every 15 seconds
             }
         }
         Log.d(TAG, "AccessLogParser started")

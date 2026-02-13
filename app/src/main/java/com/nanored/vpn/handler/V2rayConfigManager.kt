@@ -168,7 +168,7 @@ object V2rayConfigManager {
         // Enable access log for SNI/connection telemetry
         val accessLogPath2 = context.filesDir.absolutePath + "/v2ray_access.log"
         v2rayConfig.log.access = accessLogPath2
-        v2rayConfig.log.dnsLog = true
+        v2rayConfig.log.loglevel = "warning"
 
         result.status = true
         result.content = JsonUtil.toJsonPretty(v2rayConfig) ?: ""
@@ -227,7 +227,7 @@ object V2rayConfigManager {
         // Enable access log for SNI/connection telemetry
         val accessLogPath = context.filesDir.absolutePath + "/v2ray_access.log"
         v2rayConfig.log.access = accessLogPath
-        v2rayConfig.log.dnsLog = true
+        v2rayConfig.log.loglevel = "warning"
 
         result.status = true
         result.content = JsonUtil.toJsonPretty(v2rayConfig) ?: ""

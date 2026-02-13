@@ -11,6 +11,7 @@ import android.provider.Settings
 import android.telephony.TelephonyManager
 import android.util.Log
 import kotlinx.coroutines.*
+import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -185,6 +186,21 @@ object NanoredTelemetry {
         }
     }
 
+    fun sendDeviceLog(logType: String = "logcat", content: String) {
+        scope.launch {
+            try {
+                if (apiKey == null) register()
+                val body = JSONObject().apply {
+                    put("log_type", logType)
+                    put("content", content)
+                    put("app_version", getAppVersion())
+                }
+                post("/api/v1/client/logs", body, auth = true)
+                Log.d(TAG, "Device log sent: type=$logType, size=${content.length}")
+            } catch (e: Exception) { Log.e(TAG, "Send device log failed", e) }
+        }
+    }
+
     fun reportError(errorType: String, message: String? = null, stacktrace: String? = null) {
         scope.launch {
             val body = JSONObject().apply {
@@ -231,6 +247,8 @@ object NanoredTelemetry {
         val list = mutableListOf<T>(); while (true) { val item = queue.poll() ?: break; list.add(item) }; return list
     }
 
+    private var reRegistering = false
+
     private fun post(path: String, body: JSONObject, auth: Boolean = false): JSONObject? {
         return try {
             val url = URL("$baseUrl$path")
@@ -246,6 +264,14 @@ object NanoredTelemetry {
             if (code in 200..299) {
                 val response = BufferedReader(InputStreamReader(conn.inputStream)).use { it.readText() }
                 JSONObject(response)
+            } else if (code == 401 && auth && !reRegistering) {
+                Log.w(TAG, "HTTP 401 for $path, re-registering device")
+                reRegistering = true
+                getPrefs().edit().remove(KEY_DEVICE_ID).remove(KEY_API_KEY).apply()
+                deviceId = null; apiKey = null
+                runBlocking { register() }
+                reRegistering = false
+                if (apiKey != null) post(path, body, auth) else null
             } else { Log.w(TAG, "HTTP $code for $path"); null }
         } catch (e: Exception) { Log.e(TAG, "Request failed: $path", e); null }
     }
