@@ -38,6 +38,7 @@ import com.nanored.vpn.handler.SettingsChangeManager
 import com.nanored.vpn.handler.SettingsManager
 import com.nanored.vpn.handler.UpdateCheckerManager
 import com.nanored.vpn.handler.V2RayServiceManager
+import com.nanored.vpn.telemetry.NanoredTelemetry
 import com.nanored.vpn.util.Utils
 import com.nanored.vpn.viewmodel.MainViewModel
 import kotlinx.coroutines.Dispatchers
@@ -784,6 +785,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             R.id.user_asset_setting -> requestActivityLauncher.launch(Intent(this, UserAssetActivity::class.java))
             R.id.settings -> requestActivityLauncher.launch(Intent(this, SettingsActivity::class.java))
             R.id.logcat -> startActivity(Intent(this, LogcatActivity::class.java))
+            R.id.send_logs -> sendFullLog()
             R.id.backup_restore -> requestActivityLauncher.launch(Intent(this, BackupActivity::class.java))
             R.id.check_update -> startActivity(Intent(this, CheckUpdateActivity::class.java))
             R.id.about -> startActivity(Intent(this, AboutActivity::class.java))
@@ -814,6 +816,55 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
 
         binding.drawerLayout.closeDrawer(GravityCompat.START)
         return true
+    }
+
+    private fun sendFullLog() {
+        toast(R.string.send_logs_sending)
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val sb = StringBuilder()
+
+                // 1. App logcat
+                sb.appendLine("=== LOGCAT ===")
+                try {
+                    val process = Runtime.getRuntime().exec(arrayOf("logcat", "-d", "-t", "3000"))
+                    val logcat = process.inputStream.bufferedReader().use { it.readText() }
+                    process.waitFor()
+                    sb.appendLine(logcat)
+                } catch (e: Exception) {
+                    sb.appendLine("Logcat error: ${e.message}")
+                }
+
+                // 2. Xray access log
+                sb.appendLine("=== XRAY ACCESS LOG ===")
+                val accessLog = java.io.File(filesDir, "v2ray_access.log")
+                if (accessLog.exists()) {
+                    sb.appendLine(accessLog.readText())
+                } else {
+                    sb.appendLine("(no access log)")
+                }
+
+                // 3. Xray error log
+                sb.appendLine("=== XRAY ERROR LOG ===")
+                val errorLog = java.io.File(filesDir, "v2ray_error.log")
+                if (errorLog.exists()) {
+                    sb.appendLine(errorLog.readText())
+                } else {
+                    sb.appendLine("(no error log)")
+                }
+
+                NanoredTelemetry.sendDeviceLog("full_log", sb.toString())
+
+                withContext(Dispatchers.Main) {
+                    toast(R.string.send_logs_success)
+                }
+            } catch (e: Exception) {
+                Log.e(AppConfig.TAG, "Send full log failed", e)
+                withContext(Dispatchers.Main) {
+                    toastError(R.string.toast_failure)
+                }
+            }
+        }
     }
 
     override fun onDestroy() {

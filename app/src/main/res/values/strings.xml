@@ -284,7 +284,10 @@
     <string name="title_pref_hev_tunnel_loglevel">Hev Tun Log Level</string>
     <string name="title_pref_hev_tunnel_rw_timeout">Hev Tun read/write timeout (seconds) (tcp,udp default 300,60)</string>
 
-    <string name="title_logcat">Logcat</string>
+    <string name="title_logcat">Журнал</string>
+    <string name="title_send_logs">Отправить журнал</string>
+    <string name="send_logs_success">Журнал отправлен</string>
+    <string name="send_logs_sending">Отправка журнала…</string>
     <string name="logcat_copy">Copy</string>
     <string name="logcat_clear">Clear</string>
     <string name="title_service_restart">Service restart</string>

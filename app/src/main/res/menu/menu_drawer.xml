@@ -28,6 +28,10 @@
             android:icon="@drawable/ic_logcat_24dp"
             android:title="@string/title_logcat" />
         <item
+            android:id="@+id/send_logs"
+            android:icon="@drawable/ic_logcat_24dp"
+            android:title="@string/title_send_logs" />
+        <item
             android:id="@+id/backup_restore"
             android:icon="@drawable/ic_restore_24dp"
             android:title="@string/title_configuration_backup_restore" />

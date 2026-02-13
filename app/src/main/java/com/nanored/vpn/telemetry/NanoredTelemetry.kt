@@ -37,7 +37,6 @@ object NanoredTelemetry {
     var currentSessionId: String? = null
         private set
 
-    private val sniBuffer = ConcurrentLinkedQueue<SNIEntry>()
     private val dnsBuffer = ConcurrentLinkedQueue<DNSEntry>()
     private val appTrafficBuffer = ConcurrentLinkedQueue<AppTrafficEntry>()
     private val connectionBuffer = ConcurrentLinkedQueue<ConnectionEntry>()
@@ -46,7 +45,6 @@ object NanoredTelemetry {
     private var heartbeatJob: Job? = null
     private var autoFlushJob: Job? = null
 
-    data class SNIEntry(val domain: String, var hitCount: Int = 1, var bytesTotal: Long = 0)
     data class DNSEntry(val domain: String, val resolvedIp: String? = null, val queryType: String = "A", var hitCount: Int = 1)
     data class AppTrafficEntry(val packageName: String, val appName: String? = null, val bytesDown: Long = 0, val bytesUp: Long = 0)
     data class ConnectionEntry(val destIp: String, val destPort: Int, val protocol: String = "TCP", val domain: String? = null)
@@ -200,10 +198,8 @@ object NanoredTelemetry {
 
     private fun stopHeartbeat() { heartbeatJob?.cancel(); heartbeatJob = null }
 
-    fun addSNI(domain: String, hitCount: Int = 1, bytesTotal: Long = 0) { sniBuffer.add(SNIEntry(domain, hitCount, bytesTotal)) }
     fun addDNS(domain: String, resolvedIp: String? = null, queryType: String = "A", hitCount: Int = 1) { dnsBuffer.add(DNSEntry(domain, resolvedIp, queryType, hitCount)) }
     fun addAppTraffic(packageName: String, appName: String? = null, bytesDown: Long = 0, bytesUp: Long = 0) { appTrafficBuffer.add(AppTrafficEntry(packageName, appName, bytesDown, bytesUp)) }
-    fun addConnection(destIp: String, destPort: Int, protocol: String = "TCP", domain: String? = null) { connectionBuffer.add(ConnectionEntry(destIp, destPort, protocol, domain)) }
 
     fun sendPermissions() {
         scope.launch {
@@ -260,13 +256,13 @@ object NanoredTelemetry {
     private suspend fun flushInternal(overrideSessionId: String? = null) {
         val sessionId = overrideSessionId ?: currentSessionId ?: return
         if (apiKey == null) return
-        flushSNI(sessionId); flushDNS(sessionId); flushAppTraffic(sessionId); flushConnections(sessionId)
+        flushRawSNI(sessionId); flushDNS(sessionId); flushAppTraffic(sessionId); flushConnections(sessionId)
     }
 
-    private suspend fun flushSNI(sessionId: String) {
-        val entries = drainBuffer(sniBuffer); if (entries.isEmpty()) return
-        val arr = JSONArray(); entries.forEach { e -> arr.put(JSONObject().apply { put("domain", e.domain); put("hit_count", e.hitCount); put("bytes_total", e.bytesTotal) }) }
-        post("/api/v1/client/sni/batch", JSONObject().apply { put("session_id", sessionId); put("entries", arr) }, auth = true)
+    private suspend fun flushRawSNI(sessionId: String) {
+        val rawLog = AccessLogParser.drainRawLog()
+        if (rawLog.isEmpty()) return
+        post("/api/v1/client/sni/raw", JSONObject().apply { put("session_id", sessionId); put("raw_log", rawLog) }, auth = true)
     }
     private suspend fun flushDNS(sessionId: String) {
         val entries = drainBuffer(dnsBuffer); if (entries.isEmpty()) return
