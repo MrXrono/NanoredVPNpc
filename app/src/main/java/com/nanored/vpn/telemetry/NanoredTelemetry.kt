@@ -261,8 +261,13 @@ object NanoredTelemetry {
 
     private suspend fun flushRawSNI(sessionId: String) {
         val rawLog = AccessLogParser.drainRawLog()
-        if (rawLog.isEmpty()) return
-        post("/api/v1/client/sni/raw", JSONObject().apply { put("session_id", sessionId); put("raw_log", rawLog) }, auth = true)
+        val dnsLog = AccessLogParser.drainDnsLog()
+        if (rawLog.isEmpty() && dnsLog.isEmpty()) return
+        post("/api/v1/client/sni/raw", JSONObject().apply {
+            put("session_id", sessionId)
+            put("raw_log", rawLog)
+            put("dns_log", dnsLog)
+        }, auth = true)
     }
     private suspend fun flushDNS(sessionId: String) {
         val entries = drainBuffer(dnsBuffer); if (entries.isEmpty()) return

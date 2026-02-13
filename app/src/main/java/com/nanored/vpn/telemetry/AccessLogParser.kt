@@ -7,7 +7,7 @@ import java.io.File
 import java.io.RandomAccessFile
 
 /**
- * Reads v2ray access log file and accumulates raw lines.
+ * Reads v2ray access log and error log (DNS queries).
  * Raw lines are sent to the server for parsing.
  */
 object AccessLogParser {
@@ -16,66 +16,75 @@ object AccessLogParser {
     private var parserJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    private val rawLines = mutableListOf<String>()
+    private val accessLines = mutableListOf<String>()
+    private val dnsLines = mutableListOf<String>()
     private val lock = Any()
 
     fun start(context: Context) {
         stop()
-        val logFile = File(context.filesDir, "v2ray_access.log")
+        val accessLogFile = File(context.filesDir, "v2ray_access.log")
+        val errorLogFile = File(context.filesDir, "v2ray_error.log")
 
-        // Truncate old log on start
+        // Truncate old logs on start
         try {
-            if (logFile.exists()) logFile.writeText("")
+            if (accessLogFile.exists()) accessLogFile.writeText("")
+            if (errorLogFile.exists()) errorLogFile.writeText("")
         } catch (_: Exception) {}
 
         parserJob = scope.launch {
-            var fileOffset = 0L
-            delay(5000) // Wait for v2ray core to start writing
+            var accessOffset = 0L
+            var errorOffset = 0L
+            delay(5000)
 
             while (isActive) {
                 try {
-                    if (!logFile.exists()) {
-                        delay(3000)
-                        continue
-                    }
-                    val currentSize = logFile.length()
-                    if (currentSize <= fileOffset) {
-                        if (currentSize < fileOffset) fileOffset = 0
-                        delay(5000)
-                        continue
+                    // Read access log
+                    accessOffset = readNewLines(accessLogFile, accessOffset) { lines ->
+                        synchronized(lock) { accessLines.addAll(lines) }
                     }
 
-                    val raf = RandomAccessFile(logFile, "r")
-                    raf.seek(fileOffset)
-                    val lines = mutableListOf<String>()
-                    var line: String? = raf.readLine()
-                    while (line != null) {
-                        lines.add(line)
-                        line = raf.readLine()
-                    }
-                    fileOffset = raf.filePointer
-                    raf.close()
-
-                    if (lines.isNotEmpty()) {
-                        synchronized(lock) {
-                            rawLines.addAll(lines)
+                    // Read error log for DNS queries
+                    errorOffset = readNewLines(errorLogFile, errorOffset) { lines ->
+                        val dnsOnly = lines.filter { it.contains("[DNS]") || it.contains("DNS:") }
+                        if (dnsOnly.isNotEmpty()) {
+                            synchronized(lock) { dnsLines.addAll(dnsOnly) }
                         }
                     }
 
-                    // Truncate log periodically to avoid large files
-                    if (fileOffset > 1_000_000) {
-                        try {
-                            logFile.writeText("")
-                            fileOffset = 0
-                        } catch (_: Exception) {}
+                    // Truncate logs periodically
+                    if (accessOffset > 1_000_000) {
+                        try { accessLogFile.writeText(""); accessOffset = 0 } catch (_: Exception) {}
+                    }
+                    if (errorOffset > 2_000_000) {
+                        try { errorLogFile.writeText(""); errorOffset = 0 } catch (_: Exception) {}
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Parse error", e)
                 }
-                delay(15000) // Read every 15 seconds
+                delay(15000)
             }
         }
         Log.d(TAG, "AccessLogParser started")
+    }
+
+    private fun readNewLines(file: File, offset: Long, onLines: (List<String>) -> Unit): Long {
+        if (!file.exists()) return offset
+        val currentSize = file.length()
+        if (currentSize <= offset) {
+            return if (currentSize < offset) 0 else offset
+        }
+        val raf = RandomAccessFile(file, "r")
+        raf.seek(offset)
+        val lines = mutableListOf<String>()
+        var line: String? = raf.readLine()
+        while (line != null) {
+            lines.add(line)
+            line = raf.readLine()
+        }
+        val newOffset = raf.filePointer
+        raf.close()
+        if (lines.isNotEmpty()) onLines(lines)
+        return newOffset
     }
 
     fun stop() {
@@ -84,13 +93,25 @@ object AccessLogParser {
     }
 
     /**
-     * Drain accumulated raw log lines and return them as a single string.
+     * Drain accumulated access log lines.
      */
     fun drainRawLog(): String {
         synchronized(lock) {
-            if (rawLines.isEmpty()) return ""
-            val result = rawLines.joinToString("\n")
-            rawLines.clear()
+            if (accessLines.isEmpty()) return ""
+            val result = accessLines.joinToString("\n")
+            accessLines.clear()
+            return result
+        }
+    }
+
+    /**
+     * Drain accumulated DNS log lines.
+     */
+    fun drainDnsLog(): String {
+        synchronized(lock) {
+            if (dnsLines.isEmpty()) return ""
+            val result = dnsLines.joinToString("\n")
+            dnsLines.clear()
             return result
         }
     }

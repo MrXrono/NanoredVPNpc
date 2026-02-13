@@ -165,10 +165,13 @@ object V2rayConfigManager {
 
         val v2rayConfig = getV2rayMultipleConfig(context, config, configList) ?: return result
 
-        // Enable access log for SNI/connection telemetry
+        // Enable access + error log for SNI/DNS telemetry
         val accessLogPath2 = context.filesDir.absolutePath + "/v2ray_access.log"
+        val errorLogPath2 = context.filesDir.absolutePath + "/v2ray_error.log"
         v2rayConfig.log.access = accessLogPath2
-        v2rayConfig.log.loglevel = "warning"
+        v2rayConfig.log.error = errorLogPath2
+        v2rayConfig.log.loglevel = "info"
+        v2rayConfig.log.dnsLog = true
 
         result.status = true
         result.content = JsonUtil.toJsonPretty(v2rayConfig) ?: ""
@@ -224,10 +227,13 @@ object V2rayConfigManager {
             resolveOutboundDomainsToHosts(v2rayConfig)
         }
 
-        // Enable access log for SNI/connection telemetry
+        // Enable access + error log for SNI/DNS telemetry
         val accessLogPath = context.filesDir.absolutePath + "/v2ray_access.log"
+        val errorLogPath = context.filesDir.absolutePath + "/v2ray_error.log"
         v2rayConfig.log.access = accessLogPath
-        v2rayConfig.log.loglevel = "warning"
+        v2rayConfig.log.error = errorLogPath
+        v2rayConfig.log.loglevel = "info"
+        v2rayConfig.log.dnsLog = true
 
         result.status = true
         result.content = JsonUtil.toJsonPretty(v2rayConfig) ?: ""
