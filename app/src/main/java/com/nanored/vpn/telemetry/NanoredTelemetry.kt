@@ -153,26 +153,26 @@ object NanoredTelemetry {
         currentSessionId = null
         runBlocking {
             try {
-                // Final DNS flush
-                flushDnsAndSni(sessionId)
-                // Send xray access log only on disconnect (via /sni/raw for parsing)
+                // Drain both buffers and send together so server can correlate IPs with domains
+                val dnsLog = AccessLogParser.drainDnsLog()
                 val rawLog = AccessLogParser.drainRawLog()
-                if (rawLog.isNotEmpty()) {
-                    // Send to /sni/raw for server-side SNI parsing
+                if (dnsLog.isNotEmpty() || rawLog.isNotEmpty()) {
+                    // Single request with both dns_log and raw_log
                     post("/api/v1/client/sni/raw", JSONObject().apply {
                         put("session_id", sessionId)
                         put("raw_log", rawLog)
-                        put("dns_log", "")
+                        put("dns_log", dnsLog)
                     }, auth = true)
-                    Log.d(TAG, "Xray log sent via sni/raw: ${rawLog.length} chars")
-                    // Also send as device log so it's visible in admin panel
-                    val logBody = JSONObject().apply {
-                        put("log_type", "xray_access")
-                        put("content", rawLog)
-                        put("app_version", getAppVersion())
+                    Log.d(TAG, "Final sni/raw sent: dns=${dnsLog.length} raw=${rawLog.length} chars")
+                    // Also send access log as device log for admin panel
+                    if (rawLog.isNotEmpty()) {
+                        post("/api/v1/client/logs", JSONObject().apply {
+                            put("log_type", "xray_access")
+                            put("content", rawLog)
+                            put("app_version", getAppVersion())
+                        }, auth = true)
+                        Log.d(TAG, "Xray log sent as device log: ${rawLog.length} chars")
                     }
-                    post("/api/v1/client/logs", logBody, auth = true)
-                    Log.d(TAG, "Xray log sent as device log: ${rawLog.length} chars")
                 }
                 // Flush remaining buffers
                 flushAppTraffic(sessionId)
