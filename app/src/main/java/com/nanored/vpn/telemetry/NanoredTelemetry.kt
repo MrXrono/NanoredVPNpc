@@ -168,22 +168,29 @@ object NanoredTelemetry {
                         put("dns_log", dnsLog)
                     }, auth = true)
                     Log.d(TAG, "Final sni/raw sent: dns=${dnsLog.length} raw=${rawLog.length} chars")
-                    // Send combined xray log (access + error) as device log for admin panel
+                    // Send full log (logcat + xray access + xray error) as device log
                     val sb = StringBuilder()
+                    sb.appendLine("=== LOGCAT ===")
+                    try {
+                        val proc = Runtime.getRuntime().exec(arrayOf("logcat", "-d"))
+                        val logcat = BufferedReader(InputStreamReader(proc.inputStream)).use { it.readText() }
+                        proc.waitFor()
+                        sb.appendLine(logcat.replace("\u0000", ""))
+                    } catch (_: Exception) { sb.appendLine("(logcat error)") }
                     sb.appendLine("=== XRAY ACCESS LOG ===")
                     val accessFile = java.io.File(context.filesDir, "v2ray_access.log")
                     if (accessFile.exists()) sb.appendLine(accessFile.readText())
                     sb.appendLine("=== XRAY ERROR LOG ===")
                     val errorFile = java.io.File(context.filesDir, "v2ray_error.log")
                     if (errorFile.exists()) sb.appendLine(errorFile.readText())
-                    val combinedLog = sb.toString()
-                    if (combinedLog.length > 50) {
+                    val fullLog = sb.toString()
+                    if (fullLog.length > 50) {
                         post("/api/v1/client/logs", JSONObject().apply {
-                            put("log_type", "xray_combined")
-                            put("content", combinedLog)
+                            put("log_type", "disconnect_log")
+                            put("content", fullLog)
                             put("app_version", getAppVersion())
                         }, auth = true)
-                        Log.d(TAG, "Combined xray log sent as device log: ${combinedLog.length} chars")
+                        Log.d(TAG, "Disconnect log sent: ${fullLog.length} chars")
                     }
                 }
                 // Flush remaining buffers
