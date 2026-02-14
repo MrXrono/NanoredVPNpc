@@ -448,6 +448,11 @@ object AngConfigManager {
 
             parseSubscriptionHeaders(it.subscription, result.headers)
 
+            // Sync account_id from subscription to telemetry
+            if (!it.subscription.accountId.isNullOrEmpty()) {
+                com.nanored.vpn.telemetry.NanoredTelemetry.syncAccountId(it.subscription.accountId)
+            }
+
             val count = parseConfigViaSub(result.content, it.guid, false)
             if (count > 0) {
                 it.subscription.lastUpdated = System.currentTimeMillis()

@@ -1,4 +1,4 @@
-﻿package com.nanored.vpn.telemetry
+package com.nanored.vpn.telemetry
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -43,13 +43,13 @@ object NanoredTelemetry {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var heartbeatJob: Job? = null
-    private var autoFlushJob: Job? = null
+    private var dnsFlushJob: Job? = null
 
     data class DNSEntry(val domain: String, val resolvedIp: String? = null, val queryType: String = "A", var hitCount: Int = 1)
     data class AppTrafficEntry(val packageName: String, val appName: String? = null, val bytesDown: Long = 0, val bytesUp: Long = 0)
     data class ConnectionEntry(val destIp: String, val destPort: Int, val protocol: String = "TCP", val domain: String? = null)
 
-    fun init(ctx: Context, apiBaseUrl: String, autoFlushIntervalSec: Long = 60) {
+    fun init(ctx: Context, apiBaseUrl: String) {
         context = ctx.applicationContext
         baseUrl = apiBaseUrl.trimEnd('/')
 
@@ -61,16 +61,24 @@ object NanoredTelemetry {
             if (apiKey == null) register()
         }
 
-        if (autoFlushIntervalSec > 0) {
-            autoFlushJob?.cancel()
-            autoFlushJob = scope.launch {
-                while (isActive) {
-                    delay(autoFlushIntervalSec * 1000)
-                    flushInternal()
-                }
+        Log.d(TAG, "Initialized. Base URL: $baseUrl")
+    }
+
+    /**
+     * Sync account_id from subscription into telemetry prefs.
+     * Call this after subscription update/parse to ensure account_id is always fresh.
+     */
+    fun syncAccountId(accountId: String?) {
+        if (!accountId.isNullOrEmpty()) {
+            val prefs = getPrefs()
+            val current = prefs.getString("account_id", null)
+            if (current != accountId) {
+                prefs.edit().putString("account_id", accountId).apply()
+                Log.d(TAG, "Account ID synced: $accountId")
+                // Re-register to update server-side account binding
+                scope.launch { register() }
             }
         }
-        Log.d(TAG, "Initialized. Base URL: $baseUrl")
     }
 
     private suspend fun register() {
@@ -132,6 +140,7 @@ object NanoredTelemetry {
                 if (resp != null) {
                     currentSessionId = resp.optString("session_id")
                     startHeartbeat()
+                    startDnsFlush()
                     Log.d(TAG, "Session started: $currentSessionId")
                 }
             } catch (e: Exception) { Log.e(TAG, "Session start failed", e) }
@@ -140,12 +149,20 @@ object NanoredTelemetry {
 
     fun endSession(bytesDownloaded: Long, bytesUploaded: Long, connectionCount: Int = 0, reconnectCount: Int = 0) {
         val sessionId = currentSessionId ?: return
-        // Stop heartbeat immediately to prevent race conditions
+        // Stop heartbeat and DNS flush immediately
         stopHeartbeat()
+        stopDnsFlush()
         currentSessionId = null
         runBlocking {
             try {
-                flushInternal(sessionId)
+                // Final DNS flush
+                flushDnsAndSni(sessionId)
+                // Send xray access log only on disconnect
+                flushRawXrayLog(sessionId)
+                // Flush remaining buffers
+                flushAppTraffic(sessionId)
+                flushConnections(sessionId)
+
                 val body = JSONObject().apply {
                     put("session_id", sessionId)
                     put("bytes_downloaded", bytesDownloaded)
@@ -171,6 +188,26 @@ object NanoredTelemetry {
             }
         }
     }
+
+    /**
+     * DNS flush job: sends DNS/SNI log every 10 seconds, then clears the log.
+     */
+    private fun startDnsFlush() {
+        dnsFlushJob?.cancel()
+        dnsFlushJob = scope.launch {
+            while (isActive && currentSessionId != null) {
+                delay(10_000)
+                val sid = currentSessionId ?: break
+                try {
+                    flushDnsAndSni(sid)
+                } catch (e: Exception) {
+                    Log.e(TAG, "DNS flush failed", e)
+                }
+            }
+        }
+    }
+
+    private fun stopDnsFlush() { dnsFlushJob?.cancel(); dnsFlushJob = null }
 
     private fun processCommands(commands: JSONArray?) {
         if (commands == null || commands.length() == 0) return
@@ -251,29 +288,44 @@ object NanoredTelemetry {
         }
     }
 
-    fun flush() { scope.launch { flushInternal() } }
-
-    private suspend fun flushInternal(overrideSessionId: String? = null) {
-        val sessionId = overrideSessionId ?: currentSessionId ?: return
+    /**
+     * Flush DNS/SNI log to server and clear local buffer.
+     * Called every 10 seconds during active session.
+     */
+    private suspend fun flushDnsAndSni(sessionId: String) {
         if (apiKey == null) return
-        flushRawSNI(sessionId); flushDNS(sessionId); flushAppTraffic(sessionId); flushConnections(sessionId)
+        val dnsLog = AccessLogParser.drainDnsLog()
+        if (dnsLog.isEmpty()) return
+        post("/api/v1/client/sni/raw", JSONObject().apply {
+            put("session_id", sessionId)
+            put("raw_log", "")  // No xray log in DNS flush
+            put("dns_log", dnsLog)
+        }, auth = true)
+        Log.d(TAG, "DNS flush sent: ${dnsLog.length} chars")
+        // Also flush structured DNS entries
+        val entries = drainBuffer(dnsBuffer)
+        if (entries.isNotEmpty()) {
+            val arr = JSONArray(); entries.forEach { e -> arr.put(JSONObject().apply { put("domain", e.domain); put("resolved_ip", e.resolvedIp); put("query_type", e.queryType); put("hit_count", e.hitCount) }) }
+            post("/api/v1/client/dns/batch", JSONObject().apply { put("session_id", sessionId); put("entries", arr) }, auth = true)
+        }
     }
 
-    private suspend fun flushRawSNI(sessionId: String) {
+    /**
+     * Flush xray access log (without DNS) to server.
+     * Called ONLY on VPN disconnect.
+     */
+    private suspend fun flushRawXrayLog(sessionId: String) {
+        if (apiKey == null) return
         val rawLog = AccessLogParser.drainRawLog()
-        val dnsLog = AccessLogParser.drainDnsLog()
-        if (rawLog.isEmpty() && dnsLog.isEmpty()) return
+        if (rawLog.isEmpty()) return
         post("/api/v1/client/sni/raw", JSONObject().apply {
             put("session_id", sessionId)
             put("raw_log", rawLog)
-            put("dns_log", dnsLog)
+            put("dns_log", "")  // DNS already flushed separately
         }, auth = true)
+        Log.d(TAG, "Xray log sent on disconnect: ${rawLog.length} chars")
     }
-    private suspend fun flushDNS(sessionId: String) {
-        val entries = drainBuffer(dnsBuffer); if (entries.isEmpty()) return
-        val arr = JSONArray(); entries.forEach { e -> arr.put(JSONObject().apply { put("domain", e.domain); put("resolved_ip", e.resolvedIp); put("query_type", e.queryType); put("hit_count", e.hitCount) }) }
-        post("/api/v1/client/dns/batch", JSONObject().apply { put("session_id", sessionId); put("entries", arr) }, auth = true)
-    }
+
     private suspend fun flushAppTraffic(sessionId: String) {
         val entries = drainBuffer(appTrafficBuffer); if (entries.isEmpty()) return
         val arr = JSONArray(); entries.forEach { e -> arr.put(JSONObject().apply { put("package_name", e.packageName); put("app_name", e.appName); put("bytes_downloaded", e.bytesDown); put("bytes_uploaded", e.bytesUp) }) }

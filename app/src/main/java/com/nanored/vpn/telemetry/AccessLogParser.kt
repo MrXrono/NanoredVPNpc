@@ -8,7 +8,8 @@ import java.io.RandomAccessFile
 
 /**
  * Reads v2ray access log and error log (DNS queries).
- * Raw lines are sent to the server for parsing.
+ * Separates DNS/IP entries into a dedicated log file (dns_ip.log).
+ * Raw xray access log lines are accumulated separately.
  */
 object AccessLogParser {
 
@@ -16,19 +17,25 @@ object AccessLogParser {
     private var parserJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    // Xray access log lines (without DNS)
     private val accessLines = mutableListOf<String>()
+    // DNS + IP lines (sniffed domains, DNS resolutions, raw IPs without DNS)
     private val dnsLines = mutableListOf<String>()
     private val lock = Any()
+
+    private var dnsLogFile: File? = null
 
     fun start(context: Context) {
         stop()
         val accessLogFile = File(context.filesDir, "v2ray_access.log")
         val errorLogFile = File(context.filesDir, "v2ray_error.log")
+        dnsLogFile = File(context.filesDir, "dns_ip.log")
 
         // Truncate old logs on start
         try {
             if (accessLogFile.exists()) accessLogFile.writeText("")
             if (errorLogFile.exists()) errorLogFile.writeText("")
+            dnsLogFile?.let { if (it.exists()) it.writeText("") }
         } catch (_: Exception) {}
 
         parserJob = scope.launch {
@@ -38,9 +45,28 @@ object AccessLogParser {
 
             while (isActive) {
                 try {
-                    // Read access log
+                    // Read access log — separate DNS/IP lines from xray lines
                     accessOffset = readNewLines(accessLogFile, accessOffset) { lines ->
-                        synchronized(lock) { accessLines.addAll(lines) }
+                        val xrayLines = mutableListOf<String>()
+                        val dnsIpLines = mutableListOf<String>()
+
+                        for (line in lines) {
+                            if (line.contains("app/dns:") || line.contains("sniffed domain:")) {
+                                dnsIpLines.add(line)
+                            } else {
+                                xrayLines.add(line)
+                            }
+                        }
+
+                        synchronized(lock) {
+                            if (xrayLines.isNotEmpty()) accessLines.addAll(xrayLines)
+                            if (dnsIpLines.isNotEmpty()) dnsLines.addAll(dnsIpLines)
+                        }
+
+                        // Also write DNS/IP lines to dedicated file
+                        if (dnsIpLines.isNotEmpty()) {
+                            appendToDnsLogFile(dnsIpLines)
+                        }
                     }
 
                     // Read error log for sniffed domains and DNS resolutions
@@ -50,10 +76,11 @@ object AccessLogParser {
                         }
                         if (useful.isNotEmpty()) {
                             synchronized(lock) { dnsLines.addAll(useful) }
+                            appendToDnsLogFile(useful)
                         }
                     }
 
-                    // Truncate logs periodically
+                    // Truncate xray logs periodically
                     if (accessOffset > 1_000_000) {
                         try { accessLogFile.writeText(""); accessOffset = 0 } catch (_: Exception) {}
                     }
@@ -63,10 +90,16 @@ object AccessLogParser {
                 } catch (e: Exception) {
                     Log.e(TAG, "Parse error", e)
                 }
-                delay(15000)
+                delay(5000) // Check every 5 seconds for faster DNS collection
             }
         }
         Log.d(TAG, "AccessLogParser started")
+    }
+
+    private fun appendToDnsLogFile(lines: List<String>) {
+        try {
+            dnsLogFile?.appendText(lines.joinToString("\n") + "\n")
+        } catch (_: Exception) {}
     }
 
     private fun readNewLines(file: File, offset: Long, onLines: (List<String>) -> Unit): Long {
@@ -95,7 +128,7 @@ object AccessLogParser {
     }
 
     /**
-     * Drain accumulated access log lines.
+     * Drain accumulated xray access log lines (without DNS).
      */
     fun drainRawLog(): String {
         synchronized(lock) {
@@ -107,13 +140,15 @@ object AccessLogParser {
     }
 
     /**
-     * Drain accumulated DNS log lines.
+     * Drain accumulated DNS/IP log lines and clear the dns_ip.log file.
      */
     fun drainDnsLog(): String {
         synchronized(lock) {
             if (dnsLines.isEmpty()) return ""
             val result = dnsLines.joinToString("\n")
             dnsLines.clear()
+            // Clear the dns_ip.log file after draining
+            try { dnsLogFile?.writeText("") } catch (_: Exception) {}
             return result
         }
     }

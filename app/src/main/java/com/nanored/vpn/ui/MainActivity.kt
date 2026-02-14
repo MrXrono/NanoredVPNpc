@@ -463,6 +463,8 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         val sub = subs.firstOrNull()?.subscription
         if (sub != null && (sub.accountId != null || sub.downloadBytes > 0 || sub.expireTimestamp != 0L)) {
             displaySubscriptionInfo(sub)
+            // Sync account_id from subscription to telemetry prefs
+            com.nanored.vpn.telemetry.NanoredTelemetry.syncAccountId(sub.accountId)
         }
     }
 
