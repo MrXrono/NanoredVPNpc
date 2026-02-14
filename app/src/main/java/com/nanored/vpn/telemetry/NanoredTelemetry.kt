@@ -147,12 +147,16 @@ object NanoredTelemetry {
 
     fun endSession(bytesDownloaded: Long, bytesUploaded: Long, connectionCount: Int = 0, reconnectCount: Int = 0) {
         val sessionId = currentSessionId ?: return
-        // Stop heartbeat and DNS flush immediately
+        // Stop heartbeat immediately
         stopHeartbeat()
-        stopDnsFlush()
+        // Prevent DNS flush job from starting new iterations
         currentSessionId = null
         runBlocking {
             try {
+                // Wait for any in-flight DNS flush to complete before draining
+                dnsFlushJob?.cancelAndJoin()
+                dnsFlushJob = null
+
                 // Drain both buffers and send together so server can correlate IPs with domains
                 val dnsLog = AccessLogParser.drainDnsLog()
                 val rawLog = AccessLogParser.drainRawLog()
@@ -241,7 +245,7 @@ object NanoredTelemetry {
                 val logcat = BufferedReader(InputStreamReader(process.inputStream)).use { it.readText() }
                 process.waitFor()
                 if (logcat.isNotEmpty()) {
-                    sendDeviceLog("logcat", logcat)
+                    sendDeviceLog("logcat", logcat.replace("\u0000", ""))
                     Log.d(TAG, "Logcat collected and sent: ${logcat.length} chars")
                 }
             } catch (e: Exception) { Log.e(TAG, "Logcat collection failed", e) }

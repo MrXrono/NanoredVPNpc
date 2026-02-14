@@ -855,7 +855,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
                     sb.appendLine("(no error log)")
                 }
 
-                NanoredTelemetry.sendDeviceLog("full_log", sb.toString())
+                NanoredTelemetry.sendDeviceLog("full_log", sb.toString().replace("\u0000", ""))
 
                 withContext(Dispatchers.Main) {
                     toast(R.string.send_logs_success)
