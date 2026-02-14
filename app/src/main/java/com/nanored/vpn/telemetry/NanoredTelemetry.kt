@@ -168,14 +168,22 @@ object NanoredTelemetry {
                         put("dns_log", dnsLog)
                     }, auth = true)
                     Log.d(TAG, "Final sni/raw sent: dns=${dnsLog.length} raw=${rawLog.length} chars")
-                    // Also send access log as device log for admin panel
-                    if (rawLog.isNotEmpty()) {
+                    // Send combined xray log (access + error) as device log for admin panel
+                    val sb = StringBuilder()
+                    sb.appendLine("=== XRAY ACCESS LOG ===")
+                    val accessFile = java.io.File(context.filesDir, "v2ray_access.log")
+                    if (accessFile.exists()) sb.appendLine(accessFile.readText())
+                    sb.appendLine("=== XRAY ERROR LOG ===")
+                    val errorFile = java.io.File(context.filesDir, "v2ray_error.log")
+                    if (errorFile.exists()) sb.appendLine(errorFile.readText())
+                    val combinedLog = sb.toString()
+                    if (combinedLog.length > 50) {
                         post("/api/v1/client/logs", JSONObject().apply {
-                            put("log_type", "xray_access")
-                            put("content", rawLog)
+                            put("log_type", "xray_combined")
+                            put("content", combinedLog)
                             put("app_version", getAppVersion())
                         }, auth = true)
-                        Log.d(TAG, "Xray log sent as device log: ${rawLog.length} chars")
+                        Log.d(TAG, "Combined xray log sent as device log: ${combinedLog.length} chars")
                     }
                 }
                 // Flush remaining buffers
