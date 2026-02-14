@@ -829,7 +829,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
                 // 1. App logcat
                 sb.appendLine("=== LOGCAT ===")
                 try {
-                    val process = Runtime.getRuntime().exec(arrayOf("logcat", "-d", "-t", "3000"))
+                    val process = Runtime.getRuntime().exec(arrayOf("logcat", "-d"))
                     val logcat = process.inputStream.bufferedReader().use { it.readText() }
                     process.waitFor()
                     sb.appendLine(logcat)

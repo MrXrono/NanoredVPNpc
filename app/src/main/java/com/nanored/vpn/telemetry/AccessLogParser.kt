@@ -24,76 +24,102 @@ object AccessLogParser {
     private val lock = Any()
 
     private var dnsLogFile: File? = null
+    private var accessLogFile: File? = null
+    private var errorLogFile: File? = null
+    @Volatile private var accessOffset = 0L
+    @Volatile private var errorOffset = 0L
 
     fun start(context: Context) {
         stop()
-        val accessLogFile = File(context.filesDir, "v2ray_access.log")
-        val errorLogFile = File(context.filesDir, "v2ray_error.log")
+        accessLogFile = File(context.filesDir, "v2ray_access.log")
+        errorLogFile = File(context.filesDir, "v2ray_error.log")
         dnsLogFile = File(context.filesDir, "dns_ip.log")
+        accessOffset = 0L
+        errorOffset = 0L
 
         // Truncate old logs on start
         try {
-            if (accessLogFile.exists()) accessLogFile.writeText("")
-            if (errorLogFile.exists()) errorLogFile.writeText("")
+            accessLogFile?.let { if (it.exists()) it.writeText("") }
+            errorLogFile?.let { if (it.exists()) it.writeText("") }
             dnsLogFile?.let { if (it.exists()) it.writeText("") }
         } catch (_: Exception) {}
 
         parserJob = scope.launch {
-            var accessOffset = 0L
-            var errorOffset = 0L
             delay(5000)
 
             while (isActive) {
                 try {
-                    // Read access log — separate DNS/IP lines from xray lines
-                    accessOffset = readNewLines(accessLogFile, accessOffset) { lines ->
-                        val xrayLines = mutableListOf<String>()
-                        val dnsIpLines = mutableListOf<String>()
-
-                        for (line in lines) {
-                            if (line.contains("app/dns:") || line.contains("sniffed domain:")) {
-                                dnsIpLines.add(line)
-                            } else {
-                                xrayLines.add(line)
-                            }
-                        }
-
-                        synchronized(lock) {
-                            if (xrayLines.isNotEmpty()) accessLines.addAll(xrayLines)
-                            if (dnsIpLines.isNotEmpty()) dnsLines.addAll(dnsIpLines)
-                        }
-
-                        // Also write DNS/IP lines to dedicated file
-                        if (dnsIpLines.isNotEmpty()) {
-                            appendToDnsLogFile(dnsIpLines)
-                        }
-                    }
-
-                    // Read error log for sniffed domains and DNS resolutions
-                    errorOffset = readNewLines(errorLogFile, errorOffset) { lines ->
-                        val useful = lines.filter {
-                            it.contains("sniffed domain:") || it.contains("app/dns:")
-                        }
-                        if (useful.isNotEmpty()) {
-                            synchronized(lock) { dnsLines.addAll(useful) }
-                            appendToDnsLogFile(useful)
-                        }
-                    }
+                    readAccessLog()
+                    readErrorLog()
 
                     // Truncate xray logs periodically
                     if (accessOffset > 1_000_000) {
-                        try { accessLogFile.writeText(""); accessOffset = 0 } catch (_: Exception) {}
+                        try { accessLogFile?.writeText(""); accessOffset = 0 } catch (_: Exception) {}
                     }
                     if (errorOffset > 2_000_000) {
-                        try { errorLogFile.writeText(""); errorOffset = 0 } catch (_: Exception) {}
+                        try { errorLogFile?.writeText(""); errorOffset = 0 } catch (_: Exception) {}
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Parse error", e)
                 }
-                delay(5000) // Check every 5 seconds for faster DNS collection
+                delay(5000)
             }
         }
         Log.d(TAG, "AccessLogParser started")
+    }
+
+    private fun readAccessLog() {
+        val file = accessLogFile ?: return
+        accessOffset = readNewLines(file, accessOffset) { lines ->
+            val xrayLines = mutableListOf<String>()
+            val dnsIpLines = mutableListOf<String>()
+
+            for (line in lines) {
+                if (line.contains("app/dns:") || line.contains("sniffed domain:")
+                    || line.contains("default route for")) {
+                    dnsIpLines.add(line)
+                } else {
+                    xrayLines.add(line)
+                }
+            }
+
+            synchronized(lock) {
+                if (xrayLines.isNotEmpty()) accessLines.addAll(xrayLines)
+                if (dnsIpLines.isNotEmpty()) dnsLines.addAll(dnsIpLines)
+            }
+
+            if (dnsIpLines.isNotEmpty()) {
+                appendToDnsLogFile(dnsIpLines)
+            }
+        }
+    }
+
+    private fun readErrorLog() {
+        val file = errorLogFile ?: return
+        errorOffset = readNewLines(file, errorOffset) { lines ->
+            val useful = lines.filter {
+                it.contains("sniffed domain:") || it.contains("app/dns:")
+                    || it.contains("default route for") || it.contains("tunneling request to")
+            }
+            if (useful.isNotEmpty()) {
+                synchronized(lock) { dnsLines.addAll(useful) }
+                appendToDnsLogFile(useful)
+            }
+        }
+    }
+
+    /**
+     * Final synchronous read of remaining data from both log files.
+     * Must be called BEFORE stop() and BEFORE endSession() to ensure no data is lost.
+     */
+    fun finalRead() {
+        try {
+            readAccessLog()
+            readErrorLog()
+            Log.d(TAG, "Final read completed: ${accessLines.size} access, ${dnsLines.size} dns lines")
+        } catch (e: Exception) {
+            Log.e(TAG, "Final read error", e)
+        }
     }
 
     private fun appendToDnsLogFile(lines: List<String>) {

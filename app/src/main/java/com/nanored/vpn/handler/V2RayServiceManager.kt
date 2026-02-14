@@ -203,13 +203,16 @@ object V2RayServiceManager {
         val service = getService() ?: return false
 
 
-        // Stop access log parser
-        AccessLogParser.stop()
-        // End telemetry session with traffic stats
+        // 1. Final read of remaining log data from files into buffers
+        AccessLogParser.finalRead()
+        // 2. End telemetry session — drains all buffers and sends to server
         NanoredTelemetry.endSession(
             bytesDownloaded = NotificationManager.getTotalDownloadBytes(),
             bytesUploaded = NotificationManager.getTotalUploadBytes()
         )
+        // 3. Stop parser coroutine (buffers already drained)
+        AccessLogParser.stop()
+        // 4. Stop V2Ray core
         if (coreController.isRunning) {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
