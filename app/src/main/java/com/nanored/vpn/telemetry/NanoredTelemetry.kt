@@ -143,6 +143,20 @@ object NanoredTelemetry {
         }
     }
 
+    fun notifyServerChange(newServerAddress: String) {
+        val sessionId = currentSessionId ?: return
+        scope.launch {
+            try {
+                val body = JSONObject().apply {
+                    put("session_id", sessionId)
+                    put("new_server_address", newServerAddress)
+                }
+                post("/api/v1/client/session/server-change", body, auth = true)
+                Log.d(TAG, "Server change notified: $newServerAddress")
+            } catch (e: Exception) { Log.e(TAG, "Server change notify failed", e) }
+        }
+    }
+
     fun endSession(bytesDownloaded: Long, bytesUploaded: Long, connectionCount: Int = 0, reconnectCount: Int = 0) {
         val sessionId = currentSessionId ?: return
         // Stop heartbeat immediately

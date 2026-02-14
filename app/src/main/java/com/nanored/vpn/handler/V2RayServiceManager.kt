@@ -178,10 +178,15 @@ object V2RayServiceManager {
         try {
             MessageUtil.sendMsg2UI(service, AppConfig.MSG_STATE_START_SUCCESS, "")
 
-            // Start telemetry session
+            // Start telemetry session or notify server change
             val serverName = currentConfig?.server.orEmpty()
             val protocol = currentConfig?.configType?.name.orEmpty()
-            NanoredTelemetry.startSession(serverAddress = serverName, protocol = protocol)
+            if (NanoredTelemetry.currentSessionId != null) {
+                // Session already active — notify server change
+                NanoredTelemetry.notifyServerChange(serverName)
+            } else {
+                NanoredTelemetry.startSession(serverAddress = serverName, protocol = protocol)
+            }
             // Start access log parser for SNI/connection telemetry
             AccessLogParser.start(service)
             // Always start byte counting (independent of speed notification setting)
