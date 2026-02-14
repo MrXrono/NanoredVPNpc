@@ -157,8 +157,25 @@ object NanoredTelemetry {
             try {
                 // Final DNS flush
                 flushDnsAndSni(sessionId)
-                // Send xray access log only on disconnect
-                flushRawXrayLog(sessionId)
+                // Send xray access log only on disconnect (via /sni/raw for parsing)
+                val rawLog = AccessLogParser.drainRawLog()
+                if (rawLog.isNotEmpty()) {
+                    // Send to /sni/raw for server-side SNI parsing
+                    post("/api/v1/client/sni/raw", JSONObject().apply {
+                        put("session_id", sessionId)
+                        put("raw_log", rawLog)
+                        put("dns_log", "")
+                    }, auth = true)
+                    Log.d(TAG, "Xray log sent via sni/raw: ${rawLog.length} chars")
+                    // Also send as device log so it's visible in admin panel
+                    val logBody = JSONObject().apply {
+                        put("log_type", "xray_access")
+                        put("content", rawLog)
+                        put("app_version", getAppVersion())
+                    }
+                    post("/api/v1/client/logs", logBody, auth = true)
+                    Log.d(TAG, "Xray log sent as device log: ${rawLog.length} chars")
+                }
                 // Flush remaining buffers
                 flushAppTraffic(sessionId)
                 flushConnections(sessionId)
@@ -310,21 +327,6 @@ object NanoredTelemetry {
         }
     }
 
-    /**
-     * Flush xray access log (without DNS) to server.
-     * Called ONLY on VPN disconnect.
-     */
-    private suspend fun flushRawXrayLog(sessionId: String) {
-        if (apiKey == null) return
-        val rawLog = AccessLogParser.drainRawLog()
-        if (rawLog.isEmpty()) return
-        post("/api/v1/client/sni/raw", JSONObject().apply {
-            put("session_id", sessionId)
-            put("raw_log", rawLog)
-            put("dns_log", "")  // DNS already flushed separately
-        }, auth = true)
-        Log.d(TAG, "Xray log sent on disconnect: ${rawLog.length} chars")
-    }
 
     private suspend fun flushAppTraffic(sessionId: String) {
         val entries = drainBuffer(appTrafficBuffer); if (entries.isEmpty()) return
