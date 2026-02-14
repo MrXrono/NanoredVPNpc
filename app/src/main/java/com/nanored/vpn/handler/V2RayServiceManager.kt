@@ -184,8 +184,11 @@ object V2RayServiceManager {
             NanoredTelemetry.startSession(serverAddress = serverName, protocol = protocol)
             // Start access log parser for SNI/connection telemetry
             AccessLogParser.start(service)
-            //NotificationManager.showNotification(currentConfig)
+            // Always start byte counting (independent of speed notification setting)
+            NotificationManager.startByteCounting(currentConfig)
             NotificationManager.startSpeedNotification(currentConfig)
+            // Start per-app traffic tracking
+            NanoredTelemetry.startAppTrafficTracking(service)
 
         } catch (e: Exception) {
             Log.e(AppConfig.TAG, "Failed to startup service", e)

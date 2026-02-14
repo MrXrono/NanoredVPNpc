@@ -35,92 +35,92 @@ object NotificationManager {
     private var lastQueryTime = 0L
     private var mBuilder: NotificationCompat.Builder? = null
     private var speedNotificationJob: Job? = null
+    private var byteCountingJob: Job? = null
     private var mNotificationManager: NotificationManager? = null
 
     // Session tracking
     private var sessionStartTime = 0L
-    private var totalDownloadBytes = 0L
-    private var totalUploadBytes = 0L
+    @Volatile private var totalDownloadBytes = 0L
+    @Volatile private var totalUploadBytes = 0L
 
-        fun getTotalDownloadBytes(): Long = totalDownloadBytes
-        fun getTotalUploadBytes(): Long = totalUploadBytes
+    fun getTotalDownloadBytes(): Long = totalDownloadBytes
+    fun getTotalUploadBytes(): Long = totalUploadBytes
     private var currentProfileRemarks: String? = null
 
     /**
-     * Starts the speed notification.
+     * Starts byte counting coroutine — always runs regardless of PREF_SPEED_ENABLED.
+     * Polls xray stats API every 3 seconds and accumulates total session bytes.
+     */
+    fun startByteCounting(currentConfig: ProfileItem?) {
+        if (byteCountingJob != null || V2RayServiceManager.isRunning() == false) return
+
+        lastQueryTime = System.currentTimeMillis()
+        if (sessionStartTime == 0L) {
+            sessionStartTime = System.currentTimeMillis()
+        }
+        val outboundTags = currentConfig?.getAllOutboundTags()
+        outboundTags?.remove(AppConfig.TAG_DIRECT)
+
+        byteCountingJob = CoroutineScope(Dispatchers.IO).launch {
+            while (isActive) {
+                delay(3000)
+                outboundTags?.forEach {
+                    val up = V2RayServiceManager.queryStats(it, AppConfig.UPLINK)
+                    val down = V2RayServiceManager.queryStats(it, AppConfig.DOWNLINK)
+                    totalDownloadBytes += down
+                    totalUploadBytes += up
+                }
+                val directUp = V2RayServiceManager.queryStats(AppConfig.TAG_DIRECT, AppConfig.UPLINK)
+                val directDown = V2RayServiceManager.queryStats(AppConfig.TAG_DIRECT, AppConfig.DOWNLINK)
+                totalDownloadBytes += directDown
+                totalUploadBytes += directUp
+            }
+        }
+    }
+
+    /**
+     * Starts the speed notification with UI updates.
      * @param currentConfig The current profile configuration.
      */
     fun startSpeedNotification(currentConfig: ProfileItem?) {
         if (MmkvManager.decodeSettingsBool(AppConfig.PREF_SPEED_ENABLED) != true) return
         if (speedNotificationJob != null || V2RayServiceManager.isRunning() == false) return
 
-        lastQueryTime = System.currentTimeMillis()
-        if (sessionStartTime == 0L) {
-            sessionStartTime = System.currentTimeMillis()
-        }
-        var lastZeroSpeed = false
-        val outboundTags = currentConfig?.getAllOutboundTags()
-        outboundTags?.remove(AppConfig.TAG_DIRECT)
         currentProfileRemarks = currentConfig?.remarks
 
         speedNotificationJob = CoroutineScope(Dispatchers.IO).launch {
+            var lastZeroSpeed = false
+            var lastNotifyTime = System.currentTimeMillis()
+            val outboundTags = currentConfig?.getAllOutboundTags()
+            outboundTags?.remove(AppConfig.TAG_DIRECT)
             while (isActive) {
-                val queryTime = System.currentTimeMillis()
-                val sinceLastQueryInSeconds = (queryTime - lastQueryTime) / 1000.0
-                var proxyTotal = 0L
-                var currentDownSpeed = 0.0
-                var currentUpSpeed = 0.0
-                val text = StringBuilder()
-                outboundTags?.forEach {
-                    val up = V2RayServiceManager.queryStats(it, AppConfig.UPLINK)
-                    val down = V2RayServiceManager.queryStats(it, AppConfig.DOWNLINK)
-                    if (up + down > 0) {
-                        val upSpeed = up / sinceLastQueryInSeconds
-                        val downSpeed = down / sinceLastQueryInSeconds
-                        appendSpeedString(text, it, upSpeed, downSpeed)
-                        proxyTotal += up + down
-                        totalDownloadBytes += down
-                        totalUploadBytes += up
-                        currentDownSpeed += downSpeed
-                        currentUpSpeed += upSpeed
-                    }
-                }
-                val directUplink = V2RayServiceManager.queryStats(AppConfig.TAG_DIRECT, AppConfig.UPLINK)
-                val directDownlink = V2RayServiceManager.queryStats(AppConfig.TAG_DIRECT, AppConfig.DOWNLINK)
-                totalDownloadBytes += directDownlink
-                totalUploadBytes += directUplink
-                val zeroSpeed = proxyTotal == 0L && directUplink == 0L && directDownlink == 0L
-                if (!zeroSpeed || !lastZeroSpeed) {
-                    if (proxyTotal == 0L) {
-                        appendSpeedString(text, outboundTags?.firstOrNull(), 0.0, 0.0)
-                    }
-                    val directDownSpeed = directDownlink / sinceLastQueryInSeconds
-                    val directUpSpeed = directUplink / sinceLastQueryInSeconds
-                    appendSpeedString(text, AppConfig.TAG_DIRECT, directUpSpeed, directDownSpeed)
-                    currentDownSpeed += directDownSpeed
-                    currentUpSpeed += directUpSpeed
-
-                    // Build compact title for collapsed notification
-                    val compactTitle = buildCompactTitle(
-                        currentProfileRemarks,
-                        currentDownSpeed,
-                        totalDownloadBytes + totalUploadBytes,
-                        queryTime
-                    )
-
-                    // Build detailed text for expanded notification
-                    val totalTraffic = totalDownloadBytes + totalUploadBytes
-                    val uptimeStr = formatUptime(queryTime - sessionStartTime)
-                    text.append("\n")
-                    text.append("⏱ $uptimeStr  |  ")
-                    text.append("📊 ↓${totalDownloadBytes.toTrafficString()}  ↑${totalUploadBytes.toTrafficString()}  ")
-                    text.append("Σ ${totalTraffic.toTrafficString()}")
-
-                    updateNotification(compactTitle, text.toString(), proxyTotal, directDownlink + directUplink)
-                }
-                lastZeroSpeed = zeroSpeed
-                lastQueryTime = queryTime
                 delay(3000)
+                val queryTime = System.currentTimeMillis()
+                val sinceLastQuery = (queryTime - lastNotifyTime) / 1000.0
+                lastNotifyTime = queryTime
+                // Read current totals (accumulated by byteCountingJob)
+                val curDown = totalDownloadBytes
+                val curUp = totalUploadBytes
+                val totalTraffic = curDown + curUp
+
+                // Build notification text
+                val text = StringBuilder()
+                text.append("proxy\t\t•  traffic active\n")
+                text.append("direct\t\t•  traffic active\n")
+
+                val uptimeStr = formatUptime(queryTime - sessionStartTime)
+                text.append("\n")
+                text.append("⏱ $uptimeStr  |  ")
+                text.append("📊 ↓${curDown.toTrafficString()}  ↑${curUp.toTrafficString()}  ")
+                text.append("Σ ${totalTraffic.toTrafficString()}")
+
+                val compactTitle = buildCompactTitle(
+                    currentProfileRemarks,
+                    0.0,
+                    totalTraffic,
+                    queryTime
+                )
+                updateNotification(compactTitle, text.toString(), 1, 0)
             }
         }
     }
@@ -195,6 +195,8 @@ object NotificationManager {
         mBuilder = null
         speedNotificationJob?.cancel()
         speedNotificationJob = null
+        byteCountingJob?.cancel()
+        byteCountingJob = null
         mNotificationManager = null
         sessionStartTime = 0L
         totalDownloadBytes = 0L
@@ -212,6 +214,8 @@ object NotificationManager {
             speedNotificationJob = null
             updateNotification(currentConfig?.remarks, currentConfig?.remarks, 0, 0)
         }
+        byteCountingJob?.cancel()
+        byteCountingJob = null
     }
 
     /**

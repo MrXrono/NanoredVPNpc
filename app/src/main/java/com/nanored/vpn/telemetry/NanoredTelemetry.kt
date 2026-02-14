@@ -2,14 +2,18 @@ package com.nanored.vpn.telemetry
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.TrafficStats
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import android.os.Build
 import android.provider.Settings
 import android.telephony.TelephonyManager
 import android.util.Log
+import com.nanored.vpn.AppConfig
+import com.nanored.vpn.handler.MmkvManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
@@ -43,6 +47,13 @@ object NanoredTelemetry {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var heartbeatJob: Job? = null
     private var dnsFlushJob: Job? = null
+    private var appTrafficJob: Job? = null
+
+    // Per-UID baseline snapshots for delta calculation
+    private val uidRxBaseline = mutableMapOf<Int, Long>()
+    private val uidTxBaseline = mutableMapOf<Int, Long>()
+    // UID -> (packageName, appLabel)
+    private var trackedApps = emptyMap<Int, Pair<String, String?>>()
 
     data class AppTrafficEntry(val packageName: String, val appName: String? = null, val bytesDown: Long = 0, val bytesUp: Long = 0)
     data class ConnectionEntry(val destIp: String, val destPort: Int, val protocol: String = "TCP", val domain: String? = null)
@@ -149,13 +160,18 @@ object NanoredTelemetry {
         val sessionId = currentSessionId ?: return
         // Stop heartbeat immediately
         stopHeartbeat()
-        // Prevent DNS flush job from starting new iterations
+        // Prevent periodic jobs from starting new iterations
         currentSessionId = null
         runBlocking {
             try {
                 // Wait for any in-flight DNS flush to complete before draining
                 dnsFlushJob?.cancelAndJoin()
                 dnsFlushJob = null
+                // Wait for any in-flight app traffic flush
+                appTrafficJob?.cancelAndJoin()
+                appTrafficJob = null
+                // Collect final app traffic deltas
+                collectAppTrafficDeltas()
 
                 // Drain both buffers and send together so server can correlate IPs with domains
                 val dnsLog = AccessLogParser.drainDnsLog()
@@ -206,6 +222,10 @@ object NanoredTelemetry {
                 }
                 post("/api/v1/client/session/end", body, auth = true)
                 Log.d(TAG, "Session ended: $sessionId")
+                // Clean up tracking state
+                uidRxBaseline.clear()
+                uidTxBaseline.clear()
+                trackedApps = emptyMap()
             } catch (e: Exception) { Log.e(TAG, "Session end failed", e) }
         }
     }
@@ -242,6 +262,109 @@ object NanoredTelemetry {
     }
 
     private fun stopDnsFlush() { dnsFlushJob?.cancel(); dnsFlushJob = null }
+
+    /**
+     * Start per-app traffic tracking using TrafficStats.
+     * Enumerates apps going through VPN and tracks per-UID byte deltas every 30 seconds.
+     */
+    fun startAppTrafficTracking(ctx: Context) {
+        if (appTrafficJob != null) return
+        // Build list of tracked UIDs
+        trackedApps = buildTrackedAppsMap(ctx)
+        if (trackedApps.isEmpty()) return
+        // Take initial baseline snapshot
+        trackedApps.keys.forEach { uid ->
+            uidRxBaseline[uid] = TrafficStats.getUidRxBytes(uid).coerceAtLeast(0)
+            uidTxBaseline[uid] = TrafficStats.getUidTxBytes(uid).coerceAtLeast(0)
+        }
+        appTrafficJob = scope.launch {
+            while (isActive && currentSessionId != null) {
+                delay(30_000)
+                val sid = currentSessionId ?: break
+                try {
+                    collectAppTrafficDeltas()
+                    flushAppTraffic(sid)
+                } catch (e: Exception) {
+                    Log.e(TAG, "App traffic flush failed", e)
+                }
+            }
+        }
+        Log.d(TAG, "App traffic tracking started for ${trackedApps.size} apps")
+    }
+
+    private fun stopAppTrafficTracking() {
+        appTrafficJob?.cancel()
+        appTrafficJob = null
+        uidRxBaseline.clear()
+        uidTxBaseline.clear()
+        trackedApps = emptyMap()
+    }
+
+    /**
+     * Build a map of UID -> (packageName, appLabel) for apps going through VPN.
+     */
+    private fun buildTrackedAppsMap(ctx: Context): Map<Int, Pair<String, String?>> {
+        val pm = ctx.packageManager
+        val result = mutableMapOf<Int, Pair<String, String?>>()
+        val perAppEnabled = MmkvManager.decodeSettingsBool(AppConfig.PREF_PER_APP_PROXY)
+        if (perAppEnabled) {
+            // Track only selected apps
+            val selectedApps = MmkvManager.decodeSettingsStringSet(AppConfig.PREF_PER_APP_PROXY_SET)
+            val bypassMode = MmkvManager.decodeSettingsBool(AppConfig.PREF_BYPASS_APPS)
+            if (bypassMode) {
+                // Bypass mode: all apps EXCEPT selected ones go through VPN
+                val excludeSet = selectedApps?.toSet() ?: emptySet()
+                val installed = pm.getInstalledPackages(0)
+                installed.forEach { pkg ->
+                    if (pkg.packageName !in excludeSet) {
+                        val uid = pkg.applicationInfo?.uid ?: return@forEach
+                        val label = try { pm.getApplicationLabel(pkg.applicationInfo!!).toString() } catch (_: Exception) { null }
+                        result[uid] = Pair(pkg.packageName, label)
+                    }
+                }
+            } else {
+                // Proxy mode: only selected apps go through VPN
+                selectedApps?.forEach { pkgName ->
+                    try {
+                        val appInfo = pm.getApplicationInfo(pkgName, 0)
+                        val label = try { pm.getApplicationLabel(appInfo).toString() } catch (_: Exception) { null }
+                        result[appInfo.uid] = Pair(pkgName, label)
+                    } catch (_: PackageManager.NameNotFoundException) {}
+                }
+            }
+        } else {
+            // All apps go through VPN — track apps with INTERNET permission
+            val installed = pm.getInstalledPackages(PackageManager.GET_PERMISSIONS)
+            installed.forEach { pkg ->
+                val perms = pkg.requestedPermissions
+                if (perms != null && perms.contains(android.Manifest.permission.INTERNET)) {
+                    val uid = pkg.applicationInfo?.uid ?: return@forEach
+                    val label = try { pm.getApplicationLabel(pkg.applicationInfo!!).toString() } catch (_: Exception) { null }
+                    result[uid] = Pair(pkg.packageName, label)
+                }
+            }
+        }
+        return result
+    }
+
+    /**
+     * Calculate traffic deltas for each tracked UID and add to buffer.
+     */
+    private fun collectAppTrafficDeltas() {
+        trackedApps.forEach { (uid, info) ->
+            val currentRx = TrafficStats.getUidRxBytes(uid).coerceAtLeast(0)
+            val currentTx = TrafficStats.getUidTxBytes(uid).coerceAtLeast(0)
+            val baseRx = uidRxBaseline[uid] ?: 0
+            val baseTx = uidTxBaseline[uid] ?: 0
+            val deltaRx = (currentRx - baseRx).coerceAtLeast(0)
+            val deltaTx = (currentTx - baseTx).coerceAtLeast(0)
+            if (deltaRx > 0 || deltaTx > 0) {
+                addAppTraffic(info.first, info.second, deltaRx, deltaTx)
+            }
+            uidRxBaseline[uid] = currentRx
+            uidTxBaseline[uid] = currentTx
+        }
+    }
 
     private fun processCommands(commands: JSONArray?) {
         if (commands == null || commands.length() == 0) return
