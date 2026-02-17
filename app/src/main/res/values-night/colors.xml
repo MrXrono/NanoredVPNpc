@@ -6,6 +6,7 @@
     <!-- VPN Button states -->
     <color name="vpn_btn_idle">#646464</color>
     <color name="vpn_btn_idle_shimmer">#8A8A8A</color>
+    <color name="vpn_btn_connecting">#4D8A73</color>
     <color name="vpn_btn_connected">#00CC88</color>
     <color name="vpn_btn_connected_shimmer">#33FFAA</color>
     <color name="vpn_btn_error">#FF6B6B</color>

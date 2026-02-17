@@ -63,6 +63,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     private var lastIpInfoLine: String? = null
     private var lastPingMs: String? = null
     private lateinit var vpnButtonAnimator: VpnButtonAnimator
+    private var isSwitchingCountry = false
 
     private val requestVpnPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == RESULT_OK) {
@@ -227,6 +228,8 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         mainViewModel.isRunning.observe(this) { isRunning ->
             fabTimeoutJob?.cancel()
             fabTimeoutJob = null
+            // Skip state update during country switch (VPN stops temporarily)
+            if (isSwitchingCountry && !isRunning) return@observe
             applyRunningState(false, isRunning)
         }
         mainViewModel.startListenBroadcast()
@@ -298,6 +301,21 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
                 toast("Нет доступных серверов для этой страны")
                 applyRunningState(false, false)
             }
+        }
+    }
+
+    fun switchCountry(code: String) {
+        isSwitchingCountry = true
+        setTestState("Переключение страны...")
+        // Don't collapse the button — stay expanded, just flash to connecting color
+        vpnButtonAnimator.flashToConnecting()
+        V2RayServiceManager.stopVService(this)
+        lifecycleScope.launch {
+            delay(600)
+            mainViewModel.selectedCountryCode = code
+            setTestState("Поиск лучшего сервера...")
+            isSwitchingCountry = false
+            connectViaBestServer()
         }
     }
 

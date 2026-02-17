@@ -44,6 +44,7 @@ class VpnButtonAnimator(
     // Colors
     private val colorIdle get() = ContextCompat.getColor(context, R.color.vpn_btn_idle)
     private val colorIdleShimmer get() = ContextCompat.getColor(context, R.color.vpn_btn_idle_shimmer)
+    private val colorConnecting get() = ContextCompat.getColor(context, R.color.vpn_btn_connecting)
     private val colorConnected get() = ContextCompat.getColor(context, R.color.vpn_btn_connected)
     private val colorConnectedShimmer get() = ContextCompat.getColor(context, R.color.vpn_btn_connected_shimmer)
     private val colorError get() = ContextCompat.getColor(context, R.color.vpn_btn_error)
@@ -107,6 +108,28 @@ class VpnButtonAnimator(
         }
     }
 
+    /**
+     * Flash the expanded button back to connecting color without collapsing.
+     * Used when switching countries while VPN is connected.
+     */
+    fun flashToConnecting() {
+        currentAnimator?.cancel()
+        currentAnimator = null
+        stopShimmer()
+        stopPulse()
+
+        currentState = State.CONNECTING
+
+        // Button stays expanded, just animate color change
+        val colorFlash = ValueAnimator.ofObject(argbEvaluator, colorConnected, colorConnecting).apply {
+            duration = 300
+            addUpdateListener { anim ->
+                background.setColor(anim.animatedValue as Int)
+            }
+        }
+        colorFlash.start()
+    }
+
     fun updateSessionInfo(time: String, speed: String, ping: String) {
         tvTime.text = time
         tvSpeed.text = speed
@@ -135,16 +158,20 @@ class VpnButtonAnimator(
         pulseAnimator = null
     }
 
-    // ===== CONNECTING: Circle -> Rectangle morph =====
+    // ===== CONNECTING: Circle -> Rectangle morph (fast expand) =====
 
     private fun animateConnecting() {
         icon.setImageResource(R.drawable.ic_play_24dp)
 
+        val currentWidth = container.layoutParams.width.let { if (it > 0) it else circleSize }
+        val currentHeight = container.layoutParams.height.let { if (it > 0) it else circleSize }
+        val currentCorner = background.cornerRadius
+
         val set = AnimatorSet()
 
-        // Width animation: circle -> rect
-        val widthAnim = ValueAnimator.ofInt(circleSize, rectWidth).apply {
-            duration = 2500
+        // Width animation: current -> rect (fast: 600ms)
+        val widthAnim = ValueAnimator.ofInt(currentWidth, rectWidth).apply {
+            duration = 600
             addUpdateListener { anim ->
                 val w = anim.animatedValue as Int
                 val params = container.layoutParams
@@ -153,9 +180,9 @@ class VpnButtonAnimator(
             }
         }
 
-        // Height animation: circle -> rect
-        val heightAnim = ValueAnimator.ofInt(circleSize, rectHeight).apply {
-            duration = 2500
+        // Height animation: current -> rect (fast: 600ms)
+        val heightAnim = ValueAnimator.ofInt(currentHeight, rectHeight).apply {
+            duration = 600
             addUpdateListener { anim ->
                 val h = anim.animatedValue as Int
                 val params = container.layoutParams
@@ -165,34 +192,34 @@ class VpnButtonAnimator(
         }
 
         // Corner radius animation: circle -> rounded rect
-        val cornerAnim = ValueAnimator.ofFloat(circleRadius, rectRadius).apply {
-            duration = 2500
+        val cornerAnim = ValueAnimator.ofFloat(currentCorner, rectRadius).apply {
+            duration = 600
             addUpdateListener { anim ->
                 background.cornerRadius = anim.animatedValue as Float
             }
         }
 
-        // Color animation: idle -> connected
-        val colorAnim = ValueAnimator.ofObject(argbEvaluator, colorIdle, colorConnected).apply {
-            duration = 2500
+        // Color: stay connecting color (greenish tint to show activity)
+        val colorAnim = ValueAnimator.ofObject(argbEvaluator, colorIdle, colorConnecting).apply {
+            duration = 600
             addUpdateListener { anim ->
                 background.setColor(anim.animatedValue as Int)
             }
         }
 
-        // Icon fade out (last 500ms of morph)
-        val iconFade = ValueAnimator.ofFloat(1f, 0f).apply {
-            duration = 500
-            startDelay = 2000
+        // Icon fade out during morph
+        val iconFade = ValueAnimator.ofFloat(icon.alpha, 0f).apply {
+            duration = 300
+            startDelay = 200
             addUpdateListener { anim ->
                 icon.alpha = anim.animatedValue as Float
             }
         }
 
-        // Content fade in (last 500ms of morph)
+        // Content fade in after morph
         val contentFade = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 500
-            startDelay = 2500
+            duration = 300
+            startDelay = 500
             addUpdateListener { anim ->
                 contentLayout.alpha = anim.animatedValue as Float
             }
@@ -209,7 +236,26 @@ class VpnButtonAnimator(
 
     private fun startConnectedShimmer() {
         stopShimmer()
+
+        // Ensure button is fully expanded (snap if animation was interrupted)
+        setContainerSize(rectWidth, rectHeight)
+        background.cornerRadius = rectRadius
+        icon.alpha = 0f
+        contentLayout.alpha = 1f
+
+        // Smooth transition from current color to connected green, then shimmer
+        val currentColor = colorConnecting
+        val transitionToGreen = ValueAnimator.ofObject(argbEvaluator, currentColor, colorConnected).apply {
+            duration = 400
+            addUpdateListener { anim ->
+                background.setColor(anim.animatedValue as Int)
+            }
+        }
+        transitionToGreen.start()
+
+        // Start shimmer after transition
         shimmerAnimator = ValueAnimator.ofFloat(0f, 1f, 0f).apply {
+            startDelay = 400
             duration = 3000
             repeatCount = ValueAnimator.INFINITE
             interpolator = AccelerateDecelerateInterpolator()
@@ -227,50 +273,96 @@ class VpnButtonAnimator(
         shimmerAnimator = null
     }
 
-    // ===== ERROR: Red flash -> back to idle =====
+    // ===== ERROR: Flash red in expanded state -> collapse back to idle =====
 
     private fun animateError() {
-        // Snap to circle if not already
-        setContainerSize(circleSize, circleSize)
-        background.cornerRadius = circleRadius
-        icon.alpha = 1f
-        contentLayout.alpha = 0f
+        // Button is already expanded (rect) from CONNECTING state
+        // Show error in expanded state, then collapse
 
-        icon.setImageResource(R.drawable.ic_stop_24dp)
+        val currentWidth = container.layoutParams.width.let { if (it > 0) it else rectWidth }
+        val currentHeight = container.layoutParams.height.let { if (it > 0) it else rectHeight }
+        val currentCorner = background.cornerRadius
 
         val set = AnimatorSet()
 
-        // Flash to red (0.5s)
-        val flashIn = ValueAnimator.ofObject(argbEvaluator, colorIdle, colorError).apply {
-            duration = 500
+        // Phase 1: Flash to red in expanded state (300ms)
+        val flashIn = ValueAnimator.ofObject(argbEvaluator,
+            colorConnecting, colorError
+        ).apply {
+            duration = 300
             addUpdateListener { anim ->
                 background.setColor(anim.animatedValue as Int)
             }
         }
 
-        // Hold red (2.5s) — just a dummy
+        // Phase 2: Hold red expanded (1500ms)
         val hold = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 2500
+            duration = 1500
         }
 
-        // Fade back to idle (0.5s)
-        val fadeBack = ValueAnimator.ofObject(argbEvaluator, colorError, colorIdle).apply {
-            duration = 500
+        // Phase 3: Content fade out (300ms)
+        val contentFadeOut = ValueAnimator.ofFloat(contentLayout.alpha, 0f).apply {
+            duration = 300
+            addUpdateListener { anim ->
+                contentLayout.alpha = anim.animatedValue as Float
+            }
+        }
+
+        // Phase 4: Collapse back to circle + fade color to idle (800ms)
+        val collapseWidth = ValueAnimator.ofInt(currentWidth, circleSize).apply {
+            duration = 800
+            addUpdateListener { anim ->
+                val w = anim.animatedValue as Int
+                val params = container.layoutParams
+                params.width = w
+                container.layoutParams = params
+            }
+        }
+        val collapseHeight = ValueAnimator.ofInt(currentHeight, circleSize).apply {
+            duration = 800
+            addUpdateListener { anim ->
+                val h = anim.animatedValue as Int
+                val params = container.layoutParams
+                params.height = h
+                container.layoutParams = params
+            }
+        }
+        val collapseCorner = ValueAnimator.ofFloat(currentCorner, circleRadius).apply {
+            duration = 800
+            addUpdateListener { anim ->
+                background.cornerRadius = anim.animatedValue as Float
+            }
+        }
+        val colorFadeBack = ValueAnimator.ofObject(argbEvaluator, colorError, colorIdle).apply {
+            duration = 800
             addUpdateListener { anim ->
                 background.setColor(anim.animatedValue as Int)
             }
         }
+        val iconFadeIn = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 400
+            addUpdateListener { anim ->
+                icon.alpha = anim.animatedValue as Float
+            }
+        }
 
-        set.playSequentially(flashIn, hold, fadeBack)
+        // Build sequence: flash -> hold -> fadeOutContent -> (collapse + colorFade + iconFadeIn)
+        val collapseSet = AnimatorSet()
+        collapseSet.playTogether(collapseWidth, collapseHeight, collapseCorner, colorFadeBack, iconFadeIn)
+        collapseSet.interpolator = AccelerateDecelerateInterpolator()
 
-        // After error animation, restore icon and go to IDLE
-        fadeBack.addUpdateListener { anim ->
+        set.playSequentially(flashIn, hold, contentFadeOut, collapseSet)
+
+        // After full animation, restore to IDLE
+        colorFadeBack.addUpdateListener { anim ->
             if (anim.animatedFraction >= 1f) {
                 icon.setImageResource(R.drawable.ic_play_24dp)
                 currentState = State.IDLE
                 startIdlePulse()
             }
         }
+
+        icon.setImageResource(R.drawable.ic_stop_24dp)
 
         set.start()
         currentAnimator = set

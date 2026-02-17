@@ -38,8 +38,13 @@ class CountryListFragment : BaseFragment<FragmentCountryListBinding>() {
                 mainViewModel.selectedCountryCode,
                 mainViewModel.countryPingResults.value ?: emptyMap()
             ) { code ->
+                val previousCode = mainViewModel.selectedCountryCode
                 mainViewModel.selectedCountryCode = code
                 adapter?.updateSelection(code)
+                // If VPN is running and country changed, switch to new country
+                if (mainViewModel.isRunning.value == true && previousCode != code) {
+                    (activity as? MainActivity)?.switchCountry(code)
+                }
             }
             binding.recyclerViewCountries.adapter = adapter
         }
