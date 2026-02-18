@@ -37,7 +37,7 @@ object SupportChatNotifier {
             return
         }
 
-        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        val pendingFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         } else {
             PendingIntent.FLAG_UPDATE_CURRENT
@@ -48,7 +48,7 @@ object SupportChatNotifier {
             Intent(context, SupportChatActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             },
-            flags,
+            pendingFlags,
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)

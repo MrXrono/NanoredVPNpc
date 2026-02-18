@@ -27,7 +27,7 @@ object SupportChatApi {
             append("$BASE_URL/api/v1/client/support/messages?limit=$limit")
             if (!afterId.isNullOrBlank()) append("&after_id=$afterId")
         }
-        val resp = request("GET", url, key, null, "application/json")
+        val resp = requestJson("GET", url, key, null, "application/json")
         if (resp == null) return SupportMessagesPage(emptyList(), 0)
 
         val json = JSONObject(resp)
@@ -55,7 +55,7 @@ object SupportChatApi {
 
     fun unreadCount(context: Context): Int {
         val key = apiKey(context) ?: return 0
-        val resp = request("GET", "$BASE_URL/api/v1/client/support/unread", key, null, "application/json") ?: return 0
+        val resp = requestJson("GET", "$BASE_URL/api/v1/client/support/unread", key, null, "application/json") ?: return 0
         return runCatching { JSONObject(resp).optInt("unread_count", 0) }.getOrDefault(0)
     }
 
@@ -64,7 +64,7 @@ object SupportChatApi {
         val body = JSONObject().apply {
             if (!uptoId.isNullOrBlank()) put("upto_message_id", uptoId)
         }.toString()
-        request("POST", "$BASE_URL/api/v1/client/support/read", key, body, "application/json")
+        requestJson("POST", "$BASE_URL/api/v1/client/support/read", key, body, "application/json")
     }
 
     fun sendText(context: Context, text: String): SupportChatMessage? {
@@ -76,7 +76,7 @@ object SupportChatApi {
         out.writeBytes("--$boundary--\r\n")
         out.flush()
 
-        val resp = request(
+        val resp = requestBytes(
             method = "POST",
             rawUrl = "$BASE_URL/api/v1/client/support/send",
             apiKey = key,
@@ -104,7 +104,7 @@ object SupportChatApi {
         out.writeBytes("--$boundary--\r\n")
         out.flush()
 
-        val resp = request(
+        val resp = requestBytes(
             method = "POST",
             rawUrl = "$BASE_URL/api/v1/client/support/send",
             apiKey = key,
@@ -189,7 +189,7 @@ object SupportChatApi {
         )
     }
 
-    private fun request(
+    private fun requestJson(
         method: String,
         rawUrl: String,
         apiKey: String,
@@ -197,10 +197,10 @@ object SupportChatApi {
         contentType: String,
     ): String? {
         val bytes = body?.toByteArray(Charsets.UTF_8)
-        return request(method, rawUrl, apiKey, bytes, contentType)
+        return requestBytes(method, rawUrl, apiKey, bytes, contentType)
     }
 
-    private fun request(
+    private fun requestBytes(
         method: String,
         rawUrl: String,
         apiKey: String,
