@@ -277,8 +277,12 @@ class SupportChatActivity : BaseActivity() {
     }
 
     private fun scrollToBottom() {
-        if (allMessages.isNotEmpty()) {
-            binding.rvMessages.scrollToPosition(allMessages.size - 1)
+        val pos = allMessages.size - 1
+        if (pos < 0) return
+        // submitList() updates may apply asynchronously; post to ensure layout is ready.
+        binding.rvMessages.post {
+            val safePos = (adapter.itemCount - 1).coerceAtLeast(0)
+            binding.rvMessages.scrollToPosition(safePos)
         }
     }
 

@@ -68,6 +68,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     private var isSwitchingCountry = false
     private var supportUnreadPollingJob: Job? = null
     private var lastSupportUnread = 0
+    private var lastSupportUnreadRendered = 0
     private var supportChatToolbarButton: TextView? = null
     private var supportUnreadToolbarBadge: TextView? = null
 
@@ -564,17 +565,20 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     }
 
     private fun renderSupportUnread(unread: Int) {
+        // Keep the latest unread around even if the actionView hasn't been inflated yet.
+        lastSupportUnread = unread
         supportUnreadToolbarBadge?.isVisible = unread > 0
         if (unread > 0) {
             supportUnreadToolbarBadge?.text = if (unread > 99) "99+" else unread.toString()
-            if (unread > lastSupportUnread) {
+            // lastSupportUnread is persisted above; compare vs previous rendered value.
+            if (unread > lastSupportUnreadRendered) {
                 SupportChatNotifier.notifyNewMessage(
                     this,
-                    "Новых сообщений: ${unread - lastSupportUnread}",
+                    "Новых сообщений: ${unread - lastSupportUnreadRendered}",
                 )
             }
         }
-        lastSupportUnread = unread
+        lastSupportUnreadRendered = unread
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -586,7 +590,8 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         supportChatToolbarButton?.setOnClickListener {
             startActivity(Intent(this, SupportChatActivity::class.java))
         }
-        supportUnreadToolbarBadge?.isVisible = false
+        // Render immediately using the latest unread value gathered by polling.
+        renderSupportUnread(lastSupportUnread)
         return super.onCreateOptionsMenu(menu)
     }
 
