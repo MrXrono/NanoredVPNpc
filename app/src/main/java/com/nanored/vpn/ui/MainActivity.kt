@@ -68,6 +68,8 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     private var isSwitchingCountry = false
     private var supportUnreadPollingJob: Job? = null
     private var lastSupportUnread = 0
+    private var supportChatToolbarButton: TextView? = null
+    private var supportUnreadToolbarBadge: TextView? = null
 
     private val requestVpnPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == RESULT_OK) {
@@ -144,9 +146,6 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             toast("Тестирование пинга...")
             mainViewModel.testAllCountryPings()
             mainViewModel.testAllTcping()
-        }
-        binding.btnSupportChat.setOnClickListener {
-            startActivity(Intent(this, SupportChatActivity::class.java))
         }
 
         setupGroupTab()
@@ -565,9 +564,9 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     }
 
     private fun renderSupportUnread(unread: Int) {
-        binding.tvSupportUnreadBadge.isVisible = unread > 0
+        supportUnreadToolbarBadge?.isVisible = unread > 0
         if (unread > 0) {
-            binding.tvSupportUnreadBadge.text = if (unread > 99) "99+" else unread.toString()
+            supportUnreadToolbarBadge?.text = if (unread > 99) "99+" else unread.toString()
             if (unread > lastSupportUnread) {
                 SupportChatNotifier.notifyNewMessage(
                     this,
@@ -580,10 +579,23 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
+        val supportItem = menu.findItem(R.id.support_chat_toolbar)
+        val actionView = supportItem?.actionView
+        supportChatToolbarButton = actionView?.findViewById(R.id.btn_support_chat_toolbar)
+        supportUnreadToolbarBadge = actionView?.findViewById(R.id.tv_support_unread_badge_toolbar)
+        supportChatToolbarButton?.setOnClickListener {
+            startActivity(Intent(this, SupportChatActivity::class.java))
+        }
+        supportUnreadToolbarBadge?.isVisible = false
         return super.onCreateOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
+        R.id.support_chat_toolbar -> {
+            startActivity(Intent(this, SupportChatActivity::class.java))
+            true
+        }
+
         R.id.ping_all -> {
             toast(getString(R.string.connection_test_testing_count, mainViewModel.serversCache.count()))
             mainViewModel.testAllTcping()

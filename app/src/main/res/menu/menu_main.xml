@@ -2,6 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/support_chat_toolbar"
+        android:title="@string/title_support_chat"
+        app:actionLayout="@layout/view_support_chat_action"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/service_restart"
         android:title="@string/title_service_restart"
         app:showAsAction="never" />

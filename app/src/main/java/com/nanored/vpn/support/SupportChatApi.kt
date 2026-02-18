@@ -146,8 +146,9 @@ object SupportChatApi {
 
     private fun writeFormField(out: DataOutputStream, boundary: String, name: String, value: String) {
         out.writeBytes("--$boundary\r\n")
-        out.writeBytes("Content-Disposition: form-data; name=\"$name\"\r\n\r\n")
-        out.writeBytes(value)
+        out.writeBytes("Content-Disposition: form-data; name=\"$name\"\r\n")
+        out.writeBytes("Content-Type: text/plain; charset=UTF-8\r\n\r\n")
+        out.write(value.toByteArray(Charsets.UTF_8))
         out.writeBytes("\r\n")
     }
 
@@ -225,7 +226,7 @@ object SupportChatApi {
 
             val code = conn.responseCode
             val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-            val response = stream?.bufferedReader()?.use { it.readText() }
+            val response = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
             if (code !in 200..299) {
                 Log.w(TAG, "Support API error $code: $response")
                 return null

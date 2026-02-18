@@ -5,9 +5,13 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.view.WindowManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.FileProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.nanored.vpn.AppConfig
@@ -24,6 +28,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.max
 
 class SupportChatActivity : BaseActivity() {
     private val binding by lazy { ActivitySupportChatBinding.inflate(layoutInflater) }
@@ -41,6 +46,7 @@ class SupportChatActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         setContentView(binding.root)
 
         binding.rvMessages.layoutManager = LinearLayoutManager(this).apply {
@@ -52,6 +58,7 @@ class SupportChatActivity : BaseActivity() {
         binding.btnSend.setOnClickListener { sendText() }
         binding.btnAttach.setOnClickListener { showAttachmentChooser() }
         binding.btnSendLogsChat.setOnClickListener { sendLogs() }
+        applyInsets()
 
         loadInitial()
     }
@@ -236,6 +243,18 @@ class SupportChatActivity : BaseActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             SupportChatApi.markRead(this@SupportChatActivity, lastId)
         }
+    }
+
+    private fun applyInsets() {
+        val composerBaseBottom = binding.composerBar.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(binding.supportChatRoot) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+            binding.topBar.updatePadding(top = systemBars.top)
+            binding.composerBar.updatePadding(bottom = composerBaseBottom + max(systemBars.bottom, imeInsets.bottom))
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.supportChatRoot)
     }
 
     private fun scrollToBottom() {

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/support_chat_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#0E1A2A"
@@ -59,6 +60,7 @@
         android:padding="12dp" />
 
     <LinearLayout
+        android:id="@+id/composer_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="#15263B"
@@ -81,16 +83,22 @@
         <EditText
             android:id="@+id/et_message"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_marginEnd="6dp"
             android:layout_weight="1"
             android:background="@drawable/support_chat_input_bg"
+            android:gravity="top|start"
             android:hint="@string/support_chat_message_hint"
             android:inputType="textCapSentences|textMultiLine"
-            android:maxLines="4"
+            android:maxLines="3"
+            android:minHeight="40dp"
             android:paddingStart="14dp"
+            android:paddingTop="10dp"
             android:paddingEnd="14dp"
+            android:paddingBottom="10dp"
+            android:scrollbarStyle="outsideInset"
+            android:scrollbars="vertical"
             android:textColor="@android:color/white"
             android:textColorHint="#A0B4CC" />
 
