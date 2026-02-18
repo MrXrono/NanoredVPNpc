@@ -293,6 +293,7 @@
     <string name="support_chat_attach_title">Прикрепить</string>
     <string name="support_chat_pick_photo">Фото с устройства</string>
     <string name="support_chat_pick_file">Файл</string>
+    <string name="support_chat_file_too_large">Файл больше 50 МБ</string>
     <string name="logcat_copy">Copy</string>
     <string name="logcat_clear">Clear</string>
     <string name="title_service_restart">Service restart</string>

@@ -9,6 +9,8 @@ import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.io.File
+import java.io.OutputStream
+import java.io.FileInputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
@@ -36,6 +38,13 @@ object SupportChatApi {
         val items = ArrayList<SupportChatMessage>(arr.length())
         for (i in 0 until arr.length()) {
             val it = arr.optJSONObject(i) ?: continue
+            fun optStringOrNull(key: String): String? {
+                val raw = it.optString(key, "")
+                val v = raw.trim()
+                if (v.isEmpty()) return null
+                if (v.equals("null", ignoreCase = true)) return null
+                return v
+            }
             items.add(
                 SupportChatMessage(
                     id = it.optString("id"),
@@ -43,9 +52,9 @@ object SupportChatApi {
                         .getOrDefault(SupportDirection.SUPPORT_TO_APP),
                     messageType = runCatching { SupportMessageType.valueOf(it.optString("message_type").uppercase()) }
                         .getOrDefault(SupportMessageType.TEXT),
-                    text = it.optString("text").ifBlank { null },
-                    fileName = it.optString("file_name").ifBlank { null },
-                    mimeType = it.optString("mime_type").ifBlank { null },
+                    text = optStringOrNull("text"),
+                    fileName = optStringOrNull("file_name"),
+                    mimeType = optStringOrNull("mime_type"),
                     hasAttachment = it.optBoolean("has_attachment", false),
                     createdAtRaw = it.optString("created_at"),
                 )
@@ -89,32 +98,64 @@ object SupportChatApi {
     }
 
     fun sendLogs(context: Context, logs: String): SupportChatMessage? {
-        return sendText(context, "[Logs]\n$logs")
+        // Send logs as a file attachment (Telegram-friendly and no text-size limit issues).
+        val fileName = "nanored_logs_${System.currentTimeMillis()}.txt"
+        val file = File(context.cacheDir, fileName)
+        runCatching { file.writeText(logs.replace("\u0000", ""), Charsets.UTF_8) }
+        return sendFile(context, Uri.fromFile(file), overrideName = fileName, overrideMime = "text/plain")
     }
 
-    fun sendFile(context: Context, fileUri: Uri): SupportChatMessage? {
+    fun sendFile(context: Context, fileUri: Uri, overrideName: String? = null, overrideMime: String? = null): SupportChatMessage? {
         val key = apiKey(context) ?: return null
         val resolver = context.contentResolver
-        val name = queryFileName(context, fileUri) ?: "attachment.bin"
-        val mimeType = resolver.getType(fileUri) ?: "application/octet-stream"
-        val content = resolver.openInputStream(fileUri)?.use { it.readBytes() } ?: return null
+        val name = (overrideName ?: queryFileName(context, fileUri))?.takeIf { it.isNotBlank() } ?: "attachment.bin"
+        val mimeType = (overrideMime ?: resolver.getType(fileUri))?.takeIf { it.isNotBlank() } ?: "application/octet-stream"
+
+        // Pre-check size when possible to give immediate feedback and avoid OOM.
+        val size = queryFileSize(context, fileUri)
+        if (size != null && size > 50L * 1024L * 1024L) {
+            return null
+        }
 
         val boundary = "----NanoredBoundary${UUID.randomUUID()}"
-        val baos = ByteArrayOutputStream()
-        val out = DataOutputStream(baos)
-        writeFileField(out, boundary, "file", name, mimeType, content)
-        out.writeBytes("--$boundary--\r\n")
-        out.flush()
+        val url = "$BASE_URL/api/v1/client/support/send"
+        var conn: HttpURLConnection? = null
+        return try {
+            conn = (URL(url).openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 15_000
+                readTimeout = 60_000
+                doInput = true
+                doOutput = true
+                setChunkedStreamingMode(0)
+                setRequestProperty("Accept", "application/json")
+                setRequestProperty("X-API-Key", key)
+                setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+            }
 
-        val resp = requestBytes(
-            context = context,
-            method = "POST",
-            rawUrl = "$BASE_URL/api/v1/client/support/send",
-            apiKey = key,
-            bodyBytes = baos.toByteArray(),
-            contentType = "multipart/form-data; boundary=$boundary",
-        ) ?: return null
-        return parseMessage(JSONObject(resp))
+            conn.outputStream.use { os ->
+                val out = DataOutputStream(os)
+                writeFileFieldHeader(out, boundary, "file", name, mimeType)
+                openInputStream(resolver, fileUri)?.use { input ->
+                    input.copyTo(os, bufferSize = 64 * 1024)
+                } ?: return null
+                out.writeBytes("\r\n")
+                out.writeBytes("--$boundary--\r\n")
+                out.flush()
+            }
+
+            val code = conn.responseCode
+            val respBytes = if (code in 200..299) conn.inputStream.readBytes() else conn.errorStream?.readBytes()
+            if (respBytes == null) return null
+            val resp = respBytes.toString(Charsets.UTF_8)
+            if (code !in 200..299) return null
+            parseMessage(JSONObject(resp))
+        } catch (e: Exception) {
+            Log.e(TAG, "sendFile failed", e)
+            null
+        } finally {
+            conn?.disconnect()
+        }
     }
 
     fun downloadAttachment(context: Context, messageId: String, fallbackName: String?): DownloadedAttachment? {
@@ -155,19 +196,16 @@ object SupportChatApi {
         out.writeBytes("\r\n")
     }
 
-    private fun writeFileField(
+    private fun writeFileFieldHeader(
         out: DataOutputStream,
         boundary: String,
         name: String,
         fileName: String,
         mimeType: String,
-        content: ByteArray,
     ) {
         out.writeBytes("--$boundary\r\n")
         out.writeBytes("Content-Disposition: form-data; name=\"$name\"; filename=\"$fileName\"\r\n")
         out.writeBytes("Content-Type: $mimeType\r\n\r\n")
-        out.write(content)
-        out.writeBytes("\r\n")
     }
 
     private fun queryFileName(context: Context, uri: Uri): String? {
@@ -178,16 +216,41 @@ object SupportChatApi {
         return null
     }
 
+    private fun queryFileSize(context: Context, uri: Uri): Long? {
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val idx = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE)
+            if (idx >= 0 && cursor.moveToFirst()) return cursor.getLong(idx)
+        }
+        return null
+    }
+
+    private fun openInputStream(resolver: android.content.ContentResolver, uri: Uri): java.io.InputStream? {
+        return if (uri.scheme.equals("file", ignoreCase = true)) {
+            val path = uri.path ?: return null
+            FileInputStream(File(path))
+        } else {
+            resolver.openInputStream(uri)
+        }
+    }
+
     private fun parseMessage(json: JSONObject): SupportChatMessage {
+        fun jsonStringOrNull(key: String): String? {
+            val raw = json.optString(key, "")
+            val v = raw.trim()
+            if (v.isEmpty()) return null
+            // org.json returns literal "null" for JSONObject.NULL; normalize it.
+            if (v.equals("null", ignoreCase = true)) return null
+            return v
+        }
         return SupportChatMessage(
             id = json.optString("id"),
             direction = runCatching { SupportDirection.valueOf(json.optString("direction").uppercase()) }
                 .getOrDefault(SupportDirection.APP_TO_SUPPORT),
             messageType = runCatching { SupportMessageType.valueOf(json.optString("message_type").uppercase()) }
                 .getOrDefault(SupportMessageType.TEXT),
-            text = json.optString("text").ifBlank { null },
-            fileName = json.optString("file_name").ifBlank { null },
-            mimeType = json.optString("mime_type").ifBlank { null },
+            text = jsonStringOrNull("text"),
+            fileName = jsonStringOrNull("file_name"),
+            mimeType = jsonStringOrNull("mime_type"),
             hasAttachment = json.optBoolean("has_attachment", false),
             createdAtRaw = json.optString("created_at"),
         )

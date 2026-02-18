@@ -36,6 +36,9 @@ class SupportChatAdapter(
         private val container = itemView.findViewById<LinearLayout>(R.id.container)
         private val bubble = itemView.findViewById<LinearLayout>(R.id.bubble)
         private val body = itemView.findViewById<TextView>(R.id.tv_body)
+        private val attachRow = itemView.findViewById<LinearLayout>(R.id.attachment_row)
+        private val attachIcon = itemView.findViewById<TextView>(R.id.tv_attachment_icon)
+        private val attachName = itemView.findViewById<TextView>(R.id.tv_attachment_name)
         private val meta = itemView.findViewById<TextView>(R.id.tv_meta)
 
         fun bind(item: SupportChatMessage, timeFormatter: DateTimeFormatter) {
@@ -50,18 +53,29 @@ class SupportChatAdapter(
                 if (isOutgoing) R.drawable.support_chat_bubble_outgoing else R.drawable.support_chat_bubble_incoming
             )
 
-            val lines = mutableListOf<String>()
             if (!item.text.isNullOrBlank()) {
-                lines += item.text
-            }
-            if (item.hasAttachment) {
-                val name = item.fileName ?: "вложение"
-                lines += "📎 $name"
+                body.visibility = View.VISIBLE
+                body.text = item.text
+            } else {
+                body.visibility = View.GONE
+                body.text = ""
             }
 
-            body.text = lines.joinToString("\n")
-            body.setOnClickListener {
-                if (item.hasAttachment) onAttachmentClick(item)
+            if (item.hasAttachment) {
+                attachRow.visibility = View.VISIBLE
+                val name = item.fileName?.takeIf { it.isNotBlank() } ?: "attachment"
+                attachName.text = name
+                attachIcon.text = when (item.messageType) {
+                    SupportMessageType.PHOTO -> "\uD83D\uDDBC\uFE0F" // framed picture
+                    SupportMessageType.VIDEO -> "\uD83C\uDFA5"      // movie camera
+                    SupportMessageType.AUDIO, SupportMessageType.VOICE -> "\uD83C\uDFB5" // musical note
+                    SupportMessageType.DOCUMENT, SupportMessageType.FILE -> "\uD83D\uDCCE" // paperclip
+                    else -> "\uD83D\uDCCE"
+                }
+                attachRow.setOnClickListener { onAttachmentClick(item) }
+            } else {
+                attachRow.visibility = View.GONE
+                attachRow.setOnClickListener(null)
             }
 
             val timeText = item.createdAtInstant()?.atZone(ZoneId.systemDefault())?.format(timeFormatter) ?: ""

@@ -128,15 +128,20 @@ class SupportChatActivity : BaseActivity() {
         binding.etMessage.text?.clear()
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val sent = SupportChatApi.sendText(this@SupportChatActivity, text)
-            withContext(Dispatchers.Main) {
-                if (sent == null) {
-                    toastError(R.string.toast_failure)
-                } else {
-                    allMessages.add(sent)
-                    adapter.submitList(allMessages.toList())
-                    scrollToBottom()
+            val chunks = splitForTelegram(text)
+            for (chunk in chunks) {
+                val sent = SupportChatApi.sendText(this@SupportChatActivity, chunk)
+                withContext(Dispatchers.Main) {
+                    if (sent == null) {
+                        toastError(R.string.toast_failure)
+                    } else {
+                        allMessages.add(sent)
+                        adapter.submitList(allMessages.toList())
+                        scrollToBottom()
+                    }
                 }
+                // small delay helps preserve order across network jitter
+                delay(120)
             }
         }
     }
@@ -155,6 +160,11 @@ class SupportChatActivity : BaseActivity() {
     }
 
     private fun sendAttachment(uri: Uri) {
+        val size = queryFileSize(uri)
+        if (size != null && size > 50L * 1024L * 1024L) {
+            toastError(getString(R.string.support_chat_file_too_large))
+            return
+        }
         lifecycleScope.launch(Dispatchers.IO) {
             val sent = SupportChatApi.sendFile(this@SupportChatActivity, uri)
             withContext(Dispatchers.Main) {
@@ -259,8 +269,8 @@ class SupportChatActivity : BaseActivity() {
 
             // Make room for status bar + IME so the UI doesn't get clipped/covered.
             binding.topBar.updatePadding(top = topBaseTop + systemBars.top)
-            binding.supportChatRoot.updatePadding(bottom = rootBaseBottom + bottom)
-            binding.composerBar.updatePadding(bottom = composerBaseBottom)
+            binding.supportChatRoot.updatePadding(bottom = rootBaseBottom)
+            binding.composerBar.updatePadding(bottom = composerBaseBottom + bottom)
             insets
         }
         ViewCompat.requestApplyInsets(binding.supportChatRoot)
@@ -270,5 +280,39 @@ class SupportChatActivity : BaseActivity() {
         if (allMessages.isNotEmpty()) {
             binding.rvMessages.scrollToPosition(allMessages.size - 1)
         }
+    }
+
+    private fun queryFileSize(uri: Uri): Long? {
+        return try {
+            contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                val idx = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE)
+                if (idx >= 0 && cursor.moveToFirst()) cursor.getLong(idx) else null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun splitForTelegram(text: String): List<String> {
+        // Telegram hard limit is 4096 chars per message; keep a margin for headers/encoding.
+        val maxLen = 3500
+        if (text.length <= maxLen) return listOf(text)
+
+        val parts = ArrayList<String>()
+        var idx = 0
+        while (idx < text.length) {
+            val end = minOf(text.length, idx + maxLen)
+            val slice = text.substring(idx, end)
+            // Try to cut on newline within the last 300 chars of this slice.
+            val cut = slice.lastIndexOf('\n').takeIf { it >= max(0, slice.length - 300) } ?: -1
+            if (cut > 0) {
+                parts.add(slice.substring(0, cut).trimEnd())
+                idx += cut + 1
+            } else {
+                parts.add(slice)
+                idx = end
+            }
+        }
+        return parts.filter { it.isNotBlank() }
     }
 }

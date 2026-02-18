@@ -23,8 +23,37 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:maxWidth="260dp"
+            android:textIsSelectable="true"
             android:textColor="@android:color/white"
             android:textSize="14sp" />
+
+        <LinearLayout
+            android:id="@+id/attachment_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_attachment_icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📎"
+                android:textColor="@android:color/white"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tv_attachment_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:maxWidth="260dp"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tv_meta"
