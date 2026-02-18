@@ -328,7 +328,7 @@ object NanoredTelemetry {
     fun sendDeviceLog(logType: String = "logcat", content: String) {
         scope.launch {
             try {
-                if (apiKey == null) register()
+                ensureRegistered(force = false)
                 val body = JSONObject().apply {
                     put("log_type", logType)
                     put("content", content)
@@ -402,7 +402,7 @@ object NanoredTelemetry {
                 reRegistering = true
                 getPrefs().edit().remove(KEY_DEVICE_ID).remove(KEY_API_KEY).apply()
                 deviceId = null; apiKey = null
-                runBlocking { register() }
+                runBlocking { ensureRegistered(force = true) }
                 reRegistering = false
                 if (apiKey != null) post(path, body, auth) else null
             } else { Log.w(TAG, "HTTP $code for $path"); null }
