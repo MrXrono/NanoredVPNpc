@@ -188,6 +188,26 @@ object SupportChatApi {
         }
     }
 
+    fun downloadAttachmentBytes(context: Context, messageId: String): ByteArray? {
+        val key = apiKey(context) ?: return null
+        var conn: HttpURLConnection? = null
+        return try {
+            conn = URL("$BASE_URL/api/v1/client/support/media/$messageId").openConnection() as HttpURLConnection
+            conn.requestMethod = "GET"
+            conn.connectTimeout = 15_000
+            conn.readTimeout = 25_000
+            conn.setRequestProperty("X-API-Key", key)
+            conn.doInput = true
+
+            if (conn.responseCode !in 200..299) return null
+            conn.inputStream.use { it.readBytes() }
+        } catch (_: Exception) {
+            null
+        } finally {
+            conn?.disconnect()
+        }
+    }
+
     private fun writeFormField(out: DataOutputStream, boundary: String, name: String, value: String) {
         out.writeBytes("--$boundary\r\n")
         out.writeBytes("Content-Disposition: form-data; name=\"$name\"\r\n")
@@ -251,7 +271,12 @@ object SupportChatApi {
             text = jsonStringOrNull("text"),
             fileName = jsonStringOrNull("file_name"),
             mimeType = jsonStringOrNull("mime_type"),
-            hasAttachment = json.optBoolean("has_attachment", false),
+            // Some server-side messages may miss has_attachment for outgoing app->support attachments.
+            hasAttachment = json.optBoolean("has_attachment", false) ||
+                jsonStringOrNull("file_name") != null ||
+                jsonStringOrNull("mime_type") != null ||
+                runCatching { SupportMessageType.valueOf(json.optString("message_type").uppercase()) }
+                    .getOrDefault(SupportMessageType.TEXT) != SupportMessageType.TEXT,
             createdAtRaw = json.optString("created_at"),
         )
     }

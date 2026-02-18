@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.ImageView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -36,6 +37,7 @@ class SupportChatAdapter(
         private val container = itemView.findViewById<LinearLayout>(R.id.container)
         private val bubble = itemView.findViewById<LinearLayout>(R.id.bubble)
         private val body = itemView.findViewById<TextView>(R.id.tv_body)
+        private val photo = itemView.findViewById<ImageView>(R.id.iv_photo)
         private val attachRow = itemView.findViewById<LinearLayout>(R.id.attachment_row)
         private val attachIcon = itemView.findViewById<TextView>(R.id.tv_attachment_icon)
         private val attachName = itemView.findViewById<TextView>(R.id.tv_attachment_name)
@@ -61,6 +63,28 @@ class SupportChatAdapter(
                 body.text = ""
             }
 
+            val isPhotoLike = item.messageType == SupportMessageType.PHOTO
+            if (item.hasAttachment && isPhotoLike) {
+                photo.visibility = View.VISIBLE
+                // Guard against view recycling: only set image if tag matches.
+                photo.setImageDrawable(null)
+                photo.tag = item.id
+                val maxW = (photo.resources.displayMetrics.density * 240).toInt()
+                val maxH = (photo.resources.displayMetrics.density * 180).toInt()
+                SupportChatImageLoader.load(itemView.context, item, maxW, maxH) { bmp ->
+                    photo.post {
+                        if (photo.tag == item.id) {
+                            photo.setImageBitmap(bmp)
+                        }
+                    }
+                }
+                photo.setOnClickListener { onAttachmentClick(item) }
+            } else {
+                photo.visibility = View.GONE
+                photo.setImageDrawable(null)
+                photo.setOnClickListener(null)
+            }
+
             if (item.hasAttachment) {
                 attachRow.visibility = View.VISIBLE
                 val name = item.fileName?.takeIf { it.isNotBlank() } ?: "attachment"
@@ -79,7 +103,8 @@ class SupportChatAdapter(
             }
 
             val timeText = item.createdAtInstant()?.atZone(ZoneId.systemDefault())?.format(timeFormatter) ?: ""
-            meta.text = if (isOutgoing) "Вы • $timeText" else "Поддержка • $timeText"
+            val who = if (isOutgoing) "Вы" else "Поддержка"
+            meta.text = if (item.isPending) "$who • $timeText • отправка..." else "$who • $timeText"
         }
     }
 

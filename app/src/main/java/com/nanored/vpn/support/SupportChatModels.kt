@@ -28,6 +28,9 @@ data class SupportChatMessage(
     val mimeType: String?,
     val hasAttachment: Boolean,
     val createdAtRaw: String,
+    // UI-only fields (not returned by the API). Used to show immediate previews for outgoing attachments.
+    val localUri: String? = null,
+    val isPending: Boolean = false,
 ) {
     fun createdAtInstant(): Instant? = runCatching { Instant.parse(createdAtRaw) }.getOrNull()
 }
