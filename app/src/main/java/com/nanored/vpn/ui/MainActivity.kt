@@ -38,6 +38,8 @@ import com.nanored.vpn.handler.SettingsChangeManager
 import com.nanored.vpn.handler.SettingsManager
 import com.nanored.vpn.handler.UpdateCheckerManager
 import com.nanored.vpn.handler.V2RayServiceManager
+import com.nanored.vpn.support.SupportChatApi
+import com.nanored.vpn.support.SupportChatNotifier
 import com.nanored.vpn.telemetry.NanoredTelemetry
 import com.nanored.vpn.util.Utils
 import com.nanored.vpn.viewmodel.MainViewModel
@@ -64,6 +66,8 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     private var lastPingMs: String? = null
     private lateinit var vpnButtonAnimator: VpnButtonAnimator
     private var isSwitchingCountry = false
+    private var supportUnreadPollingJob: Job? = null
+    private var lastSupportUnread = 0
 
     private val requestVpnPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == RESULT_OK) {
@@ -141,6 +145,9 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             mainViewModel.testAllCountryPings()
             mainViewModel.testAllTcping()
         }
+        binding.btnSupportChat.setOnClickListener {
+            startActivity(Intent(this, SupportChatActivity::class.java))
+        }
 
         setupGroupTab()
         setupViewModel()
@@ -153,6 +160,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         PermissionRationaleHelper.showIfNeeded(this, multiPermissionLauncher, requestSetupInstallPermission)
 
         checkForAppUpdate()
+        SupportChatNotifier.ensureChannel(this)
     }
 
     private fun checkForAppUpdate() {
@@ -529,10 +537,45 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
 
     override fun onResume() {
         super.onResume()
+        startSupportUnreadPolling()
     }
 
     override fun onPause() {
+        stopSupportUnreadPolling()
         super.onPause()
+    }
+
+    private fun startSupportUnreadPolling() {
+        if (supportUnreadPollingJob != null) return
+        supportUnreadPollingJob = lifecycleScope.launch(Dispatchers.IO) {
+            while (true) {
+                try {
+                    val unread = SupportChatApi.unreadCount(this@MainActivity)
+                    withContext(Dispatchers.Main) { renderSupportUnread(unread) }
+                } catch (_: Exception) {
+                }
+                delay(10_000)
+            }
+        }
+    }
+
+    private fun stopSupportUnreadPolling() {
+        supportUnreadPollingJob?.cancel()
+        supportUnreadPollingJob = null
+    }
+
+    private fun renderSupportUnread(unread: Int) {
+        binding.tvSupportUnreadBadge.isVisible = unread > 0
+        if (unread > 0) {
+            binding.tvSupportUnreadBadge.text = if (unread > 99) "99+" else unread.toString()
+            if (unread > lastSupportUnread) {
+                SupportChatNotifier.notifyNewMessage(
+                    this,
+                    "Новых сообщений: ${unread - lastSupportUnread}",
+                )
+            }
+        }
+        lastSupportUnread = unread
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -888,6 +931,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     }
 
     override fun onDestroy() {
+        stopSupportUnreadPolling()
         vpnButtonAnimator.destroy()
         sessionTimerJob?.cancel()
         tabMediator?.detach()

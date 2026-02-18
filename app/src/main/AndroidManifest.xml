@@ -168,6 +168,10 @@
         <activity
             android:name=".ui.AboutActivity"
             android:exported="false" />
+        <activity
+            android:name=".ui.SupportChatActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
 
         <service
             android:name=".service.V2RayVpnService"

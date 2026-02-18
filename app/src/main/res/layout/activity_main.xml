@@ -65,6 +65,41 @@
                         android:src="@android:drawable/ic_menu_rotate"
                         app:tint="?attr/colorOnSurface" />
 
+                    <FrameLayout
+                        android:id="@+id/support_chat_button_container"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp">
+
+                        <TextView
+                            android:id="@+id/btn_support_chat"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:background="@drawable/support_chat_button_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center_vertical"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:text="@string/title_support_chat"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_support_unread_badge"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="end|top"
+                            android:background="@drawable/support_unread_badge_bg"
+                            android:gravity="center"
+                            android:textColor="@android:color/white"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+
+                    </FrameLayout>
+
                 </LinearLayout>
 
                 <androidx.viewpager2.widget.ViewPager2

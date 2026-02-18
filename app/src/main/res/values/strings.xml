@@ -288,6 +288,11 @@
     <string name="title_send_logs">Отправить журнал</string>
     <string name="send_logs_success">Журнал отправлен</string>
     <string name="send_logs_sending">Отправка журнала…</string>
+    <string name="title_support_chat">Чат с техподдержкой</string>
+    <string name="support_chat_message_hint">Сообщение</string>
+    <string name="support_chat_attach_title">Прикрепить</string>
+    <string name="support_chat_pick_photo">Фото с устройства</string>
+    <string name="support_chat_pick_file">Файл</string>
     <string name="logcat_copy">Copy</string>
     <string name="logcat_clear">Clear</string>
     <string name="title_service_restart">Service restart</string>
