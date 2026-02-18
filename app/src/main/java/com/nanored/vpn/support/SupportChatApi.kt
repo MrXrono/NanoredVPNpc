@@ -3,6 +3,7 @@ package com.nanored.vpn.support
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import com.nanored.vpn.telemetry.NanoredTelemetry
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
@@ -27,7 +28,7 @@ object SupportChatApi {
             append("$BASE_URL/api/v1/client/support/messages?limit=$limit")
             if (!afterId.isNullOrBlank()) append("&after_id=$afterId")
         }
-        val resp = requestJson("GET", url, key, null, "application/json")
+        val resp = requestJson(context, "GET", url, key, null, "application/json")
         if (resp == null) return SupportMessagesPage(emptyList(), 0)
 
         val json = JSONObject(resp)
@@ -55,7 +56,7 @@ object SupportChatApi {
 
     fun unreadCount(context: Context): Int {
         val key = apiKey(context) ?: return 0
-        val resp = requestJson("GET", "$BASE_URL/api/v1/client/support/unread", key, null, "application/json") ?: return 0
+        val resp = requestJson(context, "GET", "$BASE_URL/api/v1/client/support/unread", key, null, "application/json") ?: return 0
         return runCatching { JSONObject(resp).optInt("unread_count", 0) }.getOrDefault(0)
     }
 
@@ -64,7 +65,7 @@ object SupportChatApi {
         val body = JSONObject().apply {
             if (!uptoId.isNullOrBlank()) put("upto_message_id", uptoId)
         }.toString()
-        requestJson("POST", "$BASE_URL/api/v1/client/support/read", key, body, "application/json")
+        requestJson(context, "POST", "$BASE_URL/api/v1/client/support/read", key, body, "application/json")
     }
 
     fun sendText(context: Context, text: String): SupportChatMessage? {
@@ -77,6 +78,7 @@ object SupportChatApi {
         out.flush()
 
         val resp = requestBytes(
+            context = context,
             method = "POST",
             rawUrl = "$BASE_URL/api/v1/client/support/send",
             apiKey = key,
@@ -105,6 +107,7 @@ object SupportChatApi {
         out.flush()
 
         val resp = requestBytes(
+            context = context,
             method = "POST",
             rawUrl = "$BASE_URL/api/v1/client/support/send",
             apiKey = key,
@@ -191,6 +194,7 @@ object SupportChatApi {
     }
 
     private fun requestJson(
+        context: Context,
         method: String,
         rawUrl: String,
         apiKey: String,
@@ -198,15 +202,28 @@ object SupportChatApi {
         contentType: String,
     ): String? {
         val bytes = body?.toByteArray(Charsets.UTF_8)
-        return requestBytes(method, rawUrl, apiKey, bytes, contentType)
+        return requestBytes(context, method, rawUrl, apiKey, bytes, contentType)
     }
 
     private fun requestBytes(
+        context: Context,
         method: String,
         rawUrl: String,
         apiKey: String,
         bodyBytes: ByteArray?,
         contentType: String,
+    ): String? {
+        return requestBytesInternal(context, method, rawUrl, apiKey, bodyBytes, contentType, retriedAfter401 = false)
+    }
+
+    private fun requestBytesInternal(
+        context: Context,
+        method: String,
+        rawUrl: String,
+        apiKey: String,
+        bodyBytes: ByteArray?,
+        contentType: String,
+        retriedAfter401: Boolean,
     ): String? {
         var conn: HttpURLConnection? = null
         return try {
@@ -229,6 +246,15 @@ object SupportChatApi {
             val response = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
             if (code !in 200..299) {
                 Log.w(TAG, "Support API error $code: $response")
+                if (code == 401 && !retriedAfter401) {
+                    // API key can become invalid if multiple registrations race and rotate it.
+                    // Force a fresh register and retry once with the latest key from prefs.
+                    runCatching { NanoredTelemetry.forceRegisterBlocking() }
+                    val newKey = apiKey(context)
+                    if (!newKey.isNullOrBlank()) {
+                        return requestBytesInternal(context, method, rawUrl, newKey, bodyBytes, contentType, retriedAfter401 = true)
+                    }
+                }
                 return null
             }
             response

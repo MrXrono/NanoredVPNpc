@@ -21,6 +21,8 @@ import java.net.URL
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.net.ssl.HttpsURLConnection
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 object NanoredTelemetry {
 
@@ -42,6 +44,7 @@ object NanoredTelemetry {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var heartbeatJob: Job? = null
     private var dnsFlushJob: Job? = null
+    private val registerMutex = Mutex()
 
     data class ConnectionEntry(val destIp: String, val destPort: Int, val protocol: String = "TCP", val domain: String? = null)
 
@@ -54,7 +57,7 @@ object NanoredTelemetry {
         apiKey = prefs.getString(KEY_API_KEY, null)
 
         scope.launch {
-            if (apiKey == null) register()
+            ensureRegistered(force = false)
         }
 
         Log.d(TAG, "Initialized. Base URL: $baseUrl")
@@ -72,12 +75,32 @@ object NanoredTelemetry {
                 prefs.edit().putString("account_id", accountId).apply()
                 Log.d(TAG, "Account ID synced: $accountId")
                 // Re-register to update server-side account binding
-                scope.launch { register() }
+                scope.launch { ensureRegistered(force = true) }
             }
         }
     }
 
-    private suspend fun register() {
+    suspend fun ensureRegistered(force: Boolean) {
+        if (!force && apiKey != null) return
+        registerMutex.withLock {
+            if (!force && apiKey != null) return
+            // Force invalidates the current key so the next call always rotates on server side too.
+            if (force) {
+                apiKey = null
+                getPrefs().edit().remove(KEY_API_KEY).apply()
+            }
+            registerInternal()
+        }
+    }
+
+    fun forceRegisterBlocking(): Boolean {
+        return runBlocking {
+            ensureRegistered(force = true)
+            apiKey != null
+        }
+    }
+
+    private suspend fun registerInternal() {
         try {
             val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
             val dm = context.resources.displayMetrics
@@ -117,12 +140,12 @@ object NanoredTelemetry {
     fun startSession(serverAddress: String? = null, protocol: String? = null) {
         scope.launch {
             try {
-                if (apiKey == null) register()
+                ensureRegistered(force = false)
                 // Re-register if account_id changed since last registration
                 val currentAccountId = getPrefs().getString("account_id", null)
                 val lastAccountId = getPrefs().getString(KEY_LAST_ACCOUNT_ID, null)
                 if (currentAccountId != lastAccountId && !currentAccountId.isNullOrEmpty()) {
-                    register()
+                    ensureRegistered(force = true)
                 }
                 val body = JSONObject().apply {
                     put("server_address", serverAddress)

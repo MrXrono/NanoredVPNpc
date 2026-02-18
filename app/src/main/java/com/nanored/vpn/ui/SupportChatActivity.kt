@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
@@ -46,6 +47,8 @@ class SupportChatActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // We draw our own top bar, so handle system/IME insets manually.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         setContentView(binding.root)
 
@@ -246,12 +249,18 @@ class SupportChatActivity : BaseActivity() {
     }
 
     private fun applyInsets() {
+        val rootBaseBottom = binding.supportChatRoot.paddingBottom
+        val topBaseTop = binding.topBar.paddingTop
         val composerBaseBottom = binding.composerBar.paddingBottom
         ViewCompat.setOnApplyWindowInsetsListener(binding.supportChatRoot) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
-            binding.topBar.updatePadding(top = systemBars.top)
-            binding.composerBar.updatePadding(bottom = composerBaseBottom + max(systemBars.bottom, imeInsets.bottom))
+            val bottom = max(systemBars.bottom, imeInsets.bottom)
+
+            // Make room for status bar + IME so the UI doesn't get clipped/covered.
+            binding.topBar.updatePadding(top = topBaseTop + systemBars.top)
+            binding.supportChatRoot.updatePadding(bottom = rootBaseBottom + bottom)
+            binding.composerBar.updatePadding(bottom = composerBaseBottom)
             insets
         }
         ViewCompat.requestApplyInsets(binding.supportChatRoot)
