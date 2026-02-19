@@ -13,6 +13,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import kotlin.math.abs
 import androidx.core.content.ContextCompat
 import com.nanored.vpn.R
 
@@ -246,25 +247,88 @@ class VpnButtonAnimator(
     private fun startConnectedShimmer() {
         stopShimmer()
 
-        // Ensure button is fully expanded (snap if animation was interrupted)
-        setContainerSize(rectWidth, rectHeight)
-        background.cornerRadius = rectRadius
-        icon.alpha = 0f
-        contentLayout.alpha = 1f
-
-        // Smooth transition from current color to connected green, then shimmer
+        val currentWidth = container.layoutParams.width.let { if (it > 0) it else circleSize }
+        val currentHeight = container.layoutParams.height.let { if (it > 0) it else circleSize }
+        val currentCorner = background.cornerRadius
         val currentColor = (background.color ?: ColorStateList.valueOf(colorConnecting)).defaultColor
-        val transitionToGreen = ValueAnimator.ofObject(argbEvaluator, currentColor, colorConnected).apply {
-            duration = 400
-            addUpdateListener { anim ->
-                background.setColor(anim.animatedValue as Int)
-            }
-        }
-        transitionToGreen.start()
 
-        // Start shimmer after transition
+        val needsSettle =
+            currentWidth != rectWidth ||
+                currentHeight != rectHeight ||
+                abs(currentCorner - rectRadius) > 0.5f ||
+                icon.alpha > 0.01f ||
+                contentLayout.alpha < 0.99f
+
+        if (needsSettle) {
+            val settleDuration = 320L
+            val settleSet = AnimatorSet()
+
+            val widthAnim = ValueAnimator.ofInt(currentWidth, rectWidth).apply {
+                duration = settleDuration
+                addUpdateListener { anim ->
+                    val w = anim.animatedValue as Int
+                    val params = container.layoutParams
+                    params.width = w
+                    container.layoutParams = params
+                }
+            }
+            val heightAnim = ValueAnimator.ofInt(currentHeight, rectHeight).apply {
+                duration = settleDuration
+                addUpdateListener { anim ->
+                    val h = anim.animatedValue as Int
+                    val params = container.layoutParams
+                    params.height = h
+                    container.layoutParams = params
+                }
+            }
+            val cornerAnim = ValueAnimator.ofFloat(currentCorner, rectRadius).apply {
+                duration = settleDuration
+                addUpdateListener { anim ->
+                    background.cornerRadius = anim.animatedValue as Float
+                }
+            }
+            val iconFade = ValueAnimator.ofFloat(icon.alpha, 0f).apply {
+                duration = settleDuration
+                addUpdateListener { anim ->
+                    icon.alpha = anim.animatedValue as Float
+                }
+            }
+            val contentFade = ValueAnimator.ofFloat(contentLayout.alpha, 1f).apply {
+                duration = settleDuration
+                addUpdateListener { anim ->
+                    contentLayout.alpha = anim.animatedValue as Float
+                }
+            }
+            val colorAnim = ValueAnimator.ofObject(argbEvaluator, currentColor, colorConnected).apply {
+                duration = settleDuration
+                addUpdateListener { anim ->
+                    background.setColor(anim.animatedValue as Int)
+                }
+            }
+
+            settleSet.playTogether(widthAnim, heightAnim, cornerAnim, iconFade, contentFade, colorAnim)
+            settleSet.interpolator = AccelerateDecelerateInterpolator()
+            settleSet.addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    if (currentState == State.CONNECTED) {
+                        startConnectedShimmerLoop()
+                    }
+                }
+            })
+            settleSet.start()
+            currentAnimator = settleSet
+        } else {
+            setContainerSize(rectWidth, rectHeight)
+            background.cornerRadius = rectRadius
+            icon.alpha = 0f
+            contentLayout.alpha = 1f
+            background.setColor(colorConnected)
+            startConnectedShimmerLoop()
+        }
+    }
+
+    private fun startConnectedShimmerLoop() {
         shimmerAnimator = ValueAnimator.ofFloat(0f, 1f, 0f).apply {
-            startDelay = 400
             duration = 3000
             repeatCount = ValueAnimator.INFINITE
             interpolator = AccelerateDecelerateInterpolator()
