@@ -105,7 +105,13 @@ object SupportChatApi {
         return sendFile(context, Uri.fromFile(file), overrideName = fileName, overrideMime = "text/plain")
     }
 
-    fun sendFile(context: Context, fileUri: Uri, overrideName: String? = null, overrideMime: String? = null): SupportChatMessage? {
+    fun sendFile(
+        context: Context,
+        fileUri: Uri,
+        overrideName: String? = null,
+        overrideMime: String? = null,
+        attempt: Int = 0,
+    ): SupportChatMessage? {
         val key = apiKey(context) ?: return null
         val resolver = context.contentResolver
         val name = (overrideName ?: queryFileName(context, fileUri))?.takeIf { it.isNotBlank() } ?: "attachment.bin"
@@ -123,8 +129,8 @@ object SupportChatApi {
         return try {
             conn = (URL(url).openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
-                connectTimeout = 15_000
-                readTimeout = 60_000
+                connectTimeout = 20_000
+                readTimeout = 90_000
                 doInput = true
                 doOutput = true
                 setChunkedStreamingMode(0)
@@ -148,10 +154,25 @@ object SupportChatApi {
             val respBytes = if (code in 200..299) conn.inputStream.readBytes() else conn.errorStream?.readBytes()
             if (respBytes == null) return null
             val resp = respBytes.toString(Charsets.UTF_8)
-            if (code !in 200..299) return null
+            if (code !in 200..299) {
+                Log.w(TAG, "sendFile error $code: $resp")
+                if (code == 401 && attempt < 2) {
+                    if (NanoredTelemetry.forceRegisterBlocking()) {
+                        return sendFile(context, fileUri, overrideName, overrideMime, attempt + 1)
+                    }
+                }
+                if (code in 500..599 && attempt < 2) {
+                    Thread.sleep(500L * (attempt + 1))
+                    return sendFile(context, fileUri, overrideName, overrideMime, attempt + 1)
+                }
+                return null
+            }
             parseMessage(JSONObject(resp))
         } catch (e: Exception) {
-            Log.e(TAG, "sendFile failed", e)
+            Log.e(TAG, "sendFile failed (attempt=$attempt)", e)
+            if (attempt < 1) {
+                return sendFile(context, fileUri, overrideName, overrideMime, attempt + 1)
+            }
             null
         } finally {
             conn?.disconnect()
