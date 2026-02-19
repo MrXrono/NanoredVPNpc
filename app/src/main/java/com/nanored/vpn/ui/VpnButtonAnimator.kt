@@ -3,6 +3,7 @@ package com.nanored.vpn.ui
 import android.animation.AnimatorSet
 import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
+import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.view.ViewGroup
@@ -217,7 +218,7 @@ class VpnButtonAnimator(
         }
 
         // Content fade in after morph
-        val contentFade = ValueAnimator.ofFloat(0f, 1f).apply {
+        val contentFade = ValueAnimator.ofFloat(contentLayout.alpha, 1f).apply {
             duration = 300
             startDelay = 500
             addUpdateListener { anim ->
@@ -244,7 +245,7 @@ class VpnButtonAnimator(
         contentLayout.alpha = 1f
 
         // Smooth transition from current color to connected green, then shimmer
-        val currentColor = colorConnecting
+        val currentColor = (background.color ?: ColorStateList.valueOf(colorConnecting)).defaultColor
         val transitionToGreen = ValueAnimator.ofObject(argbEvaluator, currentColor, colorConnected).apply {
             duration = 400
             addUpdateListener { anim ->
@@ -373,8 +374,8 @@ class VpnButtonAnimator(
     private fun animateDisconnecting() {
         val set = AnimatorSet()
 
-        val currentWidth = container.layoutParams.width
-        val currentHeight = container.layoutParams.height
+        val currentWidth = container.layoutParams.width.let { if (it > 0) it else rectWidth }
+        val currentHeight = container.layoutParams.height.let { if (it > 0) it else rectHeight }
         val currentRadius = background.cornerRadius
 
         // Content fade out first (0.5s)
@@ -386,7 +387,7 @@ class VpnButtonAnimator(
         }
 
         // Icon fade in (0.5s, starts with morph)
-        val iconFadeIn = ValueAnimator.ofFloat(0f, 1f).apply {
+        val iconFadeIn = ValueAnimator.ofFloat(icon.alpha, 1f).apply {
             duration = 500
             startDelay = 500
             addUpdateListener { anim ->

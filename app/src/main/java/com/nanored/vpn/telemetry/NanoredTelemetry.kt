@@ -10,6 +10,10 @@ import android.os.Build
 import android.provider.Settings
 import android.telephony.TelephonyManager
 import android.util.Log
+import com.nanored.vpn.AppConfig
+import com.nanored.vpn.handler.MmkvManager
+import com.nanored.vpn.handler.SettingsManager
+import com.nanored.vpn.util.HttpUtil
 import kotlinx.coroutines.*
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
@@ -150,6 +154,7 @@ object NanoredTelemetry {
                 val body = JSONObject().apply {
                     put("server_address", serverAddress)
                     put("protocol", protocol)
+                    detectExitIpAddress()?.let { put("client_exit_ip", it) }
                     put("network_type", getNetworkType())
                     put("wifi_ssid", getWifiSSID())
                     put("carrier", getCarrier())
@@ -302,6 +307,37 @@ object NanoredTelemetry {
     }
 
     private fun stopHeartbeat() { heartbeatJob?.cancel(); heartbeatJob = null }
+
+    private fun detectExitIpAddress(): String? {
+        return try {
+            val ipApiUrl = MmkvManager.decodeSettingsString(AppConfig.PREF_IP_API_URL)
+                .takeIf { !it.isNullOrBlank() }
+                ?: AppConfig.IP_API_URL
+            val httpPort = SettingsManager.getHttpPort()
+            val content = HttpUtil.getUrlContent(ipApiUrl, 5000, httpPort) ?: return null
+            val json = JSONObject(content)
+
+            val candidates = listOf(
+                json.optString("ip", ""),
+                json.optString("client_ip", ""),
+                json.optString("clientIp", ""),
+                json.optString("ip_addr", ""),
+                json.optString("query", ""),
+            )
+
+            candidates.firstOrNull { isValidIp(it) }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun isValidIp(value: String?): Boolean {
+        if (value.isNullOrBlank()) return false
+        val candidate = value.trim()
+        if (candidate.matches(Regex("^\\d{1,3}(?:\\.\\d{1,3}){3}$"))) return true
+        if (candidate.contains(":") && candidate.matches(Regex("^[0-9a-fA-F:]+$"))) return true
+        return false
+    }
 
     fun sendPermissions() {
         scope.launch {
