@@ -657,12 +657,15 @@ object NanoredTelemetry {
                 val pm = context.packageManager
                 val pkgInfo = pm.getPackageInfo(context.packageName, android.content.pm.PackageManager.GET_PERMISSIONS)
                 val requestedPerms = pkgInfo.requestedPermissions ?: return@launch
-                val requestedFlags = pkgInfo.requestedPermissionsFlags ?: return@launch
                 val arr = JSONArray()
-                for (i in requestedPerms.indices) {
-                    val granted = (requestedFlags[i] and android.content.pm.PackageManager.REQUESTED_PERMISSION_GRANTED) != 0
+                for (perm in requestedPerms) {
+                    val granted = try {
+                        pm.checkPermission(perm, context.packageName) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    } catch (_: Exception) {
+                        false
+                    }
                     arr.put(JSONObject().apply {
-                        put("permission_name", requestedPerms[i])
+                        put("permission_name", perm)
                         put("granted", granted)
                     })
                 }
