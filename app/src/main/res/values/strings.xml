@@ -294,6 +294,10 @@
     <string name="support_chat_pick_photo">Фото с устройства</string>
     <string name="support_chat_pick_file">Файл</string>
     <string name="support_chat_file_too_large">Файл больше 50 МБ</string>
+    <string name="support_chat_action_copy">Копировать</string>
+    <string name="support_chat_action_save">Сохранить</string>
+    <string name="support_chat_copied">Скопировано</string>
+    <string name="support_chat_saved">Сохранено в Загрузки/Nanored</string>
     <string name="logcat_copy">Copy</string>
     <string name="logcat_clear">Clear</string>
     <string name="title_service_restart">Service restart</string>

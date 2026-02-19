@@ -1,6 +1,10 @@
 package com.nanored.vpn.ui
 
 import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.ContentValues
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -25,6 +29,7 @@ import com.nanored.vpn.extension.toast
 import com.nanored.vpn.extension.toastError
 import com.nanored.vpn.support.SupportChatAdapter
 import com.nanored.vpn.support.SupportChatApi
+import com.nanored.vpn.support.SupportChatCache
 import com.nanored.vpn.support.SupportChatMessage
 import com.nanored.vpn.support.SupportDirection
 import com.nanored.vpn.support.SupportMessageType
@@ -37,13 +42,15 @@ import kotlin.math.max
 import java.time.Instant
 import java.util.UUID
 import android.provider.MediaStore
+import android.provider.OpenableColumns
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.net.URLConnection
 
 class SupportChatActivity : BaseActivity() {
     private val binding by lazy { ActivitySupportChatBinding.inflate(layoutInflater) }
-    private val adapter by lazy { SupportChatAdapter(::handleAttachmentClick) }
+    private val adapter by lazy { SupportChatAdapter(::handleAttachmentClick, ::handleMessageLongPress) }
     private val allMessages = ArrayList<SupportChatMessage>()
     private var pollingJob: Job? = null
 
@@ -118,6 +125,13 @@ class SupportChatActivity : BaseActivity() {
 
     private fun loadInitial() {
         showLoading()
+        val cached = SupportChatCache.loadMessages(this)
+        if (cached.isNotEmpty()) {
+            allMessages.clear()
+            allMessages.addAll(cached)
+            adapter.submitList(allMessages.toList()) { scrollToBottom() }
+            hideLoading()
+        }
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val page = SupportChatApi.fetchMessages(this@SupportChatActivity)
@@ -125,6 +139,7 @@ class SupportChatActivity : BaseActivity() {
                     allMessages.clear()
                     allMessages.addAll(page.items)
                     adapter.submitList(allMessages.toList()) { scrollToBottom() }
+                    persistChatCache()
                     hideLoading()
                 }
                 markReadIfNeeded()
@@ -149,6 +164,7 @@ class SupportChatActivity : BaseActivity() {
                         withContext(Dispatchers.Main) {
                             allMessages.addAll(page.items)
                             adapter.submitList(allMessages.toList()) { scrollToBottom() }
+                            persistChatCache()
                         }
                         markReadIfNeeded()
                     }
@@ -184,6 +200,7 @@ class SupportChatActivity : BaseActivity() {
                 withContext(Dispatchers.Main) {
                     allMessages.add(pending)
                     adapter.submitList(allMessages.toList()) { scrollToBottom() }
+                    persistChatCache()
                 }
 
                 val sent = SupportChatApi.sendText(this@SupportChatActivity, chunk)
@@ -196,6 +213,7 @@ class SupportChatActivity : BaseActivity() {
                         if (idx >= 0) allMessages.removeAt(idx)
                         allMessages.add(sent)
                         adapter.submitList(allMessages.toList()) { scrollToBottom() }
+                        persistChatCache()
                     }
                 }
                 // small delay helps preserve order across network jitter
@@ -259,6 +277,7 @@ class SupportChatActivity : BaseActivity() {
                 withContext(Dispatchers.Main) {
                     allMessages.add(pending)
                     adapter.submitList(allMessages.toList()) { scrollToBottom() }
+                    persistChatCache()
                 }
 
                 var uploadUri = uri
@@ -289,15 +308,23 @@ class SupportChatActivity : BaseActivity() {
                     } else {
                         val idx = allMessages.indexOfFirst { it.id == pendingId }
                         if (idx >= 0) allMessages.removeAt(idx)
+                        val cachedLocalUri = SupportChatCache.cacheFromUri(
+                            context = this@SupportChatActivity,
+                            messageId = sent.id,
+                            sourceUri = uri,
+                            preferredName = sent.fileName ?: pending.fileName,
+                            mimeType = sent.mimeType ?: pending.mimeType,
+                        )
                         // Keep localUri for immediate preview even if server doesn't expose it later.
                         allMessages.add(
                             sent.copy(
-                                localUri = pending.localUri,
+                                localUri = cachedLocalUri ?: pending.localUri,
                                 fileName = sent.fileName ?: pending.fileName,
                                 mimeType = sent.mimeType ?: pending.mimeType,
                             )
                         )
                         adapter.submitList(allMessages.toList()) { scrollToBottom() }
+                        persistChatCache()
                     }
                 }
                 delay(120)
@@ -326,6 +353,7 @@ class SupportChatActivity : BaseActivity() {
                 } else {
                     allMessages.add(sent)
                     adapter.submitList(allMessages.toList()) { scrollToBottom() }
+                    persistChatCache()
                     toast(R.string.send_logs_success)
                 }
             }
@@ -367,11 +395,102 @@ class SupportChatActivity : BaseActivity() {
             )
             withContext(Dispatchers.Main) {
                 if (download == null) {
+                    val fallbackLocal = message.localUri?.let { runCatching { Uri.parse(it) }.getOrNull() }
+                    if (fallbackLocal != null) {
+                        openLocalAttachment(fallbackLocal, message.mimeType)
+                        return@withContext
+                    }
                     toastError(R.string.toast_failure)
                     return@withContext
                 }
                 openAttachment(download.file.toURI().toString(), download.file, download.mimeType)
             }
+        }
+    }
+
+    private fun handleMessageLongPress(message: SupportChatMessage) {
+        val items = ArrayList<String>()
+        if (!message.text.isNullOrBlank()) items.add(getString(R.string.support_chat_action_copy))
+        if (message.hasAttachment || !message.localUri.isNullOrBlank()) {
+            items.add(getString(R.string.support_chat_action_save))
+        }
+        if (items.isEmpty()) return
+
+        AlertDialog.Builder(this)
+            .setItems(items.toTypedArray()) { _, which ->
+                when (items[which]) {
+                    getString(R.string.support_chat_action_copy) -> copyMessageText(message.text.orEmpty())
+                    getString(R.string.support_chat_action_save) -> saveAttachmentToDownloads(message)
+                }
+            }
+            .show()
+    }
+
+    private fun copyMessageText(text: String) {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("support_message", text))
+        toast(R.string.support_chat_copied)
+    }
+
+    private data class SaveSource(
+        val displayName: String,
+        val mimeType: String,
+        val streamProvider: () -> InputStream,
+    )
+
+    private fun saveAttachmentToDownloads(message: SupportChatMessage) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val src = resolveAttachmentSource(message)
+            if (src == null) {
+                withContext(Dispatchers.Main) { toastError(R.string.toast_failure) }
+                return@launch
+            }
+            val ok = runCatching { src.streamProvider() }.mapCatching { input ->
+                saveInputStreamToDownloads(input, src.displayName, src.mimeType)
+            }.getOrElse { false }
+            withContext(Dispatchers.Main) {
+                if (ok) toast(R.string.support_chat_saved) else toastError(R.string.toast_failure)
+            }
+        }
+    }
+
+    private fun resolveAttachmentSource(message: SupportChatMessage): SaveSource? {
+        val displayName = message.fileName?.ifBlank { null } ?: "attachment-${message.id}"
+        val mime = resolveMimeType(message.mimeType, displayName)
+
+        if (!message.localUri.isNullOrBlank()) {
+            val localUri = Uri.parse(message.localUri)
+            return SaveSource(displayName, mime) {
+                if (localUri.scheme.equals("file", ignoreCase = true)) {
+                    File(localUri.path ?: throw IllegalStateException("Invalid local uri")).inputStream()
+                } else {
+                    contentResolver.openInputStream(localUri) ?: throw IllegalStateException("Cannot open local uri")
+                }
+            }
+        }
+
+        val downloaded = SupportChatApi.downloadAttachment(this, message.id, message.fileName) ?: return null
+        return SaveSource(displayName, downloaded.mimeType) { downloaded.file.inputStream() }
+    }
+
+    private fun saveInputStreamToDownloads(input: InputStream, displayName: String, mimeType: String): Boolean {
+        return runCatching {
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, displayName)
+                put(MediaStore.Downloads.MIME_TYPE, mimeType)
+                put(MediaStore.Downloads.RELATIVE_PATH, "Download/Nanored")
+                put(MediaStore.Downloads.IS_PENDING, 1)
+            }
+            val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return false
+            contentResolver.openOutputStream(uri)?.use { out ->
+                input.use { src -> src.copyTo(out) }
+            } ?: return false
+            val complete = ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }
+            contentResolver.update(uri, complete, null, null)
+            true
+        }.getOrElse {
+            runCatching { input.close() }
+            false
         }
     }
 
@@ -465,7 +584,7 @@ class SupportChatActivity : BaseActivity() {
     private fun queryFileSize(uri: Uri): Long? {
         return try {
             contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                val idx = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE)
+                val idx = cursor.getColumnIndex(OpenableColumns.SIZE)
                 if (idx >= 0 && cursor.moveToFirst()) cursor.getLong(idx) else null
             }
         } catch (_: Exception) {
@@ -476,7 +595,7 @@ class SupportChatActivity : BaseActivity() {
     private fun queryFileName(uri: Uri): String? {
         return try {
             contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                val idx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                 if (idx >= 0 && cursor.moveToFirst()) cursor.getString(idx) else null
             }
         } catch (_: Exception) {
@@ -550,5 +669,9 @@ class SupportChatActivity : BaseActivity() {
             URLConnection.guessContentTypeFromName(fileName)?.let { return it }
         }
         return "*/*"
+    }
+
+    private fun persistChatCache() {
+        SupportChatCache.saveMessages(this, allMessages)
     }
 }

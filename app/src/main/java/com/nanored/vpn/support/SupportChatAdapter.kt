@@ -18,13 +18,14 @@ import java.util.Locale
 
 class SupportChatAdapter(
     private val onAttachmentClick: (SupportChatMessage) -> Unit,
+    private val onMessageLongPress: (SupportChatMessage) -> Unit,
 ) : ListAdapter<SupportChatMessage, SupportChatAdapter.MessageVH>(Diff()) {
 
     private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MessageVH {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_support_message, parent, false)
-        return MessageVH(view, onAttachmentClick)
+        return MessageVH(view, onAttachmentClick, onMessageLongPress)
     }
 
     override fun onBindViewHolder(holder: MessageVH, position: Int) {
@@ -34,6 +35,7 @@ class SupportChatAdapter(
     class MessageVH(
         itemView: View,
         private val onAttachmentClick: (SupportChatMessage) -> Unit,
+        private val onMessageLongPress: (SupportChatMessage) -> Unit,
     ) : RecyclerView.ViewHolder(itemView) {
         private val container = itemView.findViewById<LinearLayout>(R.id.container)
         private val bubble = itemView.findViewById<LinearLayout>(R.id.bubble)
@@ -93,11 +95,16 @@ class SupportChatAdapter(
                 }
                 photo.setOnClickListener { onAttachmentClick(item) }
                 mediaWrap.setOnClickListener { onAttachmentClick(item) }
+                mediaWrap.setOnLongClickListener {
+                    onMessageLongPress(item)
+                    true
+                }
             } else {
                 mediaWrap.visibility = View.GONE
                 photo.setImageDrawable(null)
                 photo.setOnClickListener(null)
                 mediaWrap.setOnClickListener(null)
+                mediaWrap.setOnLongClickListener(null)
                 videoPlay.visibility = View.GONE
                 videoDuration.visibility = View.GONE
             }
@@ -115,14 +122,28 @@ class SupportChatAdapter(
                     else -> "\uD83D\uDCCE"
                 }
                 attachRow.setOnClickListener { onAttachmentClick(item) }
+                attachRow.setOnLongClickListener {
+                    onMessageLongPress(item)
+                    true
+                }
             } else {
                 attachRow.visibility = View.GONE
                 attachRow.setOnClickListener(null)
+                attachRow.setOnLongClickListener(null)
             }
 
             val timeText = item.createdAtInstant()?.atZone(ZoneId.systemDefault())?.format(timeFormatter) ?: ""
             val who = if (isOutgoing) "Вы" else "Поддержка"
             meta.text = if (item.isPending) "$who • $timeText • отправка..." else "$who • $timeText"
+
+            body.setOnLongClickListener {
+                onMessageLongPress(item)
+                true
+            }
+            bubble.setOnLongClickListener {
+                onMessageLongPress(item)
+                true
+            }
         }
 
         private fun formatDuration(totalSec: Int): String {

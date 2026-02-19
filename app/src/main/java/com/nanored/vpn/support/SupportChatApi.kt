@@ -36,6 +36,10 @@ object SupportChatApi {
 
         val json = JSONObject(resp)
         val arr = json.optJSONArray("items") ?: JSONArray()
+        val cachedLocalUris = HashMap<String, String>()
+        SupportChatCache.loadMessages(context).forEach { msg ->
+            if (!msg.localUri.isNullOrBlank()) cachedLocalUris[msg.id] = msg.localUri
+        }
         val items = ArrayList<SupportChatMessage>(arr.length())
         for (i in 0 until arr.length()) {
             val it = arr.optJSONObject(i) ?: continue
@@ -58,6 +62,7 @@ object SupportChatApi {
                     mimeType = optStringOrNull("mime_type"),
                     hasAttachment = it.optBoolean("has_attachment", false),
                     createdAtRaw = it.optString("created_at"),
+                    localUri = cachedLocalUris[it.optString("id")],
                 )
             )
         }
@@ -182,6 +187,10 @@ object SupportChatApi {
 
     fun downloadAttachment(context: Context, messageId: String, fallbackName: String?): DownloadedAttachment? {
         val key = apiKey(context) ?: return null
+        SupportChatCache.findMediaFile(context, messageId)?.let { cached ->
+            val mime = normalizeMime(null, cached.name)
+            return DownloadedAttachment(file = cached, mimeType = mime)
+        }
         var conn: HttpURLConnection? = null
         return try {
             conn = URL("$BASE_URL/api/v1/client/support/media/$messageId").openConnection() as HttpURLConnection
@@ -197,10 +206,14 @@ object SupportChatApi {
 
             val outputName = sanitizeFileName(fallbackName?.ifBlank { null } ?: "support-$messageId.bin")
             val mime = normalizeMime(conn.contentType, outputName)
-            val output = File(context.cacheDir, outputName)
-            conn.inputStream.use { input ->
-                output.outputStream().use { out -> input.copyTo(out) }
-            }
+            val bytes = conn.inputStream.use { it.readBytes() }
+            val output = SupportChatCache.cacheFromBytes(
+                context = context,
+                messageId = messageId,
+                preferredName = outputName,
+                mimeType = mime,
+                bytes = bytes,
+            )
             DownloadedAttachment(file = output, mimeType = mime)
         } catch (e: Exception) {
             Log.e(TAG, "Attachment download failed", e)
