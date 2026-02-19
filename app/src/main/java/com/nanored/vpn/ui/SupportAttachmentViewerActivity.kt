@@ -1,16 +1,20 @@
 package com.nanored.vpn.ui
 
 import android.content.ActivityNotFoundException
+import android.content.ContentValues
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Log
 import android.widget.MediaController
 import androidx.core.net.toUri
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.nanored.vpn.R
 import com.nanored.vpn.databinding.ActivitySupportAttachmentViewerBinding
+import com.nanored.vpn.extension.toast
 import com.nanored.vpn.extension.toastError
 import com.nanored.vpn.support.SupportMessageType
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.InputStream
 import java.net.URLConnection
 import java.nio.charset.Charset
 
@@ -31,6 +36,7 @@ class SupportAttachmentViewerActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, true)
         setContentView(binding.root)
 
         attachmentUri = intent.getStringExtra(EXTRA_URI)?.toUri()
@@ -41,7 +47,7 @@ class SupportAttachmentViewerActivity : BaseActivity() {
         }.getOrDefault(SupportMessageType.FILE)
 
         binding.btnBack.setOnClickListener { finish() }
-        binding.btnOpenExternal.setOnClickListener { openExternal() }
+        binding.btnSave.setOnClickListener { saveAttachment() }
         binding.tvTitle.text = fileName?.ifBlank { null } ?: getString(R.string.support_chat_viewer_title)
 
         render()
@@ -168,6 +174,44 @@ class SupportAttachmentViewerActivity : BaseActivity() {
                 toastError(R.string.toast_failure)
             }
         }
+    }
+
+    private fun saveAttachment() {
+        val uri = attachmentUri ?: return
+        lifecycleScope.launch(Dispatchers.IO) {
+            val resolvedMime = resolveMimeType(mimeType, fileName)
+            val saveName = fileName?.ifBlank { null } ?: "attachment_${System.currentTimeMillis()}"
+            val ok = runCatching {
+                openInputStream(uri)?.use { input ->
+                    saveInputStreamToDownloads(input, saveName, resolvedMime)
+                } ?: false
+            }.getOrElse { false }
+            withContext(Dispatchers.Main) {
+                if (ok) toast(R.string.support_chat_saved) else toastError(R.string.toast_failure)
+            }
+        }
+    }
+
+    private fun saveInputStreamToDownloads(input: InputStream, displayName: String, mimeType: String): Boolean {
+        return runCatching {
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, displayName)
+                put(MediaStore.Downloads.MIME_TYPE, mimeType)
+                put(MediaStore.Downloads.RELATIVE_PATH, "Download/Nanored")
+                put(MediaStore.Downloads.IS_PENDING, 1)
+            }
+            val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return false
+            contentResolver.openOutputStream(uri)?.use { out ->
+                input.copyTo(out)
+            } ?: return false
+            contentResolver.update(
+                uri,
+                ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) },
+                null,
+                null,
+            )
+            true
+        }.getOrElse { false }
     }
 
     private fun openInputStream(uri: Uri) =

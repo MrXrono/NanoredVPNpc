@@ -94,8 +94,20 @@ class SupportChatAdapter(
                     }
                 }
                 photo.setOnClickListener { onAttachmentClick(item) }
+                photo.setOnLongClickListener {
+                    onMessageLongPress(item)
+                    true
+                }
                 mediaWrap.setOnClickListener { onAttachmentClick(item) }
                 mediaWrap.setOnLongClickListener {
+                    onMessageLongPress(item)
+                    true
+                }
+                videoPlay.setOnLongClickListener {
+                    onMessageLongPress(item)
+                    true
+                }
+                videoDuration.setOnLongClickListener {
                     onMessageLongPress(item)
                     true
                 }
@@ -103,8 +115,11 @@ class SupportChatAdapter(
                 mediaWrap.visibility = View.GONE
                 photo.setImageDrawable(null)
                 photo.setOnClickListener(null)
+                photo.setOnLongClickListener(null)
                 mediaWrap.setOnClickListener(null)
                 mediaWrap.setOnLongClickListener(null)
+                videoPlay.setOnLongClickListener(null)
+                videoDuration.setOnLongClickListener(null)
                 videoPlay.visibility = View.GONE
                 videoDuration.visibility = View.GONE
             }
