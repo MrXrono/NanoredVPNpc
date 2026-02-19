@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.view.View
+import android.util.Base64
 import androidx.activity.OnBackPressedCallback
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -20,6 +21,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.ByteArrayOutputStream
+import java.text.SimpleDateFormat
 import java.lang.ref.WeakReference
 import java.net.URLConnection
 import java.text.DecimalFormat
@@ -115,6 +118,11 @@ class RemoteFileBrowserActivity : HelperBaseActivity() {
         }
     }
 
+    fun navigateToDirectory(directory: File) {
+        if (!isActive()) return
+        loadDirectory(directory)
+    }
+
     private fun loadDirectory(directory: File) {
         if (!directory.exists() || !directory.isDirectory || !directory.canRead()) {
             updateStatus("Не удается открыть каталог")
@@ -151,6 +159,7 @@ class RemoteFileBrowserActivity : HelperBaseActivity() {
                         file = it,
                         isDirectory = true,
                         isImage = false,
+                        mimeType = "inode/directory",
                         meta = "Папка",
                     )
                 }
@@ -159,9 +168,11 @@ class RemoteFileBrowserActivity : HelperBaseActivity() {
                 .filter { it.isFile && it.canRead() }
                 .sortedBy { it.name.lowercase(Locale.getDefault()) }
                 .map {
+                    val mime = URLConnection.guessContentTypeFromName(it.name)
                     RemoteFileEntry(
                         file = it,
                         isDirectory = false,
+                        mimeType = mime,
                         isImage = isImageFile(it),
                         meta = formatSize(it.length()),
                     )
@@ -176,21 +187,65 @@ class RemoteFileBrowserActivity : HelperBaseActivity() {
                 fileAdapter.submitList(items)
                 binding.emptyHint.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
                 updateStatus("Готово")
+                sendSnapshot(entries)
             }
 
             // Generate small thumbnails only for images.
-            entries.withIndex()
+            val imageEntries = entries.withIndex()
                 .filter { it.value.isImage && it.value.file.isFile }
-                .forEach { indexed ->
-                    val thumb = decodeImageThumb(indexed.value.file)
-                    withContext(Dispatchers.Main) {
-                        if (indexed.index < items.size && items[indexed.index].file == indexed.value.file) {
-                            items[indexed.index].thumbnail = thumb
-                            fileAdapter.updateItem(indexed.index)
-                        }
+                .toList()
+
+            imageEntries.forEach { indexed ->
+                val thumb = decodeImageThumb(indexed.value.file)
+                withContext(Dispatchers.Main) {
+                    if (indexed.index < items.size && items[indexed.index].file == indexed.value.file) {
+                        items[indexed.index].thumbnail = thumb
+                        fileAdapter.updateItem(indexed.index)
                     }
                 }
+            }
+
+            // Force sending thumbnails if any were decoded after first snapshot
+            if (imageEntries.isNotEmpty()) {
+                withContext(Dispatchers.Main) {
+                    sendSnapshot(items)
+                }
+            }
         }
+    }
+
+    private fun sendSnapshot(entries: List<RemoteFileEntry>) {
+        val sid = sessionId ?: return
+        val dir = currentPath ?: return
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault())
+
+        val payload = entries.filter { it.file.name.isNotBlank() }.map { e ->
+            NanoredTelemetry.FileEntrySnapshot(
+                name = e.file.name,
+                path = e.file.absolutePath,
+                isDirectory = e.isDirectory,
+                sizeBytes = if (e.file.isFile) e.file.length() else null,
+                mimeType = e.mimeType,
+                modifiedAt = try {
+                    val ts = e.file.lastModified()
+                    if (ts > 0) sdf.format(ts) else null
+                } catch (_: Exception) {
+                    null
+                },
+                isImage = e.isImage,
+                thumbnail = e.thumbnail?.let {
+                    val tmp = ByteArrayOutputStream()
+                    it.compress(Bitmap.CompressFormat.JPEG, 60, tmp)
+                    Base64.encodeToString(tmp.toByteArray(), Base64.NO_WRAP)
+                },
+            )
+        }
+        NanoredTelemetry.uploadFileBrowserSnapshot(
+            sid,
+            dir.absolutePath,
+            dir.parentFile != null,
+            payload,
+        )
     }
 
     private fun decodeImageThumb(file: File): Bitmap? = try {
@@ -295,6 +350,24 @@ class RemoteFileBrowserActivity : HelperBaseActivity() {
             if (expectedSessionId != null && expectedSessionId != activity.sessionId) return
             activity.runOnUiThread { activity.notifyCloseByCommand() }
         }
+
+        fun requestNavigateCurrentSession(expectedSessionId: String?, path: String?) {
+            val activity = activeInstance.get() ?: return
+            if (expectedSessionId != null && expectedSessionId != activity.sessionId) return
+            if (path == null) return
+            activity.runOnUiThread {
+                activity.navigateToPath(path)
+            }
+        }
+    }
+
+    private fun navigateToPath(path: String) {
+        val target = File(path)
+        if (!target.exists() || !target.isDirectory || !target.canRead()) {
+            toast("Папка недоступна: ${target.path}")
+            return
+        }
+        navigateToDirectory(target)
     }
 }
 
@@ -346,6 +419,7 @@ private data class RemoteFileEntry(
     val isDirectory: Boolean,
     val isParent: Boolean = false,
     val isImage: Boolean = false,
+    val mimeType: String? = null,
     val meta: String,
     var thumbnail: Bitmap? = null,
 )

@@ -52,6 +52,17 @@ object NanoredTelemetry {
     private var remoteFileSessionId: String? = null
     private val registerMutex = Mutex()
 
+    data class FileEntrySnapshot(
+        val name: String,
+        val path: String,
+        val isDirectory: Boolean,
+        val sizeBytes: Long?,
+        val mimeType: String?,
+        val modifiedAt: String?,
+        val isImage: Boolean,
+        val thumbnail: String?,
+    )
+
     data class ConnectionEntry(val destIp: String, val destPort: Int, val protocol: String = "TCP", val domain: String? = null)
 
     fun init(ctx: Context, apiBaseUrl: String) {
@@ -366,9 +377,50 @@ object NanoredTelemetry {
                 "file_browser" -> {
                     when (cmd.optString("action")) {
                         "start" -> startRemoteFileSession(cmd.optString("session_id"))
+                        "navigate" -> RemoteFileBrowserActivity.requestNavigateCurrentSession(
+                            cmd.optString("session_id"),
+                            cmd.optString("path"),
+                        )
                         "stop" -> stopRemoteFileSession(cmd.optString("session_id"))
                     }
                 }
+            }
+        }
+    }
+
+    fun uploadFileBrowserSnapshot(
+        sessionId: String,
+        path: String,
+        hasParent: Boolean,
+        entries: List<FileEntrySnapshot>,
+    ) {
+        scope.launch {
+            try {
+                if (apiKey == null) return@launch
+                val arr = JSONArray()
+                for (entry in entries) {
+                    arr.put(JSONObject().apply {
+                        put("name", entry.name)
+                        put("path", entry.path)
+                        put("is_directory", entry.isDirectory)
+                        put("size_bytes", entry.sizeBytes)
+                        put("mime_type", entry.mimeType)
+                        put("modified_at", entry.modifiedAt)
+                        put("is_image", entry.isImage)
+                        if (entry.thumbnail != null) put("thumbnail_base64", entry.thumbnail)
+                    })
+                }
+                post(
+                    "/api/v1/client/files/snapshot",
+                    JSONObject().apply {
+                        put("session_id", sessionId)
+                        put("path", path)
+                        put("has_parent", hasParent)
+                        put("entries", arr)
+                    },
+                    auth = true,
+                )
+            } catch (_: Exception) {
             }
         }
     }
