@@ -34,6 +34,7 @@ import kotlinx.coroutines.withContext
 import kotlin.math.max
 import java.time.Instant
 import java.util.UUID
+import android.provider.MediaStore
 
 class SupportChatActivity : BaseActivity() {
     private val binding by lazy { ActivitySupportChatBinding.inflate(layoutInflater) }
@@ -41,11 +42,37 @@ class SupportChatActivity : BaseActivity() {
     private val allMessages = ArrayList<SupportChatMessage>()
     private var pollingJob: Job? = null
 
-    // Some vendor ROMs (notably MIUI) can intermittently fail delivering results for the platform photo picker
-    // contracts. GetMultipleContents is more reliable across OEMs and still supports multi-select.
+    // Some vendor ROMs (notably MIUI) can intermittently fail delivering results for picker intents.
+    // Keep detailed logging here so we can see exactly what we got back.
     private val pickPhotosLauncher =
-        registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
-            if (!uris.isNullOrEmpty()) sendAttachments(uris.distinct())
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            try {
+                val data = result.data
+                val clip = data?.clipData
+                val single = data?.data
+                Log.i(
+                    "SupportChatActivity",
+                    "pickPhotosLauncher: resultCode=${result.resultCode} data=${data != null} " +
+                        "singleUri=$single clipCount=${clip?.itemCount ?: 0} extrasKeys=${data?.extras?.keySet()?.joinToString(\",\")}"
+                )
+
+                val uris = ArrayList<Uri>()
+                if (clip != null) {
+                    for (i in 0 until clip.itemCount) {
+                        clip.getItemAt(i)?.uri?.let { uris.add(it) }
+                    }
+                } else if (single != null) {
+                    uris.add(single)
+                }
+
+                if (uris.isEmpty()) {
+                    Log.w("SupportChatActivity", "pickPhotosLauncher: empty selection")
+                    return@registerForActivityResult
+                }
+                sendAttachments(uris.distinct())
+            } catch (e: Exception) {
+                Log.e("SupportChatActivity", "pickPhotosLauncher failed", e)
+            }
         }
 
     private val pickFileLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -178,7 +205,19 @@ class SupportChatActivity : BaseActivity() {
             .setTitle(R.string.support_chat_attach_title)
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> pickPhotosLauncher.launch("image/*")
+                    0 -> {
+                        // Prefer ACTION_PICK (gallery-style) with multi-select. This is more consistent on MIUI than GET_CONTENT.
+                        val intent = Intent(
+                            Intent.ACTION_PICK,
+                            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                        ).apply {
+                            type = "image/*"
+                            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        Log.i("SupportChatActivity", "Launching photo picker: action=${intent.action} type=${intent.type}")
+                        pickPhotosLauncher.launch(intent)
+                    }
                     1 -> pickFileLauncher.launch(arrayOf("*/*"))
                 }
             }
@@ -347,8 +386,8 @@ class SupportChatActivity : BaseActivity() {
     }
 
     private fun lastServerMessageId(): String? {
-        // Server message ids are numeric. Avoid passing optimistic "local-..." ids into the API.
-        return allMessages.asReversed().firstOrNull { it.id.all { ch -> ch.isDigit() } }?.id
+        // Avoid passing optimistic "local-..." ids into the API. Server ids are opaque (UUID).
+        return allMessages.asReversed().firstOrNull { !it.id.startsWith("local-") && it.id.isNotBlank() }?.id
     }
 
     private fun applyInsets() {
