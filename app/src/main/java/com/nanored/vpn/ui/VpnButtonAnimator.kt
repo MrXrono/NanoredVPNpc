@@ -1,6 +1,7 @@
 package com.nanored.vpn.ui
 
 import android.animation.AnimatorSet
+import android.animation.AnimatorListenerAdapter
 import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
 import android.content.res.ColorStateList
@@ -52,6 +53,7 @@ class VpnButtonAnimator(
     private val colorErrorShimmer get() = ContextCompat.getColor(context, R.color.vpn_btn_error_shimmer)
 
     private val argbEvaluator = ArgbEvaluator()
+    private val disconnectSpeedMultiplier = 0.5f
 
     init {
         background.shape = GradientDrawable.RECTANGLE
@@ -135,6 +137,12 @@ class VpnButtonAnimator(
         tvTime.text = time
         tvSpeed.text = speed
         tvPing.text = ping
+    }
+
+    fun resetSessionInfo() {
+        tvTime.text = "00:00"
+        tvSpeed.text = ""
+        tvPing.text = ""
     }
 
     // ===== IDLE: Pulsing color shimmer =====
@@ -378,18 +386,21 @@ class VpnButtonAnimator(
         val currentHeight = container.layoutParams.height.let { if (it > 0) it else rectHeight }
         val currentRadius = background.cornerRadius
 
-        // Content fade out first (0.5s)
+        val fadeDuration = (500L * disconnectSpeedMultiplier).toLong()
+        val morphDuration = (2500L * disconnectSpeedMultiplier).toLong()
+
+        // Content fade out first
         val contentFadeOut = ValueAnimator.ofFloat(contentLayout.alpha, 0f).apply {
-            duration = 500
+            duration = fadeDuration
             addUpdateListener { anim ->
                 contentLayout.alpha = anim.animatedValue as Float
             }
         }
 
-        // Icon fade in (0.5s, starts with morph)
+        // Icon fade in (starts with morph)
         val iconFadeIn = ValueAnimator.ofFloat(icon.alpha, 1f).apply {
-            duration = 500
-            startDelay = 500
+            duration = fadeDuration
+            startDelay = fadeDuration
             addUpdateListener { anim ->
                 icon.alpha = anim.animatedValue as Float
             }
@@ -397,8 +408,8 @@ class VpnButtonAnimator(
 
         // Width animation: rect -> circle (starts after content fades)
         val widthAnim = ValueAnimator.ofInt(currentWidth, circleSize).apply {
-            duration = 2500
-            startDelay = 500
+            duration = morphDuration
+            startDelay = fadeDuration
             addUpdateListener { anim ->
                 val w = anim.animatedValue as Int
                 val params = container.layoutParams
@@ -409,8 +420,8 @@ class VpnButtonAnimator(
 
         // Height animation: rect -> circle
         val heightAnim = ValueAnimator.ofInt(currentHeight, circleSize).apply {
-            duration = 2500
-            startDelay = 500
+            duration = morphDuration
+            startDelay = fadeDuration
             addUpdateListener { anim ->
                 val h = anim.animatedValue as Int
                 val params = container.layoutParams
@@ -421,8 +432,8 @@ class VpnButtonAnimator(
 
         // Corner radius animation
         val cornerAnim = ValueAnimator.ofFloat(currentRadius, circleRadius).apply {
-            duration = 2500
-            startDelay = 500
+            duration = morphDuration
+            startDelay = fadeDuration
             addUpdateListener { anim ->
                 background.cornerRadius = anim.animatedValue as Float
             }
@@ -430,8 +441,8 @@ class VpnButtonAnimator(
 
         // Color animation: connected -> idle
         val colorAnim = ValueAnimator.ofObject(argbEvaluator, colorConnected, colorIdle).apply {
-            duration = 2500
-            startDelay = 500
+            duration = morphDuration
+            startDelay = fadeDuration
             addUpdateListener { anim ->
                 background.setColor(anim.animatedValue as Int)
             }
@@ -439,6 +450,15 @@ class VpnButtonAnimator(
 
         set.playTogether(contentFadeOut, iconFadeIn, widthAnim, heightAnim, cornerAnim, colorAnim)
         set.interpolator = AccelerateDecelerateInterpolator()
+        set.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: android.animation.Animator) {
+                if (currentState == State.DISCONNECTING) {
+                    currentState = State.IDLE
+                    snapToIdle()
+                    startIdlePulse()
+                }
+            }
+        })
         set.start()
 
         currentAnimator = set

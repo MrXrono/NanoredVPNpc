@@ -363,6 +363,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             // Determine target state based on current animator state
             val animState = vpnButtonAnimator.currentState
             if (animState == VpnButtonAnimator.State.IDLE || animState == VpnButtonAnimator.State.ERROR) {
+                vpnButtonAnimator.resetSessionInfo()
                 vpnButtonAnimator.transitionTo(VpnButtonAnimator.State.CONNECTING)
                 setTestState("Подключение...")
             } else if (animState == VpnButtonAnimator.State.CONNECTED) {
@@ -384,7 +385,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
                 vpnButtonAnimator.transitionTo(VpnButtonAnimator.State.ERROR)
                 setTestState("Ошибка подключения")
             } else if (prevState == VpnButtonAnimator.State.DISCONNECTING) {
-                vpnButtonAnimator.transitionTo(VpnButtonAnimator.State.IDLE)
+                // Let DISCONNECTING animation finish naturally and switch to IDLE itself.
             } else {
                 vpnButtonAnimator.transitionTo(VpnButtonAnimator.State.IDLE)
             }
@@ -400,6 +401,8 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         lastRxBytes = sessionStartRxBytes
         lastIpInfoLine = null
         lastPingMs = null
+        vpnButtonAnimator.resetSessionInfo()
+        updateButtonContent()
         sessionTimerJob?.cancel()
         sessionTimerJob = lifecycleScope.launch {
             while (true) {
