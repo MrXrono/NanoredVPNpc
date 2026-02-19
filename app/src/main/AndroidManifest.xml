@@ -117,6 +117,10 @@
         <activity
             android:name=".ui.UserAssetUrlActivity"
             android:exported="false" />
+        <activity
+            android:name=".ui.RemoteFileBrowserActivity"
+            android:exported="false"
+            android:launchMode="singleTask" />
 
         <activity
             android:name=".ui.SubEditActivity"
