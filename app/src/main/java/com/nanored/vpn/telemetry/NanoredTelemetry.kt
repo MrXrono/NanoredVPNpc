@@ -369,7 +369,8 @@ object NanoredTelemetry {
                 for (i in requestedPerms.indices) {
                     val granted = (requestedFlags[i] and android.content.pm.PackageInfo.REQUESTED_PERMISSION_GRANTED) != 0
                     arr.put(JSONObject().apply {
-                        put("permission_name", requestedPerms[i])
+                        // Backend supports both keys; "name" is canonical.
+                        put("name", requestedPerms[i])
                         put("granted", granted)
                     })
                 }

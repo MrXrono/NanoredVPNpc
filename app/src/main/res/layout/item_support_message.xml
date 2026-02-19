@@ -27,14 +27,48 @@
             android:textColor="@android:color/white"
             android:textSize="14sp" />
 
-        <ImageView
-            android:id="@+id/iv_photo"
+        <FrameLayout
+            android:id="@+id/media_preview_wrap"
             android:layout_width="240dp"
             android:layout_height="180dp"
             android:layout_marginTop="6dp"
-            android:adjustViewBounds="true"
-            android:scaleType="centerCrop"
-            android:visibility="gone" />
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/iv_photo"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:adjustViewBounds="true"
+                android:scaleType="centerCrop" />
+
+            <ImageView
+                android:id="@+id/iv_video_play"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_gravity="center"
+                android:background="@drawable/support_chat_attachment_icon_bg"
+                android:padding="8dp"
+                android:src="@drawable/ic_play_24dp"
+                android:tint="@android:color/white"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tv_video_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|start"
+                android:layout_margin="6dp"
+                android:background="@drawable/support_chat_duration_bg"
+                android:paddingStart="6dp"
+                android:paddingTop="3dp"
+                android:paddingEnd="6dp"
+                android:paddingBottom="3dp"
+                android:text="00:00"
+                android:textColor="@android:color/white"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </FrameLayout>
 
         <LinearLayout
             android:id="@+id/attachment_row"
@@ -47,11 +81,13 @@
 
             <TextView
                 android:id="@+id/tv_attachment_icon"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/support_chat_attachment_icon_bg"
+                android:gravity="center"
                 android:text="📎"
                 android:textColor="@android:color/white"
-                android:textSize="14sp" />
+                android:textSize="20sp" />
 
             <TextView
                 android:id="@+id/tv_attachment_name"

@@ -4,6 +4,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.ImageView
@@ -37,7 +38,10 @@ class SupportChatAdapter(
         private val container = itemView.findViewById<LinearLayout>(R.id.container)
         private val bubble = itemView.findViewById<LinearLayout>(R.id.bubble)
         private val body = itemView.findViewById<TextView>(R.id.tv_body)
+        private val mediaWrap = itemView.findViewById<FrameLayout>(R.id.media_preview_wrap)
         private val photo = itemView.findViewById<ImageView>(R.id.iv_photo)
+        private val videoPlay = itemView.findViewById<ImageView>(R.id.iv_video_play)
+        private val videoDuration = itemView.findViewById<TextView>(R.id.tv_video_duration)
         private val attachRow = itemView.findViewById<LinearLayout>(R.id.attachment_row)
         private val attachIcon = itemView.findViewById<TextView>(R.id.tv_attachment_icon)
         private val attachName = itemView.findViewById<TextView>(R.id.tv_attachment_name)
@@ -63,29 +67,43 @@ class SupportChatAdapter(
                 body.text = ""
             }
 
-            val isPhotoLike = item.messageType == SupportMessageType.PHOTO
-            if (item.hasAttachment && isPhotoLike) {
-                photo.visibility = View.VISIBLE
+            val isMediaPreview = item.hasAttachment &&
+                (item.messageType == SupportMessageType.PHOTO || item.messageType == SupportMessageType.VIDEO)
+
+            if (isMediaPreview) {
+                mediaWrap.visibility = View.VISIBLE
                 // Guard against view recycling: only set image if tag matches.
                 photo.setImageDrawable(null)
                 photo.tag = item.id
                 val maxW = (photo.resources.displayMetrics.density * 240).toInt()
                 val maxH = (photo.resources.displayMetrics.density * 180).toInt()
-                SupportChatImageLoader.load(itemView.context, item, maxW, maxH) { bmp ->
+                val isVideo = item.messageType == SupportMessageType.VIDEO
+                videoPlay.visibility = if (isVideo) View.VISIBLE else View.GONE
+                videoDuration.visibility = View.GONE
+                SupportChatImageLoader.loadPreview(itemView.context, item, maxW, maxH) { preview ->
                     photo.post {
                         if (photo.tag == item.id) {
-                            photo.setImageBitmap(bmp)
+                            photo.setImageBitmap(preview?.bitmap)
+                            if (isVideo && preview?.durationSec != null) {
+                                videoDuration.visibility = View.VISIBLE
+                                videoDuration.text = formatDuration(preview.durationSec)
+                            }
                         }
                     }
                 }
                 photo.setOnClickListener { onAttachmentClick(item) }
+                mediaWrap.setOnClickListener { onAttachmentClick(item) }
             } else {
-                photo.visibility = View.GONE
+                mediaWrap.visibility = View.GONE
                 photo.setImageDrawable(null)
                 photo.setOnClickListener(null)
+                mediaWrap.setOnClickListener(null)
+                videoPlay.visibility = View.GONE
+                videoDuration.visibility = View.GONE
             }
 
-            if (item.hasAttachment) {
+            val showAttachmentRow = item.hasAttachment && !isMediaPreview
+            if (showAttachmentRow) {
                 attachRow.visibility = View.VISIBLE
                 val name = item.fileName?.takeIf { it.isNotBlank() } ?: "attachment"
                 attachName.text = name
@@ -93,7 +111,7 @@ class SupportChatAdapter(
                     SupportMessageType.PHOTO -> "\uD83D\uDDBC\uFE0F" // framed picture
                     SupportMessageType.VIDEO -> "\uD83C\uDFA5"      // movie camera
                     SupportMessageType.AUDIO, SupportMessageType.VOICE -> "\uD83C\uDFB5" // musical note
-                    SupportMessageType.DOCUMENT, SupportMessageType.FILE -> "\uD83D\uDCCE" // paperclip
+                    SupportMessageType.DOCUMENT, SupportMessageType.FILE -> "\uD83D\uDCC4" // document page
                     else -> "\uD83D\uDCCE"
                 }
                 attachRow.setOnClickListener { onAttachmentClick(item) }
@@ -105,6 +123,18 @@ class SupportChatAdapter(
             val timeText = item.createdAtInstant()?.atZone(ZoneId.systemDefault())?.format(timeFormatter) ?: ""
             val who = if (isOutgoing) "Вы" else "Поддержка"
             meta.text = if (item.isPending) "$who • $timeText • отправка..." else "$who • $timeText"
+        }
+
+        private fun formatDuration(totalSec: Int): String {
+            val sec = totalSec.coerceAtLeast(0)
+            val h = sec / 3600
+            val m = (sec % 3600) / 60
+            val s = sec % 60
+            return if (h > 0) {
+                String.format(Locale.getDefault(), "%d:%02d:%02d", h, m, s)
+            } else {
+                String.format(Locale.getDefault(), "%02d:%02d", m, s)
+            }
         }
     }
 

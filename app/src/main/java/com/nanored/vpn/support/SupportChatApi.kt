@@ -11,6 +11,7 @@ import java.io.DataOutputStream
 import java.io.File
 import java.io.OutputStream
 import java.io.FileInputStream
+import java.net.URLConnection
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
@@ -194,8 +195,8 @@ object SupportChatApi {
                 return null
             }
 
-            val mime = conn.contentType ?: "application/octet-stream"
-            val outputName = fallbackName?.ifBlank { null } ?: "support-$messageId.bin"
+            val outputName = sanitizeFileName(fallbackName?.ifBlank { null } ?: "support-$messageId.bin")
+            val mime = normalizeMime(conn.contentType, outputName)
             val output = File(context.cacheDir, outputName)
             conn.inputStream.use { input ->
                 output.outputStream().use { out -> input.copyTo(out) }
@@ -272,6 +273,22 @@ object SupportChatApi {
         } else {
             resolver.openInputStream(uri)
         }
+    }
+
+    private fun sanitizeFileName(name: String): String {
+        val cleaned = name
+            .replace("\\", "_")
+            .replace("/", "_")
+            .replace("\r", " ")
+            .replace("\n", " ")
+            .trim()
+        return if (cleaned.isBlank()) "attachment.bin" else cleaned
+    }
+
+    private fun normalizeMime(raw: String?, fileName: String): String {
+        val base = raw?.substringBefore(";")?.trim()?.lowercase()
+        if (!base.isNullOrBlank() && base != "application/octet-stream") return base
+        return URLConnection.guessContentTypeFromName(fileName) ?: "application/octet-stream"
     }
 
     private fun parseMessage(json: JSONObject): SupportChatMessage {

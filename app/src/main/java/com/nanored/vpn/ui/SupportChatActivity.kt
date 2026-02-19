@@ -2,6 +2,8 @@ package com.nanored.vpn.ui
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -35,6 +37,9 @@ import kotlin.math.max
 import java.time.Instant
 import java.util.UUID
 import android.provider.MediaStore
+import java.io.File
+import java.io.FileOutputStream
+import java.net.URLConnection
 
 class SupportChatActivity : BaseActivity() {
     private val binding by lazy { ActivitySupportChatBinding.inflate(layoutInflater) }
@@ -256,7 +261,28 @@ class SupportChatActivity : BaseActivity() {
                     adapter.submitList(allMessages.toList()) { scrollToBottom() }
                 }
 
-                val sent = SupportChatApi.sendFile(this@SupportChatActivity, uri)
+                var uploadUri = uri
+                var uploadName: String? = displayName
+                var uploadMime = mimeType
+                var tempFileToDelete: File? = null
+
+                if (isPhoto) {
+                    val prepared = preparePhotoForUpload(uri)
+                    if (prepared != null) {
+                        uploadUri = Uri.fromFile(prepared.file)
+                        uploadName = prepared.file.name
+                        uploadMime = "image/jpeg"
+                        tempFileToDelete = prepared.file
+                    }
+                }
+
+                val sent = SupportChatApi.sendFile(
+                    context = this@SupportChatActivity,
+                    fileUri = uploadUri,
+                    overrideName = uploadName,
+                    overrideMime = uploadMime,
+                )
+                tempFileToDelete?.delete()
                 withContext(Dispatchers.Main) {
                     if (sent == null) {
                         toastError(R.string.toast_failure)
@@ -351,13 +377,22 @@ class SupportChatActivity : BaseActivity() {
 
     private fun openLocalAttachment(uri: Uri, mimeType: String?) {
         try {
+            val resolvedMime = resolveMimeType(mimeType, queryFileName(uri))
             val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, mimeType ?: "*/*")
+                setDataAndType(uri, resolvedMime)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             startActivity(intent)
         } catch (e: ActivityNotFoundException) {
-            toast(uri.toString())
+            try {
+                val fallback = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, "*/*")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(fallback)
+            } catch (_: Exception) {
+                toast(uri.toString())
+            }
         } catch (_: Exception) {
             toastError(R.string.toast_failure)
         }
@@ -366,13 +401,23 @@ class SupportChatActivity : BaseActivity() {
     private fun openAttachment(uriText: String, file: java.io.File, mimeType: String) {
         try {
             val uri = FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}.cache", file)
+            val resolvedMime = resolveMimeType(mimeType, file.name)
             val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, mimeType)
+                setDataAndType(uri, resolvedMime)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             startActivity(intent)
         } catch (e: ActivityNotFoundException) {
-            toast(uriText)
+            try {
+                val uri = FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}.cache", file)
+                val fallback = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, "*/*")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(fallback)
+            } catch (_: Exception) {
+                toast(uriText)
+            }
         } catch (e: Exception) {
             toastError(R.string.toast_failure)
         }
@@ -460,5 +505,50 @@ class SupportChatActivity : BaseActivity() {
             }
         }
         return parts.filter { it.isNotBlank() }
+    }
+
+    private data class PreparedPhoto(val file: File)
+
+    private fun preparePhotoForUpload(uri: Uri): PreparedPhoto? {
+        return try {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+
+            val maxSide = 1920
+            var sample = 1
+            while ((bounds.outWidth / sample) > maxSide || (bounds.outHeight / sample) > maxSide) {
+                sample *= 2
+            }
+
+            val decodeOpts = BitmapFactory.Options().apply { inSampleSize = sample.coerceAtLeast(1) }
+            val bmp = contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, decodeOpts) }
+                ?: return null
+
+            val out = File(cacheDir, "support_photo_${System.currentTimeMillis()}.jpg")
+            val targetBytes = 900 * 1024
+            val qualitySteps = intArrayOf(85, 75, 65, 55, 45, 35)
+
+            for (quality in qualitySteps) {
+                FileOutputStream(out, false).use { fos ->
+                    bmp.compress(Bitmap.CompressFormat.JPEG, quality, fos)
+                    fos.flush()
+                }
+                if (out.length() <= targetBytes) break
+            }
+            PreparedPhoto(out)
+        } catch (e: Exception) {
+            Log.w("SupportChatActivity", "Photo pre-compress failed", e)
+            null
+        }
+    }
+
+    private fun resolveMimeType(rawMime: String?, fileName: String?): String {
+        val normalized = rawMime?.substringBefore(";")?.trim()?.lowercase()
+        if (!normalized.isNullOrBlank() && normalized != "application/octet-stream") return normalized
+        if (!fileName.isNullOrBlank()) {
+            URLConnection.guessContentTypeFromName(fileName)?.let { return it }
+        }
+        return "*/*"
     }
 }
