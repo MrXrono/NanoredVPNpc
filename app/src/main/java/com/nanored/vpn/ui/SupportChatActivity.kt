@@ -6,6 +6,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts.PickMultipleVisualMedia
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.FileProvider
@@ -41,19 +43,11 @@ class SupportChatActivity : BaseActivity() {
     private val allMessages = ArrayList<SupportChatMessage>()
     private var pollingJob: Job? = null
 
+    // Use the photo picker API when possible; on some vendor ROMs, ACTION_GET_CONTENT can intermittently
+    // fail delivering results back to the activity.
     private val pickPhotosLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode != RESULT_OK) return@registerForActivityResult
-            val data = result.data ?: return@registerForActivityResult
-            val out = ArrayList<Uri>()
-            data.data?.let { out.add(it) }
-            val clip = data.clipData
-            if (clip != null) {
-                for (i in 0 until clip.itemCount) {
-                    clip.getItemAt(i)?.uri?.let { out.add(it) }
-                }
-            }
-            if (out.isNotEmpty()) sendAttachments(out.distinct())
+        registerForActivityResult(PickMultipleVisualMedia(20)) { uris ->
+            if (!uris.isNullOrEmpty()) sendAttachments(uris.distinct())
         }
 
     private val pickFileLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -119,7 +113,7 @@ class SupportChatActivity : BaseActivity() {
         pollingJob = lifecycleScope.launch(Dispatchers.IO) {
             while (true) {
                 try {
-                    val afterId = allMessages.lastOrNull()?.id
+                    val afterId = lastServerMessageId()
                     val page = SupportChatApi.fetchMessages(this@SupportChatActivity, afterId = afterId)
                     if (page.items.isNotEmpty()) {
                         withContext(Dispatchers.Main) {
@@ -186,13 +180,7 @@ class SupportChatActivity : BaseActivity() {
             .setTitle(R.string.support_chat_attach_title)
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> pickPhotosLauncher.launch(
-                        Intent(Intent.ACTION_GET_CONTENT).apply {
-                            type = "image/*"
-                            addCategory(Intent.CATEGORY_OPENABLE)
-                            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                        }
-                    )
+                    0 -> pickPhotosLauncher.launch(PickVisualMediaRequest(PickMultipleVisualMedia.ImageOnly))
                     1 -> pickFileLauncher.launch(arrayOf("*/*"))
                 }
             }
@@ -354,10 +342,15 @@ class SupportChatActivity : BaseActivity() {
     }
 
     private fun markReadIfNeeded() {
-        val lastId = allMessages.lastOrNull()?.id ?: return
+        val lastId = lastServerMessageId() ?: return
         lifecycleScope.launch(Dispatchers.IO) {
             SupportChatApi.markRead(this@SupportChatActivity, lastId)
         }
+    }
+
+    private fun lastServerMessageId(): String? {
+        // Server message ids are numeric. Avoid passing optimistic "local-..." ids into the API.
+        return allMessages.asReversed().firstOrNull { it.id.all { ch -> ch.isDigit() } }?.id
     }
 
     private fun applyInsets() {
