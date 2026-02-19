@@ -20,6 +20,7 @@ import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.net.URL
 import java.util.*
+import com.nanored.vpn.ui.RemoteFileBrowserActivity
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.net.ssl.HttpsURLConnection
 import kotlinx.coroutines.sync.Mutex
@@ -105,7 +106,7 @@ object NanoredTelemetry {
                 delay(COMMAND_POLL_INTERVAL_MS)
                 try {
                     val resp = post("/api/v1/client/commands", JSONObject(), auth = true)
-                    processCommands(resp.optJSONArray("commands"))
+                    processCommands(resp?.optJSONArray("commands"))
                 } catch (_: Exception) {
                     // Ignore and continue polling
                 }

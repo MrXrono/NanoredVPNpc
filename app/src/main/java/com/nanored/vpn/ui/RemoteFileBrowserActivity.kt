@@ -119,7 +119,7 @@ class RemoteFileBrowserActivity : HelperBaseActivity() {
     }
 
     fun navigateToDirectory(directory: File) {
-        if (!isActive()) return
+        if (isFinishing || isDestroyed) return
         loadDirectory(directory)
     }
 
