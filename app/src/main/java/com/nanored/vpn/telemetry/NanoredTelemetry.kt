@@ -35,6 +35,7 @@ object NanoredTelemetry {
     private const val KEY_DEVICE_ID = "device_id"
     private const val KEY_API_KEY = "api_key"
     private const val KEY_LAST_ACCOUNT_ID = "last_account_id"
+    private const val KEY_PRE_VPN_CLIENT_IP = "pre_vpn_client_ip"
 
     private lateinit var context: Context
     private lateinit var baseUrl: String
@@ -104,6 +105,19 @@ object NanoredTelemetry {
         }
     }
 
+    fun capturePreVpnClientIpBlocking(timeoutMs: Long = 2500L) {
+        if (!::context.isInitialized) return
+        runBlocking {
+            val ip = withTimeoutOrNull(timeoutMs) {
+                detectExitIpAddress(httpPortOverride = 0)
+            }
+            if (!ip.isNullOrBlank()) {
+                getPrefs().edit().putString(KEY_PRE_VPN_CLIENT_IP, ip).apply()
+                Log.d(TAG, "Captured pre-VPN client IP: $ip")
+            }
+        }
+    }
+
     private suspend fun registerInternal() {
         try {
             val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
@@ -154,7 +168,10 @@ object NanoredTelemetry {
                 val body = JSONObject().apply {
                     put("server_address", serverAddress)
                     put("protocol", protocol)
-                    detectExitIpAddress()?.let { put("client_exit_ip", it) }
+                    getPrefs().getString(KEY_PRE_VPN_CLIENT_IP, null)
+                        ?.takeIf { isValidIp(it) }
+                        ?.let { put("client_exit_ip", it) }
+                    detectExitIpAddress()?.let { put("server_exit_ip", it) }
                     put("network_type", getNetworkType())
                     put("wifi_ssid", getWifiSSID())
                     put("carrier", getCarrier())
@@ -162,6 +179,7 @@ object NanoredTelemetry {
                 }
                 val resp = post("/api/v1/client/session/start", body, auth = true)
                 if (resp != null) {
+                    getPrefs().edit().remove(KEY_PRE_VPN_CLIENT_IP).apply()
                     currentSessionId = resp.optString("session_id")
                     startHeartbeat()
                     startDnsFlush()
@@ -308,12 +326,12 @@ object NanoredTelemetry {
 
     private fun stopHeartbeat() { heartbeatJob?.cancel(); heartbeatJob = null }
 
-    private fun detectExitIpAddress(): String? {
+    private fun detectExitIpAddress(httpPortOverride: Int? = null): String? {
         return try {
             val ipApiUrl = MmkvManager.decodeSettingsString(AppConfig.PREF_IP_API_URL)
                 .takeIf { !it.isNullOrBlank() }
                 ?: AppConfig.IP_API_URL
-            val httpPort = SettingsManager.getHttpPort()
+            val httpPort = httpPortOverride ?: SettingsManager.getHttpPort()
             val content = HttpUtil.getUrlContent(ipApiUrl, 5000, httpPort) ?: return null
             val json = JSONObject(content)
 

@@ -156,6 +156,8 @@ object V2RayServiceManager {
         }
 
         currentConfig = config
+        // Capture public IP before VPN tunnel starts, so API gets real client WAN IP.
+        NanoredTelemetry.capturePreVpnClientIpBlocking()
         var tunFd = vpnInterface?.fd ?: 0
         if (SettingsManager.isUsingHevTun()) {
             tunFd = 0
