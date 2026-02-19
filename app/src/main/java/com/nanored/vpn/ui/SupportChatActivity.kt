@@ -50,10 +50,10 @@ class SupportChatActivity : BaseActivity() {
                 val data = result.data
                 val clip = data?.clipData
                 val single = data?.data
-                Log.i(
-                    "SupportChatActivity",
-                    "pickPhotosLauncher: resultCode=${result.resultCode} data=${data != null} " +
-                        "singleUri=$single clipCount=${clip?.itemCount ?: 0} extrasKeys=${data?.extras?.keySet()?.joinToString(\",\")}"
+	                Log.i(
+	                    "SupportChatActivity",
+	                    "pickPhotosLauncher: resultCode=${result.resultCode} data=${data != null} " +
+                        "singleUri=$single clipCount=${clip?.itemCount ?: 0} extrasKeys=${data?.extras?.keySet()?.joinToString(",")}"
                 )
 
                 val uris = ArrayList<Uri>()
