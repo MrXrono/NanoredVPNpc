@@ -12,8 +12,8 @@ android {
         applicationId = "com.nanored.vpn"
         minSdk = 24
         targetSdk = 36
-        versionCode = 4000038
-        versionName = "1.6.0.12"
+        versionCode = 4000039
+        versionName = "1.6.0.13"
         multiDexEnabled = true
 
         splits {
