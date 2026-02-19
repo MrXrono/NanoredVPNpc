@@ -180,7 +180,7 @@ class SupportChatActivity : BaseActivity() {
             .setTitle(R.string.support_chat_attach_title)
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> pickPhotosLauncher.launch(PickVisualMediaRequest(PickMultipleVisualMedia.ImageOnly))
+                    0 -> pickPhotosLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     1 -> pickFileLauncher.launch(arrayOf("*/*"))
                 }
             }
