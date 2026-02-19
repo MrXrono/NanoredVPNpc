@@ -6,8 +6,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts.PickMultipleVisualMedia
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.FileProvider
@@ -43,10 +41,10 @@ class SupportChatActivity : BaseActivity() {
     private val allMessages = ArrayList<SupportChatMessage>()
     private var pollingJob: Job? = null
 
-    // Use the photo picker API when possible; on some vendor ROMs, ACTION_GET_CONTENT can intermittently
-    // fail delivering results back to the activity.
+    // Some vendor ROMs (notably MIUI) can intermittently fail delivering results for the platform photo picker
+    // contracts. GetMultipleContents is more reliable across OEMs and still supports multi-select.
     private val pickPhotosLauncher =
-        registerForActivityResult(PickMultipleVisualMedia(20)) { uris ->
+        registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
             if (!uris.isNullOrEmpty()) sendAttachments(uris.distinct())
         }
 
@@ -180,7 +178,7 @@ class SupportChatActivity : BaseActivity() {
             .setTitle(R.string.support_chat_attach_title)
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> pickPhotosLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    0 -> pickPhotosLauncher.launch("image/*")
                     1 -> pickFileLauncher.launch(arrayOf("*/*"))
                 }
             }
