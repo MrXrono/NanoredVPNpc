@@ -298,6 +298,10 @@
     <string name="support_chat_action_save">Сохранить</string>
     <string name="support_chat_copied">Скопировано</string>
     <string name="support_chat_saved">Сохранено в Загрузки/Nanored</string>
+    <string name="support_chat_viewer_title">Просмотр вложения</string>
+    <string name="support_chat_viewer_open_external">Открыть во внешнем приложении</string>
+    <string name="support_chat_viewer_not_supported">Этот формат пока нельзя показать внутри приложения.</string>
+    <string name="support_chat_viewer_audio_hint">Аудио-файл. Нажмите Play в контролах.</string>
     <string name="logcat_copy">Copy</string>
     <string name="logcat_clear">Clear</string>
     <string name="title_service_restart">Service restart</string>

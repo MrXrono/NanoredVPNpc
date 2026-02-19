@@ -1,6 +1,5 @@
 package com.nanored.vpn.ui
 
-import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ContentValues
@@ -384,7 +383,12 @@ class SupportChatActivity : BaseActivity() {
 
     private fun handleAttachmentClick(message: SupportChatMessage) {
         if (!message.localUri.isNullOrBlank() && message.id.startsWith("local-")) {
-            openLocalAttachment(Uri.parse(message.localUri), message.mimeType)
+            openInAppAttachmentViewer(
+                uri = Uri.parse(message.localUri),
+                mimeType = message.mimeType,
+                fileName = message.fileName,
+                messageType = message.messageType,
+            )
             return
         }
         lifecycleScope.launch(Dispatchers.IO) {
@@ -397,13 +401,24 @@ class SupportChatActivity : BaseActivity() {
                 if (download == null) {
                     val fallbackLocal = message.localUri?.let { runCatching { Uri.parse(it) }.getOrNull() }
                     if (fallbackLocal != null) {
-                        openLocalAttachment(fallbackLocal, message.mimeType)
+                        openInAppAttachmentViewer(
+                            uri = fallbackLocal,
+                            mimeType = message.mimeType,
+                            fileName = message.fileName,
+                            messageType = message.messageType,
+                        )
                         return@withContext
                     }
                     toastError(R.string.toast_failure)
                     return@withContext
                 }
-                openAttachment(download.file.toURI().toString(), download.file, download.mimeType)
+                val fileUri = FileProvider.getUriForFile(this@SupportChatActivity, "${BuildConfig.APPLICATION_ID}.cache", download.file)
+                openInAppAttachmentViewer(
+                    uri = fileUri,
+                    mimeType = download.mimeType,
+                    fileName = message.fileName ?: download.file.name,
+                    messageType = message.messageType,
+                )
             }
         }
     }
@@ -494,52 +509,21 @@ class SupportChatActivity : BaseActivity() {
         }
     }
 
-    private fun openLocalAttachment(uri: Uri, mimeType: String?) {
-        try {
-            val resolvedMime = resolveMimeType(mimeType, queryFileName(uri))
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, resolvedMime)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            startActivity(intent)
-        } catch (e: ActivityNotFoundException) {
-            try {
-                val fallback = Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(uri, "*/*")
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                startActivity(fallback)
-            } catch (_: Exception) {
-                toast(uri.toString())
-            }
-        } catch (_: Exception) {
-            toastError(R.string.toast_failure)
-        }
-    }
 
-    private fun openAttachment(uriText: String, file: java.io.File, mimeType: String) {
-        try {
-            val uri = FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}.cache", file)
-            val resolvedMime = resolveMimeType(mimeType, file.name)
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, resolvedMime)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            startActivity(intent)
-        } catch (e: ActivityNotFoundException) {
-            try {
-                val uri = FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}.cache", file)
-                val fallback = Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(uri, "*/*")
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                startActivity(fallback)
-            } catch (_: Exception) {
-                toast(uriText)
-            }
-        } catch (e: Exception) {
-            toastError(R.string.toast_failure)
-        }
+    private fun openInAppAttachmentViewer(
+        uri: Uri,
+        mimeType: String?,
+        fileName: String?,
+        messageType: SupportMessageType,
+    ) {
+        val intent = SupportAttachmentViewerActivity.createIntent(
+            context = this,
+            uri = uri,
+            mimeType = mimeType,
+            fileName = fileName,
+            messageType = messageType,
+        ).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        startActivity(intent)
     }
 
     private fun markReadIfNeeded() {
