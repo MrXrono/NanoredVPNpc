@@ -6,7 +6,7 @@ echo "Building NanoredVPN for Windows x64..."
 dotnet publish ../src/SingBoxClient.Desktop -c Release -r win-x64 \
   --self-contained true \
   -p:PublishSingleFile=true \
-  -p:PublishTrimmed=true \
+  -p:PublishTrimmed=false \
   -p:IncludeNativeLibrariesForSelfExtract=true \
   -o ../dist/win-x64
 

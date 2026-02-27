@@ -42,6 +42,23 @@ public interface IRoutingService
     void MergeRemoteRules(List<RoutingRule> remote);
 
     /// <summary>
+    /// Alias for <see cref="GetRules"/>. Used by Desktop ViewModels.
+    /// </summary>
+    List<RoutingRule> GetAllRules() => GetRules();
+
+    /// <summary>
+    /// Return only rules where <see cref="RoutingRule.IsEnabled"/> is true,
+    /// sorted by priority. Used by Desktop ViewModels.
+    /// </summary>
+    List<RoutingRule> GetEnabledRules();
+
+    /// <summary>
+    /// Replace all current rules with the given list and persist to disk.
+    /// Used by Desktop ViewModels.
+    /// </summary>
+    void SaveRules(List<RoutingRule> rules);
+
+    /// <summary>
     /// Persist current rules to disk.
     /// </summary>
     void Save();
@@ -77,6 +94,28 @@ public class RoutingService : IRoutingService
     public List<RoutingRule> GetRules()
     {
         return _rules.OrderBy(r => r.Priority).ToList();
+    }
+
+    /// <inheritdoc />
+    public List<RoutingRule> GetAllRules() => GetRules();
+
+    /// <inheritdoc />
+    public List<RoutingRule> GetEnabledRules()
+    {
+        return _rules.Where(r => r.IsEnabled).OrderBy(r => r.Priority).ToList();
+    }
+
+    /// <inheritdoc />
+    public void SaveRules(List<RoutingRule> rules)
+    {
+        if (rules is null)
+            throw new ArgumentNullException(nameof(rules));
+
+        _rules = new List<RoutingRule>(rules);
+        ReindexPriorities();
+        Save();
+
+        _logger.Debug("Rules replaced and saved ({Count} rules)", _rules.Count);
     }
 
     // ── Add ──────────────────────────────────────────────────────────────────

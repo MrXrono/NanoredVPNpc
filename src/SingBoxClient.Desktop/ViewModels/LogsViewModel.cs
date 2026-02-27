@@ -4,6 +4,8 @@ using System.Reactive.Linq;
 using System.Text;
 using System.Threading;
 using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using ReactiveUI;
 using Serilog;
 using SingBoxClient.Core.Services;
@@ -127,7 +129,13 @@ public class LogsViewModel : ViewModelBase, IDisposable
     {
         try
         {
-            var clipboard = Application.Current?.Clipboard;
+            var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)
+                ?.MainWindow;
+
+            var clipboard = mainWindow is not null
+                ? TopLevel.GetTopLevel(mainWindow)?.Clipboard
+                : null;
+
             if (clipboard is not null)
             {
                 await clipboard.SetTextAsync(LogText);

@@ -14,7 +14,7 @@ public interface IClashApiClient
     /// <summary>
     /// Check whether the Clash API is reachable and healthy.
     /// </summary>
-    Task<bool> HealthCheckAsync();
+    Task<bool> HealthCheckAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Fetch current real-time traffic statistics.
@@ -60,11 +60,11 @@ public class ClashApiClient : IClashApiClient, IDisposable
 
     // ── Health Check ─────────────────────────────────────────────────────
 
-    public async Task<bool> HealthCheckAsync()
+    public async Task<bool> HealthCheckAsync(CancellationToken ct = default)
     {
         try
         {
-            var response = await ExecuteWithRetryAsync(() => _http.GetAsync("/"));
+            var response = await ExecuteWithRetryAsync(() => _http.GetAsync("/", ct));
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)

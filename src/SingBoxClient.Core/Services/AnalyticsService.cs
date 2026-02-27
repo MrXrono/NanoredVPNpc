@@ -25,6 +25,11 @@ public interface IAnalyticsService
     /// Force-flush all buffered events to the backend immediately.
     /// </summary>
     Task FlushAsync();
+
+    /// <summary>
+    /// Track a structured analytics event. Used by Desktop ViewModels.
+    /// </summary>
+    Task TrackAsync(AnalyticsEvent evt);
 }
 
 /// <summary>
@@ -72,6 +77,25 @@ public class AnalyticsService : IAnalyticsService, IDisposable
         {
             _ = FlushAsync();
         }
+    }
+
+    // ── Track Async ───────────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public Task TrackAsync(AnalyticsEvent evt)
+    {
+        if (evt is null)
+            return Task.CompletedTask;
+
+        _buffer.Enqueue(evt);
+
+        // Auto-flush when buffer reaches threshold
+        if (_buffer.Count >= AppDefaults.AnalyticsBatchSize)
+        {
+            return FlushAsync();
+        }
+
+        return Task.CompletedTask;
     }
 
     // ── Crash log ────────────────────────────────────────────────────────────

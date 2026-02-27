@@ -14,7 +14,7 @@
                     <TextBlock Text="Select Server"
                                FontSize="11" FontWeight="SemiBold"
                                Foreground="{StaticResource TextSecondaryBrush}"
-                               CharacterSpacing="100"/>
+                               LetterSpacing="1"/>
                     <TextBlock Text="Ping"
                                HorizontalAlignment="Right"
                                FontSize="11"

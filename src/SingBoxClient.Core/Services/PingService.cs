@@ -23,6 +23,12 @@ public interface IPingService
     /// Returns null if no servers are reachable.
     /// </summary>
     ServerNode? GetBestInCountry(CountryGroup country);
+
+    /// <summary>
+    /// Ping all servers in a country group and return the best one.
+    /// Async variant used by Desktop ViewModels.
+    /// </summary>
+    Task<ServerNode?> GetBestServerAsync(CountryGroup country);
 }
 
 /// <summary>
@@ -88,6 +94,21 @@ public class PingService : IPingService
         country.AverageLatency = (int)reachable.Average(s => s.Latency);
 
         return best;
+    }
+
+    // ── Best Server Async ─────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public async Task<ServerNode?> GetBestServerAsync(CountryGroup country)
+    {
+        if (country is null || country.Servers.Count == 0)
+            return null;
+
+        // Ping all servers in the country group first
+        await PingAllAsync(country.Servers);
+
+        // Then pick the best one using the synchronous helper
+        return GetBestInCountry(country);
     }
 
     // ── Private: Single Server Ping ──────────────────────────────────────

@@ -19,6 +19,16 @@ public interface IRemoteConfigService
     /// Returns an empty list if no rules have been fetched yet.
     /// </summary>
     List<RoutingRule> GetCachedRules();
+
+    /// <summary>
+    /// Alias for <see cref="FetchAsync"/>. Used by Desktop ViewModels.
+    /// </summary>
+    Task<List<RoutingRule>?> FetchRoutingRulesAsync() => FetchAsync();
+
+    /// <summary>
+    /// Fetch announcements from the backend. Used by Desktop ViewModels.
+    /// </summary>
+    Task<List<Announcement>> FetchAnnouncementsAsync();
 }
 
 /// <summary>
@@ -58,6 +68,29 @@ public class RemoteConfigService : IRemoteConfigService
         {
             _logger.Error(ex, "Failed to fetch remote config");
             return null;
+        }
+    }
+
+    // ── Alias: FetchRoutingRulesAsync ───────────────────────────────────────
+
+    /// <inheritdoc />
+    public Task<List<RoutingRule>?> FetchRoutingRulesAsync() => FetchAsync();
+
+    // ── Fetch Announcements ─────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public async Task<List<Announcement>> FetchAnnouncementsAsync()
+    {
+        try
+        {
+            var announcements = await _apiClient.GetAnnouncementsAsync(null);
+            _logger.Information("Fetched {Count} announcements via RemoteConfigService", announcements.Count);
+            return announcements;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to fetch announcements");
+            return new List<Announcement>();
         }
     }
 

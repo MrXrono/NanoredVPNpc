@@ -32,6 +32,11 @@ public interface IUpdateService
     /// Details of the pending update, or null if none.
     /// </summary>
     UpdateInfo? PendingUpdate { get; }
+
+    /// <summary>
+    /// Alias for <see cref="CheckOnStartupAsync"/>. Used by Desktop ViewModels.
+    /// </summary>
+    Task<UpdateInfo?> CheckForUpdateAsync() => CheckOnStartupAsync();
 }
 
 /// <summary>
@@ -61,6 +66,9 @@ public class UpdateService : IUpdateService, IDisposable
             AppDefaults.UpdateCheckIntervalMs,
             AppDefaults.UpdateCheckIntervalMs);
     }
+
+    /// <inheritdoc />
+    public Task<UpdateInfo?> CheckForUpdateAsync() => CheckOnStartupAsync();
 
     // ── Check ────────────────────────────────────────────────────────────────
 

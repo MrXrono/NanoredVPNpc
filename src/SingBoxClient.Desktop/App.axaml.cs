@@ -66,6 +66,7 @@ public partial class App : Application
         services.AddSingleton<ILogService, LogService>();
         services.AddSingleton<IAnnouncementService, AnnouncementService>();
         services.AddSingleton<IRemoteConfigService, RemoteConfigService>();
+        services.AddSingleton<ISingBoxConfigBuilder, SingBoxConfigBuilderService>();
 
         // ViewModels
         services.AddTransient<MainViewModel>();

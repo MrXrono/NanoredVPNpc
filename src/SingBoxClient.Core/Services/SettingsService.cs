@@ -16,6 +16,11 @@ public interface ISettingsService
     AppSettings Settings { get; }
 
     /// <summary>
+    /// Alias for <see cref="Settings"/> used by Desktop ViewModels.
+    /// </summary>
+    AppSettings Current => Settings;
+
+    /// <summary>
     /// Load settings from disk. Creates defaults if the file does not exist.
     /// </summary>
     void Load();
@@ -48,6 +53,9 @@ public class SettingsService : ISettingsService
     };
 
     public AppSettings Settings { get; private set; } = new();
+
+    /// <inheritdoc />
+    public AppSettings Current => Settings;
 
     public event Action? OnSettingsChanged;
 

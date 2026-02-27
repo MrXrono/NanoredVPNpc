@@ -16,6 +16,12 @@ public interface ICountryGroupingService
     /// <param name="language">Language for display names ("en" or "ru").</param>
     /// <returns>Sorted list of country groups.</returns>
     List<CountryGroup> GroupServers(List<ServerNode> servers, string language = "en");
+
+    /// <summary>
+    /// Alias for <see cref="GroupServers"/> with default language.
+    /// Used by Desktop ViewModels.
+    /// </summary>
+    List<CountryGroup> GroupByCountry(List<ServerNode> servers) => GroupServers(servers);
 }
 
 /// <summary>
@@ -31,6 +37,9 @@ public class CountryGroupingService : ICountryGroupingService
     private const string UnknownCountryNameRu = "\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u043e";
 
     // ── Public API ───────────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public List<CountryGroup> GroupByCountry(List<ServerNode> servers) => GroupServers(servers);
 
     public List<CountryGroup> GroupServers(List<ServerNode> servers, string language = "en")
     {

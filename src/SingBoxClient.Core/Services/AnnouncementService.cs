@@ -22,6 +22,11 @@ public interface IAnnouncementService
     /// Mark all cached announcements as read.
     /// </summary>
     void MarkAllRead();
+
+    /// <summary>
+    /// Return all cached announcements. Used by Desktop ViewModels.
+    /// </summary>
+    List<Announcement> GetAll();
 }
 
 /// <summary>
@@ -87,6 +92,14 @@ public class AnnouncementService : IAnnouncementService
             _logger.Error(ex, "Failed to fetch announcements");
             return _cache;
         }
+    }
+
+    // ── GetAll ────────────────────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public List<Announcement> GetAll()
+    {
+        return new List<Announcement>(_cache);
     }
 
     // ── Read tracking ────────────────────────────────────────────────────────

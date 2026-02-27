@@ -127,7 +127,6 @@
                       BorderThickness="0"
                       Background="Transparent"
                       RowBackground="Transparent"
-                      AlternatingRowBackground="{StaticResource BgInputBrush}"
                       Foreground="{StaticResource TextPrimaryBrush}"
                       FontSize="12">
 

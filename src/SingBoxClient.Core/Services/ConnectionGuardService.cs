@@ -226,29 +226,3 @@ public class ConnectionGuardService : IConnectionGuardService, IDisposable
         GC.SuppressFinalize(this);
     }
 }
-
-// ── Forward-declared interfaces ─────────────────────────────────────────────
-// These will be implemented in separate files as the project grows.
-
-/// <summary>
-/// Client for the sing-box Clash-compatible API used for health checks and traffic stats.
-/// </summary>
-public interface IClashApiClient
-{
-    /// <summary>
-    /// Check if the sing-box core is healthy and responsive.
-    /// </summary>
-    Task<bool> HealthCheckAsync(CancellationToken ct = default);
-}
-
-/// <summary>
-/// Builds sing-box JSON configuration files for a given server.
-/// </summary>
-public interface ISingBoxConfigBuilder
-{
-    /// <summary>
-    /// Build a complete sing-box configuration for the given server and write it to disk.
-    /// </summary>
-    /// <returns>Absolute path to the generated config.json file.</returns>
-    string BuildAndSave(ServerNode server);
-}
