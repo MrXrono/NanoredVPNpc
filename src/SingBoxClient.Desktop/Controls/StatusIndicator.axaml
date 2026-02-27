@@ -1,0 +1,8 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SingBoxClient.Desktop.Controls.StatusIndicator"
+             Width="12" Height="12">
+    <Ellipse x:Name="StatusDot"
+             Width="12" Height="12"
+             Fill="{StaticResource TextMutedBrush}"/>
+</UserControl>

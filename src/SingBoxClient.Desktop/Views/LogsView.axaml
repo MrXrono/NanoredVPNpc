@@ -1,0 +1,81 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
+             x:Class="SingBoxClient.Desktop.Views.LogsView"
+             x:DataType="vm:LogsViewModel"
+             mc:Ignorable="d"
+             d:DesignWidth="880" d:DesignHeight="640">
+
+    <DockPanel Margin="24,20" LastChildFill="True">
+
+        <!-- ═══════════════════════════════════════════════════════
+             Header + Controls
+             ═══════════════════════════════════════════════════════ -->
+        <Grid DockPanel.Dock="Top"
+              ColumnDefinitions="*,Auto"
+              Margin="0,0,0,12">
+            <TextBlock Grid.Column="0"
+                       Text="Logs"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center" />
+
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        Spacing="10"
+                        VerticalAlignment="Center">
+                <!-- Auto-scroll toggle -->
+                <CheckBox Content="Auto-scroll"
+                          IsChecked="{Binding AutoScroll}"
+                          Foreground="{StaticResource TextSecondaryBrush}"
+                          FontSize="12"
+                          VerticalAlignment="Center" />
+
+                <!-- Clear button -->
+                <Button Content="Clear"
+                        Background="{StaticResource BgInputBrush}"
+                        Foreground="{StaticResource TextSecondaryBrush}"
+                        CornerRadius="8"
+                        Padding="14,6"
+                        FontSize="12"
+                        Command="{Binding ClearCommand}" />
+
+                <!-- Copy button -->
+                <Button Content="Copy"
+                        Background="{StaticResource AccentBrush}"
+                        Foreground="White"
+                        CornerRadius="8"
+                        Padding="14,6"
+                        FontSize="12"
+                        Command="{Binding CopyCommand}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- ═══════════════════════════════════════════════════════
+             Log Output
+             ═══════════════════════════════════════════════════════ -->
+        <Border Background="#0D0D12"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="4">
+            <TextBox Text="{Binding LogText}"
+                     IsReadOnly="True"
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     FontFamily="Consolas, 'Courier New', monospace"
+                     FontSize="12"
+                     Foreground="#A8B0C0"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     Padding="12,10"
+                     CaretBrush="{StaticResource AccentBrush}"
+                     Name="LogTextBox" />
+        </Border>
+
+    </DockPanel>
+
+</UserControl>

@@ -1,0 +1,227 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
+             xmlns:models="using:SingBoxClient.Core.Models"
+             x:Class="SingBoxClient.Desktop.Views.RoutingView"
+             x:DataType="vm:RoutingViewModel"
+             mc:Ignorable="d"
+             d:DesignWidth="880" d:DesignHeight="640">
+
+    <DockPanel Margin="24,20" LastChildFill="True">
+
+        <!-- ═══════════════════════════════════════════════════════
+             Header
+             ═══════════════════════════════════════════════════════ -->
+        <StackPanel DockPanel.Dock="Top" Spacing="12" Margin="0,0,0,16">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0"
+                           Text="Routing Rules"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="12"
+                            VerticalAlignment="Center">
+                    <!-- Remote config toggle -->
+                    <TextBlock Text="Remote Config"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="12"
+                               VerticalAlignment="Center" />
+                    <ToggleSwitch IsChecked="{Binding IsRemoteConfigEnabled}"
+                                  OnContent=""
+                                  OffContent=""
+                                  VerticalAlignment="Center" />
+
+                    <!-- Sync button -->
+                    <Button Content="Sync"
+                            Background="{StaticResource AccentBrush}"
+                            Foreground="White"
+                            CornerRadius="8"
+                            Padding="16,6"
+                            FontSize="12"
+                            Command="{Binding SyncCommand}" />
+                </StackPanel>
+            </Grid>
+
+            <TextBlock Text="Configure how traffic is routed through the VPN tunnel."
+                       Foreground="{StaticResource TextMutedBrush}"
+                       FontSize="12" />
+        </StackPanel>
+
+        <!-- ═══════════════════════════════════════════════════════
+             Bottom Action Buttons
+             ═══════════════════════════════════════════════════════ -->
+        <StackPanel DockPanel.Dock="Bottom"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="10"
+                    Margin="0,16,0,0">
+            <Button Content="Cancel"
+                    Background="{StaticResource BgInputBrush}"
+                    Foreground="{StaticResource TextSecondaryBrush}"
+                    CornerRadius="8"
+                    Padding="20,8"
+                    FontSize="13"
+                    Command="{Binding CancelCommand}" />
+            <Button Content="Save"
+                    Background="{StaticResource AccentBrush}"
+                    Foreground="White"
+                    CornerRadius="8"
+                    Padding="20,8"
+                    FontSize="13"
+                    Command="{Binding SaveCommand}" />
+        </StackPanel>
+
+        <!-- ═══════════════════════════════════════════════════════
+             Add New Rule
+             ═══════════════════════════════════════════════════════ -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{StaticResource BgCardBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="14,10"
+                Margin="0,12,0,0">
+            <Grid ColumnDefinitions="*,12,Auto">
+                <TextBox Grid.Column="0"
+                         Watermark="Enter domain, IP CIDR, or GeoIP code..."
+                         Text="{Binding NewRuleValue}"
+                         Background="{StaticResource BgInputBrush}"
+                         Foreground="{StaticResource TextPrimaryBrush}"
+                         BorderBrush="{StaticResource BorderBrush}"
+                         CornerRadius="8"
+                         Padding="12,8"
+                         FontSize="13" />
+                <Button Grid.Column="2"
+                        Content="+ Add Rule"
+                        Background="{StaticResource AccentBrush}"
+                        Foreground="White"
+                        CornerRadius="8"
+                        Padding="16,8"
+                        FontSize="13"
+                        Command="{Binding AddRuleCommand}" />
+            </Grid>
+        </Border>
+
+        <!-- ═══════════════════════════════════════════════════════
+             Rules DataGrid
+             ═══════════════════════════════════════════════════════ -->
+        <Border Background="{StaticResource BgCardBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="2">
+            <DataGrid ItemsSource="{Binding Rules}"
+                      AutoGenerateColumns="False"
+                      CanUserReorderColumns="False"
+                      CanUserResizeColumns="True"
+                      CanUserSortColumns="True"
+                      IsReadOnly="False"
+                      HeadersVisibility="Column"
+                      GridLinesVisibility="Horizontal"
+                      BorderThickness="0"
+                      Background="Transparent"
+                      RowBackground="Transparent"
+                      AlternatingRowBackground="{StaticResource BgInputBrush}"
+                      Foreground="{StaticResource TextPrimaryBrush}"
+                      FontSize="12">
+
+                <DataGrid.Columns>
+                    <!-- Priority -->
+                    <DataGridTextColumn Header="#"
+                                        Binding="{Binding Priority}"
+                                        Width="50"
+                                        IsReadOnly="True" />
+
+                    <!-- Type -->
+                    <DataGridTextColumn Header="Type"
+                                        Binding="{Binding Type}"
+                                        Width="100"
+                                        IsReadOnly="True" />
+
+                    <!-- Value -->
+                    <DataGridTextColumn Header="Value"
+                                        Binding="{Binding Value}"
+                                        Width="*"
+                                        IsReadOnly="True" />
+
+                    <!-- Source -->
+                    <DataGridTemplateColumn Header="Source" Width="80">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="models:RoutingRule">
+                                <TextBlock Text="{Binding IsRemote, StringFormat='{}{0}'}"
+                                           Foreground="{StaticResource TextMutedBrush}"
+                                           FontSize="11"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Center" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Action -->
+                    <DataGridTemplateColumn Header="Action" Width="100">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="models:RoutingRule">
+                                <ComboBox ItemsSource="{Binding $parent[DataGrid].((vm:RoutingViewModel)DataContext).RuleActions}"
+                                          SelectedItem="{Binding Action}"
+                                          Background="{StaticResource BgInputBrush}"
+                                          Foreground="{StaticResource TextPrimaryBrush}"
+                                          FontSize="11"
+                                          MinWidth="80"
+                                          Padding="6,3"
+                                          VerticalAlignment="Center" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Enabled -->
+                    <DataGridTemplateColumn Header="On" Width="50">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="models:RoutingRule">
+                                <CheckBox IsChecked="{Binding IsEnabled}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Delete -->
+                    <DataGridTemplateColumn Header="" Width="40">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="models:RoutingRule">
+                                <Button Content="&#x2715;"
+                                        Background="Transparent"
+                                        Foreground="{StaticResource RedBrush}"
+                                        BorderThickness="0"
+                                        FontSize="12"
+                                        Padding="4"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Command="{Binding $parent[DataGrid].((vm:RoutingViewModel)DataContext).DeleteRuleCommand}"
+                                        CommandParameter="{Binding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+
+                <DataGrid.Styles>
+                    <Style Selector="DataGridColumnHeader">
+                        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                        <Setter Property="FontSize" Value="11" />
+                        <Setter Property="Padding" Value="8,6" />
+                    </Style>
+                    <Style Selector="DataGridRow">
+                        <Setter Property="FontSize" Value="12" />
+                    </Style>
+                </DataGrid.Styles>
+            </DataGrid>
+        </Border>
+
+    </DockPanel>
+
+</UserControl>

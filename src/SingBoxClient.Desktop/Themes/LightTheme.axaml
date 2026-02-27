@@ -1,0 +1,38 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Main Colors -->
+    <Color x:Key="BgMain">#F5F5F8</Color>
+    <Color x:Key="BgSidebar">#EEEEF2</Color>
+    <Color x:Key="BgContent">#F9F9FC</Color>
+    <Color x:Key="BgCard">#FFFFFF</Color>
+    <Color x:Key="BgInput">#F0F0F4</Color>
+    <Color x:Key="BgHover">#E8E8EE</Color>
+    <Color x:Key="Accent">#6C5CE7</Color>
+    <Color x:Key="AccentLight">#A29BFE</Color>
+    <Color x:Key="GreenStatus">#00B894</Color>
+    <Color x:Key="RedStatus">#E17055</Color>
+    <Color x:Key="YellowStatus">#FDCB6E</Color>
+    <Color x:Key="TextPrimary">#1A1A2E</Color>
+    <Color x:Key="TextSecondary">#666680</Color>
+    <Color x:Key="TextMuted">#999AAA</Color>
+    <Color x:Key="Border">#DDDDE8</Color>
+    <Color x:Key="BorderLight">#CCCCDD</Color>
+
+    <!-- Brushes -->
+    <SolidColorBrush x:Key="BgMainBrush" Color="{StaticResource BgMain}" />
+    <SolidColorBrush x:Key="BgSidebarBrush" Color="{StaticResource BgSidebar}" />
+    <SolidColorBrush x:Key="BgContentBrush" Color="{StaticResource BgContent}" />
+    <SolidColorBrush x:Key="BgCardBrush" Color="{StaticResource BgCard}" />
+    <SolidColorBrush x:Key="BgInputBrush" Color="{StaticResource BgInput}" />
+    <SolidColorBrush x:Key="BgHoverBrush" Color="{StaticResource BgHover}" />
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource Accent}" />
+    <SolidColorBrush x:Key="AccentLightBrush" Color="{StaticResource AccentLight}" />
+    <SolidColorBrush x:Key="GreenBrush" Color="{StaticResource GreenStatus}" />
+    <SolidColorBrush x:Key="RedBrush" Color="{StaticResource RedStatus}" />
+    <SolidColorBrush x:Key="YellowBrush" Color="{StaticResource YellowStatus}" />
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimary}" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondary}" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMuted}" />
+    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource Border}" />
+    <SolidColorBrush x:Key="BorderLightBrush" Color="{StaticResource BorderLight}" />
+</ResourceDictionary>

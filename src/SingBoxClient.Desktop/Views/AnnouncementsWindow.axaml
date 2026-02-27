@@ -1,0 +1,109 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
+        x:Class="SingBoxClient.Desktop.Views.AnnouncementsWindow"
+        x:DataType="vm:AnnouncementsViewModel"
+        mc:Ignorable="d"
+        d:DesignWidth="500" d:DesignHeight="400"
+        Title="Announcements"
+        Width="500" Height="400"
+        MinWidth="400" MinHeight="300"
+        Background="{StaticResource BgMainBrush}"
+        WindowStartupLocation="CenterOwner"
+        ExtendClientAreaToDecorationsHint="False">
+
+    <DockPanel Margin="20" LastChildFill="True">
+
+        <!-- ═══════════════════════════════════════════════════════
+             Header
+             ═══════════════════════════════════════════════════════ -->
+        <Grid DockPanel.Dock="Top"
+              ColumnDefinitions="*,Auto"
+              Margin="0,0,0,16">
+            <TextBlock Grid.Column="0"
+                       Text="Announcements"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center" />
+        </Grid>
+
+        <!-- ═══════════════════════════════════════════════════════
+             Bottom: Mark All Read + Close
+             ═══════════════════════════════════════════════════════ -->
+        <StackPanel DockPanel.Dock="Bottom"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="10"
+                    Margin="0,16,0,0">
+            <Button Content="Mark All Read"
+                    Background="{StaticResource BgInputBrush}"
+                    Foreground="{StaticResource TextSecondaryBrush}"
+                    CornerRadius="8"
+                    Padding="16,8"
+                    FontSize="13"
+                    Command="{Binding MarkAllReadCommand}" />
+            <Button Content="Close"
+                    Background="{StaticResource AccentBrush}"
+                    Foreground="White"
+                    CornerRadius="8"
+                    Padding="20,8"
+                    FontSize="13"
+                    Command="{Binding CloseCommand}" />
+        </StackPanel>
+
+        <!-- ═══════════════════════════════════════════════════════
+             Announcements List
+             ═══════════════════════════════════════════════════════ -->
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Announcements}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,0,0,10"
+                                Padding="14,12"
+                                Background="{StaticResource BgCardBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="10">
+                            <StackPanel Spacing="6">
+                                <!-- Title row with date -->
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding Title}"
+                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               FontSize="14"
+                                               FontWeight="Bold"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding CreatedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
+                                               Foreground="{StaticResource TextMutedBrush}"
+                                               FontSize="11"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+
+                                <!-- Body -->
+                                <TextBlock Text="{Binding Body}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           FontSize="13"
+                                           TextWrapping="Wrap"
+                                           LineHeight="20" />
+
+                                <!-- Read indicator -->
+                                <TextBlock Text="Read"
+                                           Foreground="{StaticResource GreenBrush}"
+                                           FontSize="10"
+                                           IsVisible="{Binding IsRead}"
+                                           HorizontalAlignment="Right" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+    </DockPanel>
+
+</Window>

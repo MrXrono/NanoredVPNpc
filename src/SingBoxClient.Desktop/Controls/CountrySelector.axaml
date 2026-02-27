@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SingBoxClient.Desktop.Controls.CountrySelector">
+    <Border Background="{StaticResource BgCardBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1" CornerRadius="12">
+        <DockPanel>
+            <!-- Header -->
+            <Border DockPanel.Dock="Top"
+                    Padding="14,10"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="0,0,0,1">
+                <DockPanel>
+                    <TextBlock Text="Select Server"
+                               FontSize="11" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               CharacterSpacing="100"/>
+                    <TextBlock Text="Ping"
+                               HorizontalAlignment="Right"
+                               FontSize="11"
+                               Foreground="{StaticResource TextMutedBrush}"/>
+                </DockPanel>
+            </Border>
+            <!-- List -->
+            <ListBox x:Name="CountryList"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     ItemsSource="{Binding Countries}"
+                     SelectedItem="{Binding SelectedCountry}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <DockPanel Margin="14,10" LastChildFill="True">
+                            <TextBlock Text="{Binding DisplayName}"
+                                       FontSize="13" FontWeight="Medium"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock DockPanel.Dock="Right"
+                                       Text="{Binding AverageLatency, StringFormat='{}{0} ms'}"
+                                       FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Right"/>
+                        </DockPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+    </Border>
+</UserControl>

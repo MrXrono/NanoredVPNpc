@@ -1,0 +1,246 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
+        xmlns:views="using:SingBoxClient.Desktop.Views"
+        x:Class="SingBoxClient.Desktop.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        mc:Ignorable="d"
+        d:DesignWidth="960" d:DesignHeight="640"
+        Title="NanoredVPN v1.0.0"
+        Width="960" Height="640"
+        MinWidth="800" MinHeight="550"
+        Background="{StaticResource BgMainBrush}"
+        WindowStartupLocation="CenterScreen"
+        ExtendClientAreaToDecorationsHint="False">
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         Main Layout: Title Bar + (Sidebar | Content)
+         ═══════════════════════════════════════════════════════════════════ -->
+    <DockPanel LastChildFill="True">
+
+        <!-- ── Title Bar ────────────────────────────────────────────── -->
+        <Border DockPanel.Dock="Top"
+                Background="{StaticResource BgSidebarBrush}"
+                Height="40"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <DockPanel Margin="12,0">
+                <!-- App title -->
+                <TextBlock DockPanel.Dock="Left"
+                           Text="NanoredVPN v1.0.0"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           FontSize="13"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+
+                <!-- Window control buttons -->
+                <StackPanel DockPanel.Dock="Right"
+                            Orientation="Horizontal"
+                            Spacing="4"
+                            VerticalAlignment="Center">
+                    <!-- Theme toggle -->
+                    <Button Background="Transparent"
+                            BorderThickness="0"
+                            Padding="8,4"
+                            ToolTip.Tip="Toggle Theme"
+                            Command="{Binding ToggleThemeCommand}">
+                        <TextBlock Text="&#x263E;"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="16" />
+                    </Button>
+
+                    <!-- Minimize -->
+                    <Button Background="Transparent"
+                            BorderThickness="0"
+                            Padding="8,4"
+                            ToolTip.Tip="Minimize"
+                            Command="{Binding MinimizeCommand}">
+                        <TextBlock Text="&#x2500;"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="13" />
+                    </Button>
+
+                    <!-- Maximize -->
+                    <Button Background="Transparent"
+                            BorderThickness="0"
+                            Padding="8,4"
+                            ToolTip.Tip="Maximize"
+                            Command="{Binding MaximizeCommand}">
+                        <TextBlock Text="&#x25A1;"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="13" />
+                    </Button>
+
+                    <!-- Close -->
+                    <Button Background="Transparent"
+                            BorderThickness="0"
+                            Padding="8,4"
+                            ToolTip.Tip="Close"
+                            Command="{Binding CloseCommand}">
+                        <TextBlock Text="&#x2715;"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="13" />
+                    </Button>
+                </StackPanel>
+
+                <!-- Spacer -->
+                <Panel />
+            </DockPanel>
+        </Border>
+
+        <!-- ── Body: Sidebar + Content ──────────────────────────────── -->
+        <Grid ColumnDefinitions="64,*">
+
+            <!-- ── Sidebar ──────────────────────────────────────────── -->
+            <Border Grid.Column="0"
+                    Background="{StaticResource BgSidebarBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="0,0,1,0">
+                <StackPanel VerticalAlignment="Top"
+                            Spacing="4"
+                            Margin="0,12">
+
+                    <!-- Home -->
+                    <Button Classes="nav-button"
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="Home"
+                            ToolTip.Tip="Home"
+                            IsEnabled="{Binding IsNotNavigating}">
+                        <StackPanel HorizontalAlignment="Center" Spacing="2">
+                            <TextBlock Text="&#x2302;"
+                                       FontSize="20"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock Text="Home"
+                                       FontSize="9"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{StaticResource TextMutedBrush}" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Route -->
+                    <Button Classes="nav-button"
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="Routing"
+                            ToolTip.Tip="Routing"
+                            IsEnabled="{Binding IsNotNavigating}">
+                        <StackPanel HorizontalAlignment="Center" Spacing="2">
+                            <TextBlock Text="&#x21C4;"
+                                       FontSize="20"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock Text="Route"
+                                       FontSize="9"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{StaticResource TextMutedBrush}" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- TUN -->
+                    <Button Classes="nav-button"
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="TunSettings"
+                            ToolTip.Tip="TUN Settings"
+                            IsEnabled="{Binding IsNotNavigating}">
+                        <StackPanel HorizontalAlignment="Center" Spacing="2">
+                            <TextBlock Text="&#x26A1;"
+                                       FontSize="20"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock Text="TUN"
+                                       FontSize="9"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{StaticResource TextMutedBrush}" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Logs -->
+                    <Button Classes="nav-button"
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="Logs"
+                            ToolTip.Tip="Logs"
+                            IsEnabled="{Binding IsNotNavigating}">
+                        <StackPanel HorizontalAlignment="Center" Spacing="2">
+                            <TextBlock Text="&#x2263;"
+                                       FontSize="20"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock Text="Logs"
+                                       FontSize="9"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{StaticResource TextMutedBrush}" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Settings -->
+                    <Button Classes="nav-button"
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="Settings"
+                            ToolTip.Tip="Settings"
+                            IsEnabled="{Binding IsNotNavigating}">
+                        <StackPanel HorizontalAlignment="Center" Spacing="2">
+                            <TextBlock Text="&#x2699;"
+                                       FontSize="20"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock Text="Setup"
+                                       FontSize="9"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{StaticResource TextMutedBrush}" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Border>
+
+            <!-- ── Content Area ─────────────────────────────────────── -->
+            <Border Grid.Column="1"
+                    Background="{StaticResource BgContentBrush}">
+                <ContentControl Content="{Binding CurrentPage}">
+                    <ContentControl.DataTemplates>
+                        <DataTemplate DataType="{x:Type vm:HomeViewModel}">
+                            <views:HomeView />
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:RoutingViewModel}">
+                            <views:RoutingView />
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:TunSettingsViewModel}">
+                            <views:TunSettingsView />
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:LogsViewModel}">
+                            <views:LogsView />
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+                            <views:SettingsView />
+                        </DataTemplate>
+                    </ContentControl.DataTemplates>
+                </ContentControl>
+            </Border>
+        </Grid>
+    </DockPanel>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         Styles
+         ═══════════════════════════════════════════════════════════════════ -->
+    <Window.Styles>
+        <!-- Sidebar nav button -->
+        <Style Selector="Button.nav-button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Width" Value="56" />
+            <Setter Property="Height" Value="52" />
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.nav-button:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource BgHoverBrush}" />
+        </Style>
+        <Style Selector="Button.nav-button:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource BgCardBrush}" />
+        </Style>
+    </Window.Styles>
+
+</Window>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <data name="Connect"><value>Подключить</value></data>
+  <data name="Disconnect"><value>Отключить</value></data>
+  <data name="Connected"><value>Подключено</value></data>
+  <data name="Disconnected"><value>Отключено</value></data>
+  <data name="Connecting"><value>Подключение...</value></data>
+  <data name="Reconnecting"><value>Переподключение...</value></data>
+  <data name="Error"><value>Ошибка подключения</value></data>
+  <data name="Home"><value>Главная</value></data>
+  <data name="Routing"><value>Маршрутизация</value></data>
+  <data name="TunSettings"><value>Настройки TUN</value></data>
+  <data name="Logs"><value>Логи</value></data>
+  <data name="Settings"><value>Настройки</value></data>
+  <data name="SubscriptionInfo"><value>Подписка</value></data>
+  <data name="Expires"><value>Истекает</value></data>
+  <data name="Traffic"><value>Трафик</value></data>
+  <data name="RenewSubscription"><value>Продлить подписку</value></data>
+  <data name="SelectServer"><value>Выбор сервера</value></data>
+  <data name="RoutingRules"><value>Правила маршрутизации</value></data>
+  <data name="AcceptRemoteConfig"><value>Remote config</value></data>
+  <data name="AddRule"><value>+ Добавить правило</value></data>
+  <data name="Save"><value>Сохранить</value></data>
+  <data name="Cancel"><value>Отмена</value></data>
+  <data name="ProxyPort"><value>Порт прокси</value></data>
+  <data name="Language"><value>Язык</value></data>
+  <data name="MinimizeToTray"><value>Сворачивать в трей</value></data>
+  <data name="StartWithWindows"><value>Запускать с Windows</value></data>
+  <data name="AutoConnect"><value>Автоподключение</value></data>
+  <data name="DebugMode"><value>Режим отладки</value></data>
+  <data name="SubscriptionUrl"><value>URL подписки</value></data>
+  <data name="BypassProxy"><value>Мимо прокси</value></data>
+  <data name="RouteViaProxy"><value>Через прокси</value></data>
+  <data name="BlockTraffic"><value>Блокировать</value></data>
+  <data name="Clear"><value>Очистить</value></data>
+  <data name="Copy"><value>Копировать</value></data>
+  <data name="AutoScroll"><value>Авто-прокрутка</value></data>
+</root>

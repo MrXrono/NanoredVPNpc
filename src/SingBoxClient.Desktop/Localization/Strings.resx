@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <data name="Connect"><value>Connect</value></data>
+  <data name="Disconnect"><value>Disconnect</value></data>
+  <data name="Connected"><value>Connected</value></data>
+  <data name="Disconnected"><value>Disconnected</value></data>
+  <data name="Connecting"><value>Connecting...</value></data>
+  <data name="Reconnecting"><value>Reconnecting...</value></data>
+  <data name="Error"><value>Connection Error</value></data>
+  <data name="Home"><value>Home</value></data>
+  <data name="Routing"><value>Routing</value></data>
+  <data name="TunSettings"><value>TUN Settings</value></data>
+  <data name="Logs"><value>Logs</value></data>
+  <data name="Settings"><value>Settings</value></data>
+  <data name="SubscriptionInfo"><value>Subscription Info</value></data>
+  <data name="Expires"><value>Expires</value></data>
+  <data name="Traffic"><value>Traffic</value></data>
+  <data name="RenewSubscription"><value>Renew Subscription</value></data>
+  <data name="SelectServer"><value>Select Server</value></data>
+  <data name="RoutingRules"><value>Routing Rules</value></data>
+  <data name="AcceptRemoteConfig"><value>Accept remote config</value></data>
+  <data name="AddRule"><value>+ Add rule</value></data>
+  <data name="Save"><value>Save</value></data>
+  <data name="Cancel"><value>Cancel</value></data>
+  <data name="ProxyPort"><value>Proxy Port</value></data>
+  <data name="Language"><value>Language</value></data>
+  <data name="MinimizeToTray"><value>Minimize to tray</value></data>
+  <data name="StartWithWindows"><value>Start with Windows</value></data>
+  <data name="AutoConnect"><value>Auto-connect on start</value></data>
+  <data name="DebugMode"><value>Debug mode</value></data>
+  <data name="SubscriptionUrl"><value>Subscription URL</value></data>
+  <data name="BypassProxy"><value>Bypass Proxy</value></data>
+  <data name="RouteViaProxy"><value>Route via Proxy</value></data>
+  <data name="BlockTraffic"><value>Block Traffic</value></data>
+  <data name="Clear"><value>Clear</value></data>
+  <data name="Copy"><value>Copy</value></data>
+  <data name="AutoScroll"><value>Auto-scroll</value></data>
+</root>

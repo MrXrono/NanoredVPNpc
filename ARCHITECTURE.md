@@ -1,0 +1,384 @@
+# NanoredVPN — Architecture & Code Map
+
+> Version: 1.0.0 | Stack: C# / .NET 8 / Avalonia 11.x / sing-box v1.12.22
+
+---
+
+## 1. Solution Structure
+
+```
+SingBoxClient.sln
+├── src/SingBoxClient.Core/          # Business logic (class library, net8.0)
+│   ├── Models/                      # Data models and enums
+│   ├── Config/                      # sing-box config.json generator
+│   ├── Services/                    # All core services
+│   ├── Platform/                    # OS-specific abstractions
+│   ├── Helpers/                     # Utility classes
+│   └── Constants/                   # App-wide constants
+│
+├── src/SingBoxClient.Desktop/       # Avalonia UI (WinExe, net8.0)
+│   ├── Program.cs                   # Entry point
+│   ├── App.axaml(.cs)               # DI container, theme, lifecycle
+│   ├── ViewModels/                  # MVVM ViewModels (ReactiveUI)
+│   ├── Views/                       # AXAML views
+│   ├── Controls/                    # Custom controls
+│   ├── Converters/                  # Value converters
+│   ├── Themes/                      # Dark/Light theme resources
+│   ├── Localization/                # EN/RU string resources
+│   ├── Assets/                      # Icons, images
+│   └── Services/                    # UI-specific services (TrayIcon)
+│
+├── runtime/                         # sing-box binaries (per-platform)
+│   ├── win-x64/sing-box.exe
+│   └── win-arm64/sing-box.exe
+│
+└── build/                           # Publish scripts
+    ├── publish-win-x64.sh
+    └── publish-win-arm64.sh
+```
+
+---
+
+## 2. Data Flow Diagram
+
+```
+                        ┌─────────────────────────────┐
+                        │     Backend API Server       │
+                        │  (api.example.com)           │
+                        └──────────┬──────────────────┘
+                                   │ HTTPS
+                    ┌──────────────┼──────────────────────┐
+                    │              │                       │
+              ┌─────▼─────┐ ┌─────▼──────┐ ┌────────────▼─────┐
+              │ ApiClient  │ │Subscription│ │RemoteConfig      │
+              │            │ │Service     │ │Service            │
+              │• Updates   │ │• Fetch sub │ │• Fetch rules      │
+              │• Analytics │ │• Parse     │ │• Cache             │
+              │• Crashes   │ │  servers   │ │                    │
+              │• Announce  │ │• Cache     │ │                    │
+              └─────┬──────┘ └─────┬──────┘ └────────┬──────────┘
+                    │              │                   │
+    ┌───────────────┼──────────────┼───────────────────┼──────────────┐
+    │               │    CORE SERVICE LAYER            │              │
+    │  ┌────────────▼──────────────▼───────────────────▼────────────┐ │
+    │  │                    HomeViewModel                           │ │
+    │  │  ConnectCommand flow:                                     │ │
+    │  │  1. PingService.GetBestInCountry()                        │ │
+    │  │  2. RoutingService.GetRules() + RemoteConfig.GetCached()  │ │
+    │  │  3. SingBoxConfigBuilder.Build() → data/config.json       │ │
+    │  │  4. SingBoxProcessManager.StartAsync()                    │ │
+    │  │  5. WindowsPlatform.SetSystemProxy() [if Proxy mode]      │ │
+    │  │  6. ConnectionGuard.StartMonitoring()                     │ │
+    │  │  7. ClashApiClient → traffic WebSocket                    │ │
+    │  └───────────────────────────┬────────────────────────────────┘ │
+    │                              │                                  │
+    │              ┌───────────────▼───────────────┐                  │
+    │              │   SingBoxProcessManager       │                  │
+    │              │   Process.Start("sing-box")   │                  │
+    │              │   stdout → LogService          │                  │
+    │              │   Exited → ConnectionGuard     │                  │
+    │              └───────────────┬───────────────┘                  │
+    └──────────────────────────────┼──────────────────────────────────┘
+                                   │ Process
+                    ┌──────────────▼──────────────┐
+                    │       sing-box.exe           │
+                    │  ┌────────────────────────┐  │
+                    │  │ Inbound:               │  │
+                    │  │  mixed (127.0.0.1:2080)│  │
+                    │  │  tun (172.19.0.1/30)   │  │
+                    │  ├────────────────────────┤  │
+                    │  │ Outbound:              │  │
+                    │  │  VLESS/VMess/Trojan/SS │  │
+                    │  │  direct / block        │  │
+                    │  ├────────────────────────┤  │
+                    │  │ Route: user rules      │  │
+                    │  │ DNS: DoH (Google/CF)   │  │
+                    │  ├────────────────────────┤  │
+                    │  │ Clash API :9090        │◄─┼── ClashApiClient (HTTP)
+                    │  └────────────────────────┘  │
+                    └──────────────────────────────┘
+```
+
+---
+
+## 3. Models (`SingBoxClient.Core.Models`)
+
+| File | Description | Key Fields |
+|------|-------------|------------|
+| `ConnectionStatus.cs` | Enum | Disconnected, Connecting, Connected, Reconnecting, Error |
+| `ConnectionMode.cs` | Enum | Proxy, TUN |
+| `ServerNode.cs` | Server from subscription | Protocol, Address, Port, UuidOrPassword, Tls, Transport, Name, Latency |
+| `CountryGroup.cs` | Country grouping | Code, DisplayName, Servers[], BestServer, AverageLatency |
+| `SubscriptionData.cs` | Subscription metadata | Id, ExpiresAt, TotalTraffic, UsedTraffic |
+| `RoutingRule.cs` | Routing rule | Id, Type(enum), Value, Action(enum), IsRemote, IsEnabled, Priority |
+| `AppSettings.cs` | All app settings | ProxyEnabled, TunEnabled, ProxyPort, Theme, Language, ... |
+| `PingResult.cs` | Ping result | Server, LatencyMs, IsReachable |
+| `TrafficStats.cs` | Real-time traffic | UploadSpeed, DownloadSpeed, TotalUpload, TotalDownload |
+| `Announcement.cs` | Server notification | Id, Title, Body, CreatedAt, IsRead |
+| `UpdateInfo.cs` | Update info | Available, Version, DownloadUrl, SingBoxUrl |
+| `AnalyticsEvent.cs` | Analytics event | EventName, Properties{}, Timestamp |
+| `TlsSettings.cs` | TLS config | ServerName, Fingerprint, Alpn[], RealityPublicKey, RealityShortId |
+| `TransportSettings.cs` | Transport config | Type, Path, Host, ServiceName |
+
+---
+
+## 4. Config Generator (`SingBoxClient.Core.Config`)
+
+Generates `data/config.json` for sing-box runtime.
+
+| File | Builds Section | Key Logic |
+|------|---------------|-----------|
+| `SingBoxConfigBuilder.cs` | Full config | Orchestrates all sections, serializes to JSON |
+| `InboundConfig.cs` | `inbounds[]` | Mixed proxy (port) and/or TUN (with per-app rules) |
+| `OutboundConfig.cs` | `outbounds[]` | Server (VLESS/VMess/Trojan/SS) + direct + block + dns |
+| `RouteConfig.cs` | `route` | Merges remote + user rules, auto_detect_interface, final=proxy |
+| `DnsConfig.cs` | `dns` | DoH servers (Google, CF), FakeIP for TUN mode |
+| `ExperimentalConfig.cs` | `experimental` | Clash API on :9090, cache_file |
+
+**Config generation flow:**
+```
+SingBoxConfigBuilder.Build(mode, proxyEnabled, tunEnabled, port, server, rules, bypass, proxy, debug)
+    ├── InboundConfig.BuildMixedProxy(port)      [if proxyEnabled]
+    ├── InboundConfig.BuildTun(include, exclude)  [if tunEnabled]
+    ├── OutboundConfig.BuildServerOutbound(server) + Direct + Block + Dns
+    ├── RouteConfig.Build(mergedRules)
+    ├── DnsConfig.Build(useFakeIp: tunEnabled)
+    └── ExperimentalConfig.Build(9090)
+    → JSON string → write to data/config.json
+```
+
+---
+
+## 5. Services (`SingBoxClient.Core.Services`)
+
+### Process & Connection
+
+| Service | Interface | Responsibility | Interacts With |
+|---------|-----------|---------------|----------------|
+| `SingBoxProcessManager` | `ISingBoxProcessManager` | Start/Stop/Restart sing-box.exe, capture stdout | IPlatformService |
+| `ClashApiClient` | `IClashApiClient` | HTTP to localhost:9090 — health, traffic, proxies | sing-box Clash API |
+| `ConnectionGuardService` | `IConnectionGuardService` | Health monitoring every 5s, auto-reconnect, failover | ClashApiClient, SingBoxProcessManager, ConfigBuilder |
+
+**ConnectionGuard state machine:**
+```
+Connecting → Connected → [health fail x3] → Reconnecting → Connected
+                                                    ↓ all servers fail
+                                               Disconnected (Error)
+```
+
+### Subscription & Servers
+
+| Service | Interface | Responsibility | Interacts With |
+|---------|-----------|---------------|----------------|
+| `SubscriptionService` | `ISubscriptionService` | Fetch + parse subscription URL, cache servers | ShareLinkParser, HttpClient |
+| `CountryGroupingService` | `ICountryGroupingService` | Group servers by country code prefix | CountryCodeHelper |
+| `PingService` | `IPingService` | TCP ping servers (max 10 concurrent), rank by latency | ServerNode |
+
+### Configuration & Rules
+
+| Service | Interface | Responsibility | Interacts With |
+|---------|-----------|---------------|----------------|
+| `RoutingService` | `IRoutingService` | CRUD routing rules, load/save routing.json | data/routing.json |
+| `SettingsService` | `ISettingsService` | Load/save settings.json, migration | data/settings.json |
+| `RemoteConfigService` | `IRemoteConfigService` | Fetch remote routing rules, cache | ApiClient |
+
+### Backend Communication
+
+| Service | Interface | Responsibility | Interacts With |
+|---------|-----------|---------------|----------------|
+| `ApiClient` | `IApiClient` | All backend API calls (updates, analytics, config) | HttpClient → backend |
+| `UpdateService` | `IUpdateService` | Check + download + apply updates (Discord-style) | ApiClient |
+| `AnalyticsService` | `IAnalyticsService` | Buffer events, batch send, crash logs | ApiClient |
+| `AnnouncementService` | `IAnnouncementService` | Fetch server notifications | ApiClient |
+| `LogService` | `ILogService` | Log rotation (10MB x3), dedup via offset marker | data/logs/ |
+
+---
+
+## 6. Platform Layer (`SingBoxClient.Core.Platform`)
+
+| File | Description |
+|------|-------------|
+| `IPlatformService.cs` | Interface: SetSystemProxy, ClearSystemProxy, SetAutoStart, IsAdmin, etc. |
+| `WindowsPlatformService.cs` | Windows impl: Registry for proxy/autostart, WindowsIdentity for admin check |
+| `FirewallService.cs` | Windows Firewall: auto-add inbound/outbound rules for sing-box via netsh |
+
+**Registry paths used:**
+- System proxy: `HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings`
+- Auto-start: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
+
+---
+
+## 7. Helpers (`SingBoxClient.Core.Helpers`)
+
+| File | Key Methods |
+|------|-------------|
+| `ShareLinkParser.cs` | Parse(link) → ServerNode, supports vless://, vmess://, trojan://, ss:// |
+| `Base64Helper.cs` | Decode (standard + URL-safe), IsBase64 |
+| `CountryCodeHelper.cs` | ExtractCountryCode, GetFlag (emoji), GetDisplayName (22 countries EN/RU) |
+| `HttpClientFactory.cs` | CreateDefault, CreateIgnoreCert, CreateApiClient |
+
+---
+
+## 8. UI Layer (`SingBoxClient.Desktop`)
+
+### Dependency Injection (App.axaml.cs)
+
+All services registered as **Singleton**, ViewModels as **Transient**.
+
+### ViewModels (MVVM, ReactiveUI)
+
+| ViewModel | View | Key Bindings |
+|-----------|------|-------------|
+| `MainViewModel` | `MainWindow` | CurrentPage, IsConnected, IsDarkTheme, NavigateCommand |
+| `HomeViewModel` | `HomeView` | IsProxyEnabled, IsTunEnabled, ConnectCommand, Countries, SelectedCountry, Timer, Speed |
+| `RoutingViewModel` | `RoutingView` | Rules, AddRuleCommand, SaveCommand, IsRemoteConfigEnabled, SyncCommand |
+| `TunSettingsViewModel` | `TunSettingsView` | BypassApps, ProxyApps, BlockApps, SaveCommand |
+| `LogsViewModel` | `LogsView` | LogText, AutoScroll, ClearCommand, CopyCommand |
+| `SettingsViewModel` | `SettingsView` | ProxyPort, Language, MinimizeToTray, AutoStart, SaveCommand |
+| `AnnouncementsViewModel` | `AnnouncementsWindow` | Announcements, MarkAllReadCommand |
+
+### Views
+
+| View | Layout |
+|------|--------|
+| `MainWindow.axaml` | Title bar + Sidebar (64px) + ContentControl (page switching) |
+| `HomeView.axaml` | Mode checkboxes → Connect panel → Info panels (2-col) → Country list |
+| `RoutingView.axaml` | Header + Remote config toggle → DataGrid → Add/Save buttons |
+| `TunSettingsView.axaml` | Header → 3-column TextBoxes (bypass/proxy/block) |
+| `LogsView.axaml` | Header → Monospace TextBox → Auto-scroll toggle |
+| `SettingsView.axaml` | Sections: Port → Language/Toggles → Subscription URL |
+
+### Custom Controls
+
+| Control | Description |
+|---------|-------------|
+| `CountrySelector` | ListBox with flag + name + ping, bound to Countries/SelectedCountry |
+| `TrafficWidget` | Upload/Download speed display with arrows |
+| `StatusIndicator` | Colored dot (12px Ellipse) based on ConnectionStatus |
+
+### Themes
+
+| File | Description |
+|------|-------------|
+| `DarkTheme.axaml` | Dark: BgMain=#0F0F13, Accent=#6C5CE7, TextPrimary=#E8E8F0 |
+| `LightTheme.axaml` | Light: BgMain=#F5F5F8, same Accent, TextPrimary=#1A1A2E |
+
+### Localization
+
+| File | Language | Keys |
+|------|----------|------|
+| `Strings.resx` | English (default) | Connect, Disconnect, Home, Routing, Settings, ... |
+| `Strings.ru.resx` | Russian | Подключить, Отключить, Главная, Маршрутизация, ... |
+
+---
+
+## 9. Startup Flow (`Program.cs`)
+
+```
+1. Mutex check (single instance)
+2. Serilog init (file + console)
+3. Global exception handlers
+4. --cleanup-update flag handling
+5. Avalonia AppBuilder → App.Initialize()
+6. DI container build (all services + ViewModels)
+7. SettingsService.Load()
+8. MainWindow + MainViewModel
+9. On shutdown: Stop sing-box → Clear proxy → Save settings → Flush analytics
+```
+
+---
+
+## 10. File Storage (data/)
+
+```
+data/
+├── settings.json         ← AppSettings (proxy, tun, language, theme, ...)
+├── servers.json          ← Cached server list from subscription
+├── routing.json          ← User routing rules
+├── config.json           ← Generated sing-box config (runtime)
+└── logs/
+    ├── app.log           ← Application log (Serilog, 10MB rotation)
+    ├── app.1.log         ← Rotated log
+    ├── singbox.log       ← sing-box stdout capture
+    ├── .sent_marker.json ← Log dedup offset marker
+    └── crash_*.log       ← Crash reports (sent + deleted)
+```
+
+---
+
+## 11. API Endpoints (Backend)
+
+| Method | Endpoint | Used By |
+|--------|----------|---------|
+| POST | `/api/v1/analytics/crash` | AnalyticsService |
+| POST | `/api/v1/analytics/event` | AnalyticsService |
+| GET | `/api/v1/analytics/debug-request` | AnalyticsService |
+| POST | `/api/v1/analytics/debug-logs` | AnalyticsService |
+| GET | `/api/v1/update/check?v=&arch=` | UpdateService |
+| GET | `/api/v1/update/download/{id}` | UpdateService |
+| GET | `/api/v1/subscription/status` | ApiClient |
+| GET | `/api/v1/config/remote` | RemoteConfigService |
+| GET | `/api/v1/announcements?since=` | AnnouncementService |
+
+---
+
+## 12. sing-box Clash API (localhost:9090)
+
+| Method | Path | Used By |
+|--------|------|---------|
+| GET | `/` | ClashApiClient.HealthCheckAsync |
+| GET | `/traffic` | ClashApiClient.GetTrafficAsync |
+| GET | `/proxies` | ClashApiClient.GetProxiesAsync |
+| DELETE | `/connections` | ClashApiClient.CloseAllConnectionsAsync |
+
+---
+
+## 13. Routing Priority
+
+```
+1. TUN Per-App (exclude_process / include_process / Firewall block)
+2. Remote config rules (if accepted)
+3. Custom user rules (ordered by Priority)
+4. Default: private IP → direct
+5. Final: all traffic → proxy
+```
+
+---
+
+## 14. Config Example (generated)
+
+```json
+{
+  "log": { "level": "info", "timestamp": true },
+  "dns": {
+    "servers": [
+      { "tag": "google-doh", "address": "https://dns.google/dns-query", "detour": "proxy" },
+      { "tag": "direct-dns", "address": "223.5.5.5", "detour": "direct" }
+    ],
+    "rules": [{ "domain_suffix": [".local",".localhost"], "server": "direct-dns" }]
+  },
+  "inbounds": [
+    { "type": "mixed", "tag": "mixed-in", "listen": "127.0.0.1", "listen_port": 2080 },
+    { "type": "tun", "tag": "tun-in", "auto_route": true, "strict_route": true, "inet4_address": "172.19.0.1/30" }
+  ],
+  "outbounds": [
+    { "type": "vless", "tag": "proxy", "server": "de-vless-1.example.com", "server_port": 443, "uuid": "..." },
+    { "type": "direct", "tag": "direct" },
+    { "type": "block", "tag": "block" },
+    { "type": "dns", "tag": "dns-out" }
+  ],
+  "route": {
+    "rules": [
+      { "protocol": "dns", "outbound": "dns-out" },
+      { "ip_is_private": true, "outbound": "direct" },
+      { "domain_suffix": [".youtube.com",".google.com"], "outbound": "proxy" }
+    ],
+    "auto_detect_interface": true,
+    "final": "proxy"
+  },
+  "experimental": {
+    "clash_api": { "external_controller": "127.0.0.1:9090" },
+    "cache_file": { "enabled": true, "path": "cache.db" }
+  }
+}
+```

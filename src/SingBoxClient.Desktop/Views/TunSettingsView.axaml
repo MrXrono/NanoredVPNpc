@@ -1,0 +1,193 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
+             x:Class="SingBoxClient.Desktop.Views.TunSettingsView"
+             x:DataType="vm:TunSettingsViewModel"
+             mc:Ignorable="d"
+             d:DesignWidth="880" d:DesignHeight="640">
+
+    <DockPanel Margin="24,20" LastChildFill="True">
+
+        <!-- ═══════════════════════════════════════════════════════
+             Header
+             ═══════════════════════════════════════════════════════ -->
+        <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,16">
+            <TextBlock Text="TUN — Per-App Rules"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       FontSize="18"
+                       FontWeight="SemiBold" />
+            <TextBlock Text="Specify one application per line (process name or full path). Rules apply in TUN mode only."
+                       Foreground="{StaticResource TextMutedBrush}"
+                       FontSize="12"
+                       TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- ═══════════════════════════════════════════════════════
+             Bottom: Note + Buttons
+             ═══════════════════════════════════════════════════════ -->
+        <StackPanel DockPanel.Dock="Bottom" Spacing="12" Margin="0,16,0,0">
+            <!-- Note -->
+            <Border Background="{StaticResource BgInputBrush}"
+                    CornerRadius="8"
+                    Padding="12,8">
+                <TextBlock Text="Note: Process names are case-insensitive. Use the full executable name (e.g., chrome.exe, firefox.exe). Changes take effect after reconnecting."
+                           Foreground="{StaticResource TextMutedBrush}"
+                           FontSize="11"
+                           TextWrapping="Wrap" />
+            </Border>
+
+            <!-- Action buttons -->
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="10">
+                <Button Content="Cancel"
+                        Background="{StaticResource BgInputBrush}"
+                        Foreground="{StaticResource TextSecondaryBrush}"
+                        CornerRadius="8"
+                        Padding="20,8"
+                        FontSize="13"
+                        Command="{Binding CancelCommand}" />
+                <Button Content="Save"
+                        Background="{StaticResource AccentBrush}"
+                        Foreground="White"
+                        CornerRadius="8"
+                        Padding="20,8"
+                        FontSize="13"
+                        Command="{Binding SaveCommand}" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- ═══════════════════════════════════════════════════════
+             Three-Column Per-App Rules
+             ═══════════════════════════════════════════════════════ -->
+        <Grid ColumnDefinitions="*,12,*,12,*">
+
+            <!-- ── Column 1: Bypass Proxy ───────────────────────── -->
+            <Border Grid.Column="0"
+                    Background="{StaticResource BgCardBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="14">
+                <DockPanel LastChildFill="True">
+                    <!-- Header -->
+                    <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,10">
+                        <Border Background="{StaticResource GreenBrush}"
+                                CornerRadius="4"
+                                Padding="8,4"
+                                HorizontalAlignment="Left">
+                            <TextBlock Text="Bypass Proxy"
+                                       Foreground="White"
+                                       FontSize="12"
+                                       FontWeight="SemiBold" />
+                        </Border>
+                        <TextBlock Text="These apps will NOT use the VPN tunnel."
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <!-- TextBox -->
+                    <TextBox Text="{Binding BypassApps}"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Watermark="chrome.exe&#x0a;discord.exe&#x0a;..."
+                             Background="{StaticResource BgInputBrush}"
+                             Foreground="{StaticResource TextPrimaryBrush}"
+                             BorderBrush="{StaticResource BorderBrush}"
+                             CornerRadius="8"
+                             Padding="10,8"
+                             FontSize="12"
+                             FontFamily="Consolas, monospace"
+                             MinHeight="200" />
+                </DockPanel>
+            </Border>
+
+            <!-- ── Column 2: Route via Proxy ────────────────────── -->
+            <Border Grid.Column="2"
+                    Background="{StaticResource BgCardBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="14">
+                <DockPanel LastChildFill="True">
+                    <!-- Header -->
+                    <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,10">
+                        <Border Background="{StaticResource AccentBrush}"
+                                CornerRadius="4"
+                                Padding="8,4"
+                                HorizontalAlignment="Left">
+                            <TextBlock Text="Route via Proxy"
+                                       Foreground="White"
+                                       FontSize="12"
+                                       FontWeight="SemiBold" />
+                        </Border>
+                        <TextBlock Text="Only these apps will use the VPN tunnel."
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <!-- TextBox -->
+                    <TextBox Text="{Binding ProxyApps}"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Watermark="telegram.exe&#x0a;browser.exe&#x0a;..."
+                             Background="{StaticResource BgInputBrush}"
+                             Foreground="{StaticResource TextPrimaryBrush}"
+                             BorderBrush="{StaticResource BorderBrush}"
+                             CornerRadius="8"
+                             Padding="10,8"
+                             FontSize="12"
+                             FontFamily="Consolas, monospace"
+                             MinHeight="200" />
+                </DockPanel>
+            </Border>
+
+            <!-- ── Column 3: Block Traffic ──────────────────────── -->
+            <Border Grid.Column="4"
+                    Background="{StaticResource BgCardBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="14">
+                <DockPanel LastChildFill="True">
+                    <!-- Header -->
+                    <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,10">
+                        <Border Background="{StaticResource RedBrush}"
+                                CornerRadius="4"
+                                Padding="8,4"
+                                HorizontalAlignment="Left">
+                            <TextBlock Text="Block Traffic"
+                                       Foreground="White"
+                                       FontSize="12"
+                                       FontWeight="SemiBold" />
+                        </Border>
+                        <TextBlock Text="All traffic from these apps will be blocked."
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <!-- TextBox -->
+                    <TextBox Text="{Binding BlockApps}"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Watermark="malware.exe&#x0a;tracker.exe&#x0a;..."
+                             Background="{StaticResource BgInputBrush}"
+                             Foreground="{StaticResource TextPrimaryBrush}"
+                             BorderBrush="{StaticResource BorderBrush}"
+                             CornerRadius="8"
+                             Padding="10,8"
+                             FontSize="12"
+                             FontFamily="Consolas, monospace"
+                             MinHeight="200" />
+                </DockPanel>
+            </Border>
+        </Grid>
+
+    </DockPanel>
+
+</UserControl>

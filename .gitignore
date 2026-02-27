@@ -1,16 +1,27 @@
-*.iml
-.gradle
-/local.properties
-/.idea
-/build
-/app/build
-/captures
-.externalNativeBuild
-.cxx
-*.apk
-*.ap_
-*.aab
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.vs/
+.vscode/
+.idea/
 
-build_log.txt
-*.zip
-.env
+## Build outputs
+publish/
+dist/
+
+## Runtime data
+data/
+logs/
+*.log
+
+## OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+## sing-box runtime binaries (tracked via Git LFS or separate download)
+# runtime/win-x64/sing-box.exe
+# runtime/win-arm64/sing-box.exe

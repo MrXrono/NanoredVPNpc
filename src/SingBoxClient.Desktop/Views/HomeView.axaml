@@ -1,0 +1,336 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
+             xmlns:conv="using:SingBoxClient.Desktop.Converters"
+             x:Class="SingBoxClient.Desktop.Views.HomeView"
+             x:DataType="vm:HomeViewModel"
+             mc:Ignorable="d"
+             d:DesignWidth="880" d:DesignHeight="640">
+
+    <UserControl.Resources>
+        <conv:ConnectionStatusToStringConverter x:Key="StatusToString" />
+        <conv:ConnectionStatusToColorConverter x:Key="StatusToColor" />
+        <conv:BytesToHumanConverter x:Key="BytesToHuman" />
+        <conv:BoolToColorConverter x:Key="BoolToColor" />
+    </UserControl.Resources>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="24,20" Spacing="16">
+
+            <!-- ═══════════════════════════════════════════════════════
+                 Mode Bar
+                 ═══════════════════════════════════════════════════════ -->
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <TextBlock Text="Mode"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="13"
+                           VerticalAlignment="Center" />
+                <CheckBox Content="Proxy"
+                          IsChecked="{Binding IsProxyEnabled}"
+                          Foreground="{StaticResource TextPrimaryBrush}"
+                          FontSize="13"
+                          VerticalAlignment="Center" />
+                <CheckBox Content="TUN"
+                          IsChecked="{Binding IsTunEnabled}"
+                          Foreground="{StaticResource TextPrimaryBrush}"
+                          FontSize="13"
+                          VerticalAlignment="Center" />
+            </StackPanel>
+
+            <!-- ═══════════════════════════════════════════════════════
+                 Connection Panel
+                 ═══════════════════════════════════════════════════════ -->
+            <Border Background="{StaticResource BgCardBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="24,20"
+                    HorizontalAlignment="Stretch">
+                <StackPanel HorizontalAlignment="Center" Spacing="12">
+
+                    <!-- Status indicator + text -->
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                Spacing="8">
+                        <Ellipse Width="12" Height="12"
+                                 VerticalAlignment="Center"
+                                 Fill="{Binding Status, Converter={StaticResource StatusToColor}}" />
+                        <TextBlock Text="{Binding StatusText}"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- Connect / Disconnect Button -->
+                    <Button HorizontalAlignment="Center"
+                            MinWidth="180"
+                            Padding="24,10"
+                            CornerRadius="8"
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            Foreground="White"
+                            Command="{Binding ToggleConnectionCommand}"
+                            Content="{Binding ConnectButtonText}">
+                        <Button.Background>
+                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                                <GradientStop Color="{StaticResource Accent}" Offset="0" />
+                                <GradientStop Color="{StaticResource AccentLight}" Offset="1" />
+                            </LinearGradientBrush>
+                        </Button.Background>
+                    </Button>
+
+                    <!-- Timer -->
+                    <TextBlock Text="{Binding Timer}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="28"
+                               FontFamily="Consolas, monospace"
+                               FontWeight="Light"
+                               HorizontalAlignment="Center" />
+
+                    <!-- Speed row -->
+                    <Grid ColumnDefinitions="*,*" Margin="0,4,0,0">
+                        <StackPanel Grid.Column="0"
+                                    Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Spacing="6">
+                            <TextBlock Text="&#x2191;"
+                                       Foreground="{StaticResource GreenBrush}"
+                                       FontSize="13"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding UploadSpeed, Converter={StaticResource BytesToHuman}}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="12"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="/s"
+                                       Foreground="{StaticResource TextMutedBrush}"
+                                       FontSize="11"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Spacing="6">
+                            <TextBlock Text="&#x2193;"
+                                       Foreground="{StaticResource AccentLightBrush}"
+                                       FontSize="13"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding DownloadSpeed, Converter={StaticResource BytesToHuman}}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="12"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="/s"
+                                       Foreground="{StaticResource TextMutedBrush}"
+                                       FontSize="11"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════════════════
+                 Info Panels (Subscription + Announcements)
+                 ═══════════════════════════════════════════════════════ -->
+            <Grid ColumnDefinitions="*,12,*">
+
+                <!-- ── Subscription Info Card ───────────────────────── -->
+                <Border Grid.Column="0"
+                        Background="{StaticResource BgCardBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="16,14">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="Subscription Info"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="14"
+                                   FontWeight="SemiBold" />
+
+                        <!-- ID row -->
+                        <Grid ColumnDefinitions="Auto,*">
+                            <TextBlock Grid.Column="0"
+                                       Text="ID:"
+                                       Foreground="{StaticResource TextMutedBrush}"
+                                       FontSize="12"
+                                       Width="70" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding SubscriptionId}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="12"
+                                       TextTrimming="CharacterEllipsis" />
+                        </Grid>
+
+                        <!-- Expires row -->
+                        <Grid ColumnDefinitions="Auto,*">
+                            <TextBlock Grid.Column="0"
+                                       Text="Expires:"
+                                       Foreground="{StaticResource TextMutedBrush}"
+                                       FontSize="12"
+                                       Width="70" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding ExpiresAt}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="12" />
+                        </Grid>
+
+                        <!-- Traffic row -->
+                        <Grid ColumnDefinitions="Auto,*">
+                            <TextBlock Grid.Column="0"
+                                       Text="Traffic:"
+                                       Foreground="{StaticResource TextMutedBrush}"
+                                       FontSize="12"
+                                       Width="70" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding TrafficUsageText}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="12" />
+                        </Grid>
+
+                        <!-- Traffic progress bar -->
+                        <ProgressBar Minimum="0"
+                                     Maximum="100"
+                                     Value="{Binding TrafficPercent}"
+                                     Height="6"
+                                     CornerRadius="3"
+                                     Foreground="{StaticResource AccentBrush}"
+                                     Background="{StaticResource BgInputBrush}" />
+
+                        <!-- Renew button -->
+                        <Button Content="Renew"
+                                HorizontalAlignment="Left"
+                                Background="{StaticResource AccentBrush}"
+                                Foreground="White"
+                                CornerRadius="8"
+                                Padding="16,6"
+                                FontSize="12"
+                                Command="{Binding RenewCommand}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- ── Information Server Card ──────────────────────── -->
+                <Border Grid.Column="2"
+                        Background="{StaticResource BgCardBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="16,14">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="Information Server"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="14"
+                                   FontWeight="SemiBold" />
+
+                        <ItemsControl ItemsSource="{Binding Announcements}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,0,8"
+                                            Padding="10,8"
+                                            Background="{StaticResource BgInputBrush}"
+                                            CornerRadius="6"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{Binding Title}"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Body}"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       FontSize="11"
+                                                       TextWrapping="Wrap"
+                                                       MaxLines="3" />
+                                            <TextBlock Text="{Binding CreatedAt, StringFormat='{}{0:yyyy-MM-dd}'}"
+                                                       Foreground="{StaticResource TextMutedBrush}"
+                                                       FontSize="10" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- No announcements fallback -->
+                        <TextBlock Text="No announcements"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="12"
+                                   IsVisible="{Binding !HasAnnouncements}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- ═══════════════════════════════════════════════════════
+                 Country List
+                 ═══════════════════════════════════════════════════════ -->
+            <Border Background="{StaticResource BgCardBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="16,14">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Select Server"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               FontSize="14"
+                               FontWeight="SemiBold" />
+
+                    <ListBox ItemsSource="{Binding Countries}"
+                             SelectedItem="{Binding SelectedCountry}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             MaxHeight="220">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="Auto,*,Auto"
+                                      Margin="4,2"
+                                      Height="32">
+                                    <!-- Flag + Country Name -->
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding DisplayName}"
+                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               FontSize="13"
+                                               VerticalAlignment="Center" />
+
+                                    <!-- Server count -->
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding Servers.Count, StringFormat='{}{0} servers'}"
+                                               Foreground="{StaticResource TextMutedBrush}"
+                                               FontSize="11"
+                                               HorizontalAlignment="Right"
+                                               VerticalAlignment="Center"
+                                               Margin="12,0" />
+
+                                    <!-- Ping -->
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding AverageLatency, StringFormat='{}{0} ms'}"
+                                               Foreground="{StaticResource GreenBrush}"
+                                               FontSize="11"
+                                               VerticalAlignment="Center"
+                                               MinWidth="50"
+                                               TextAlignment="Right" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+
+                        <ListBox.Styles>
+                            <Style Selector="ListBoxItem">
+                                <Setter Property="Padding" Value="8,2" />
+                                <Setter Property="CornerRadius" Value="6" />
+                                <Setter Property="Margin" Value="0,1" />
+                            </Style>
+                            <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="{StaticResource BgHoverBrush}" />
+                            </Style>
+                            <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                                <Setter Property="Background" Value="{StaticResource BgInputBrush}" />
+                            </Style>
+                        </ListBox.Styles>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+
+</UserControl>
