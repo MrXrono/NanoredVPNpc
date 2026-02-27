@@ -57,7 +57,7 @@
         <!-- ═══════════════════════════════════════════════════════
              Log Output
              ═══════════════════════════════════════════════════════ -->
-        <Border Background="#0D0D12"
+        <Border Background="{StaticResource BgMainBrush}"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="1"
                 CornerRadius="12"

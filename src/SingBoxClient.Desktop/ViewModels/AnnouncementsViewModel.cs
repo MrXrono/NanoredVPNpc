@@ -26,6 +26,13 @@ public class AnnouncementsViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _announcements, value);
     }
 
+    // ── Close Action ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Action invoked to close the host window. Set by the code-behind.
+    /// </summary>
+    public Action? CloseAction { get; set; }
+
     // ── Commands ──────────────────────────────────────────────────────────
 
     public ReactiveCommand<Unit, Unit> MarkAllReadCommand { get; }
@@ -38,7 +45,7 @@ public class AnnouncementsViewModel : ViewModelBase
         _announcementService = announcementService ?? throw new ArgumentNullException(nameof(announcementService));
 
         MarkAllReadCommand = ReactiveCommand.Create(MarkAllRead);
-        CloseCommand = ReactiveCommand.Create(() => { /* handled by parent view */ });
+        CloseCommand = ReactiveCommand.Create(() => { CloseAction?.Invoke(); });
 
         LoadAnnouncements();
     }

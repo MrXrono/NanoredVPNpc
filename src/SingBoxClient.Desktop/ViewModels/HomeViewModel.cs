@@ -50,6 +50,13 @@ public class HomeViewModel : ViewModelBase, IDisposable
         get => _isProxyEnabled;
         set
         {
+            // Don't allow unchecking if TUN is also off — at least one mode must be active
+            if (!value && !IsTunEnabled)
+            {
+                this.RaisePropertyChanged(nameof(IsProxyEnabled));
+                return;
+            }
+
             this.RaiseAndSetIfChanged(ref _isProxyEnabled, value);
             if (value) IsTunEnabled = false;
         }
@@ -61,6 +68,13 @@ public class HomeViewModel : ViewModelBase, IDisposable
         get => _isTunEnabled;
         set
         {
+            // Don't allow unchecking if Proxy is also off — at least one mode must be active
+            if (!value && !IsProxyEnabled)
+            {
+                this.RaisePropertyChanged(nameof(IsTunEnabled));
+                return;
+            }
+
             this.RaiseAndSetIfChanged(ref _isTunEnabled, value);
             if (value) IsProxyEnabled = false;
         }
@@ -70,8 +84,19 @@ public class HomeViewModel : ViewModelBase, IDisposable
     public ConnectionStatus ConnectionStatus
     {
         get => _connectionStatus;
-        set => this.RaiseAndSetIfChanged(ref _connectionStatus, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _connectionStatus, value);
+            this.RaisePropertyChanged(nameof(Status));
+            this.RaisePropertyChanged(nameof(ConnectButtonText));
+        }
     }
+
+    /// <summary>
+    /// String representation of the current connection status, derived from the enum.
+    /// Bound by the view for the status indicator color converter.
+    /// </summary>
+    public ConnectionStatus Status => ConnectionStatus;
 
     private string _statusText = "Disconnected";
     public string StatusText
@@ -126,15 +151,58 @@ public class HomeViewModel : ViewModelBase, IDisposable
     public SubscriptionData? SubscriptionInfo
     {
         get => _subscriptionInfo;
-        set => this.RaiseAndSetIfChanged(ref _subscriptionInfo, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _subscriptionInfo, value);
+            this.RaisePropertyChanged(nameof(SubscriptionId));
+            this.RaisePropertyChanged(nameof(ExpiresAt));
+            this.RaisePropertyChanged(nameof(TrafficUsageText));
+            this.RaisePropertyChanged(nameof(TrafficPercent));
+        }
+    }
+
+    /// <summary>Subscription ID extracted from SubscriptionInfo, or "—" if unavailable.</summary>
+    public string SubscriptionId => SubscriptionInfo?.Id ?? "—";
+
+    /// <summary>Formatted expiration date from SubscriptionInfo, or "—" if unavailable.</summary>
+    public string ExpiresAt => SubscriptionInfo is not null
+        ? SubscriptionInfo.ExpiresAt.ToString("yyyy-MM-dd")
+        : "—";
+
+    /// <summary>Human-readable traffic usage, e.g. "1.2 GB / 50.0 GB".</summary>
+    public string TrafficUsageText
+    {
+        get
+        {
+            if (SubscriptionInfo is null) return "— / —";
+            return $"{BytesToGb(SubscriptionInfo.UsedTraffic)} / {BytesToGb(SubscriptionInfo.TotalTraffic)}";
+        }
+    }
+
+    /// <summary>Traffic usage as a percentage (0–100) for the progress bar.</summary>
+    public double TrafficPercent
+    {
+        get
+        {
+            if (SubscriptionInfo is null || SubscriptionInfo.TotalTraffic <= 0) return 0;
+            var pct = (double)SubscriptionInfo.UsedTraffic / SubscriptionInfo.TotalTraffic * 100;
+            return Math.Clamp(pct, 0, 100);
+        }
     }
 
     private ObservableCollection<Announcement> _announcements = new();
     public ObservableCollection<Announcement> Announcements
     {
         get => _announcements;
-        set => this.RaiseAndSetIfChanged(ref _announcements, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _announcements, value);
+            this.RaisePropertyChanged(nameof(HasAnnouncements));
+        }
     }
+
+    /// <summary>True if there are any unread announcements to display.</summary>
+    public bool HasAnnouncements => Announcements.Count > 0;
 
     private bool _isConnecting;
     public bool IsConnecting
@@ -143,11 +211,19 @@ public class HomeViewModel : ViewModelBase, IDisposable
         set => this.RaiseAndSetIfChanged(ref _isConnecting, value);
     }
 
+    /// <summary>Button label: "Connect" when disconnected, "Disconnect" when connected.</summary>
+    public string ConnectButtonText => ConnectionStatus == ConnectionStatus.Connected
+                                     || ConnectionStatus == ConnectionStatus.Reconnecting
+        ? "Disconnect"
+        : "Connect";
+
     // ── Commands ──────────────────────────────────────────────────────────
 
     public ReactiveCommand<Unit, Unit> ConnectCommand { get; }
     public ReactiveCommand<Unit, Unit> DisconnectCommand { get; }
     public ReactiveCommand<Unit, Unit> RefreshServersCommand { get; }
+    public ReactiveCommand<Unit, Unit> ToggleConnectionCommand { get; }
+    public ReactiveCommand<Unit, Unit> RenewCommand { get; }
 
     // ── Constructor ───────────────────────────────────────────────────────
 
@@ -197,6 +273,24 @@ public class HomeViewModel : ViewModelBase, IDisposable
         ConnectCommand = ReactiveCommand.CreateFromTask(ConnectAsync, canConnect);
         DisconnectCommand = ReactiveCommand.CreateFromTask(DisconnectAsync, canDisconnect);
         RefreshServersCommand = ReactiveCommand.CreateFromTask(RefreshServersAsync);
+
+        // Toggle command: routes to Connect or Disconnect based on current state
+        var canToggle = this.WhenAnyValue(x => x.IsConnecting, connecting => !connecting);
+        ToggleConnectionCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            if (ConnectionStatus == ConnectionStatus.Connected
+                || ConnectionStatus == ConnectionStatus.Reconnecting)
+            {
+                await DisconnectAsync();
+            }
+            else
+            {
+                await ConnectAsync();
+            }
+        }, canToggle);
+
+        // Renew command: placeholder for future subscription renewal flow
+        RenewCommand = ReactiveCommand.Create(() => { });
 
         // Subscribe to connection guard status changes
         _connectionGuard.OnStatusChanged += OnConnectionStatusChanged;
@@ -406,12 +500,12 @@ public class HomeViewModel : ViewModelBase, IDisposable
                     .OrderBy(s => s.Latency)
                     .FirstOrDefault();
 
-                group.AverageLatency = group.Servers
-                    .Where(s => s.IsReachable && s.Latency >= 0)
-                    .Select(s => s.Latency)
-                    .DefaultIfEmpty(0)
-                    .Average()
-                    .GetHashCode(); // int conversion
+                group.AverageLatency = (int)Math.Round(
+                    group.Servers
+                        .Where(s => s.IsReachable && s.Latency >= 0)
+                        .Select(s => s.Latency)
+                        .DefaultIfEmpty(0)
+                        .Average());
             }
 
             Countries = new ObservableCollection<CountryGroup>(
@@ -519,7 +613,9 @@ public class HomeViewModel : ViewModelBase, IDisposable
             StatusText = status switch
             {
                 ConnectionStatus.Connected => "Connected",
+                ConnectionStatus.Connecting => "Connecting...",
                 ConnectionStatus.Reconnecting => "Reconnecting...",
+                ConnectionStatus.Disconnecting => "Disconnecting...",
                 ConnectionStatus.Disconnected => "Disconnected",
                 ConnectionStatus.Error => "Connection lost",
                 _ => status.ToString()
@@ -559,6 +655,15 @@ public class HomeViewModel : ViewModelBase, IDisposable
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Convert a byte count to a human-readable GB string (e.g. "12.3 GB").
+    /// </summary>
+    private static string BytesToGb(long bytes)
+    {
+        var gb = bytes / (1024.0 * 1024 * 1024);
+        return $"{gb:F1} GB";
+    }
 
     /// <summary>
     /// Convert bytes per second to a human-readable speed string.

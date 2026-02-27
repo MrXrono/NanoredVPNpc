@@ -2,10 +2,10 @@ using System;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Text;
-using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Threading;
 using ReactiveUI;
 using Serilog;
 using SingBoxClient.Core.Services;
@@ -22,7 +22,6 @@ public class LogsViewModel : ViewModelBase, IDisposable
     private readonly ILogService _logService;
     private readonly ISingBoxProcessManager _processManager;
     private readonly StringBuilder _logBuffer = new();
-    private readonly SynchronizationContext? _syncContext;
     private bool _disposed;
 
     private const int MaxLogLength = 500_000; // ~500 KB text cap
@@ -56,7 +55,6 @@ public class LogsViewModel : ViewModelBase, IDisposable
     {
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         _processManager = processManager ?? throw new ArgumentNullException(nameof(processManager));
-        _syncContext = SynchronizationContext.Current;
 
         ClearCommand = ReactiveCommand.Create(ClearLogs);
         CopyCommand = ReactiveCommand.CreateFromTask(CopyLogsToClipboardAsync);
@@ -84,15 +82,8 @@ public class LogsViewModel : ViewModelBase, IDisposable
 
     private void AppendLine(string line)
     {
-        // Marshal to UI thread if necessary
-        if (_syncContext is not null)
-        {
-            _syncContext.Post(_ => AppendLineCore(line), null);
-        }
-        else
-        {
-            AppendLineCore(line);
-        }
+        // Marshal to UI thread via Avalonia Dispatcher
+        Dispatcher.UIThread.Post(() => AppendLineCore(line));
     }
 
     private void AppendLineCore(string line)

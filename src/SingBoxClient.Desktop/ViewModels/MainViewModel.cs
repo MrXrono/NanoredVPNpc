@@ -73,10 +73,26 @@ public class MainViewModel : ViewModelBase, IDisposable
         set => this.RaiseAndSetIfChanged(ref _isDarkTheme, value);
     }
 
+    private bool _isNotNavigating = true;
+    public bool IsNotNavigating
+    {
+        get => _isNotNavigating;
+        set => this.RaiseAndSetIfChanged(ref _isNotNavigating, value);
+    }
+
+    // ── Events (window chrome actions) ──────────────────────────────────
+
+    public event Action? OnMinimizeRequested;
+    public event Action? OnMaximizeRequested;
+    public event Action? OnCloseRequested;
+
     // ── Commands ──────────────────────────────────────────────────────────
 
     public ReactiveCommand<string, Unit> NavigateCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleThemeCommand { get; }
+    public ReactiveCommand<Unit, Unit> MinimizeCommand { get; }
+    public ReactiveCommand<Unit, Unit> MaximizeCommand { get; }
+    public ReactiveCommand<Unit, Unit> CloseCommand { get; }
 
     // ── Constructor ───────────────────────────────────────────────────────
 
@@ -105,6 +121,9 @@ public class MainViewModel : ViewModelBase, IDisposable
         // Commands
         NavigateCommand = ReactiveCommand.Create<string>(NavigateTo);
         ToggleThemeCommand = ReactiveCommand.Create(ToggleTheme);
+        MinimizeCommand = ReactiveCommand.Create(() => OnMinimizeRequested?.Invoke());
+        MaximizeCommand = ReactiveCommand.Create(() => OnMaximizeRequested?.Invoke());
+        CloseCommand = ReactiveCommand.Create(() => OnCloseRequested?.Invoke());
 
         // Set initial page
         CurrentPage = HomeViewModel;

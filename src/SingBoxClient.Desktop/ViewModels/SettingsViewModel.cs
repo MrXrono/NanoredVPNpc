@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Reactive;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using ReactiveUI;
 using Serilog;
 using SingBoxClient.Core.Platform;
@@ -20,8 +23,8 @@ public class SettingsViewModel : ViewModelBase
 
     // ── Properties ────────────────────────────────────────────────────────
 
-    private int _proxyPort;
-    public int ProxyPort
+    private decimal _proxyPort;
+    public decimal ProxyPort
     {
         get => _proxyPort;
         set => this.RaiseAndSetIfChanged(ref _proxyPort, value);
@@ -75,6 +78,7 @@ public class SettingsViewModel : ViewModelBase
 
     public ReactiveCommand<Unit, Unit> SaveCommand { get; }
     public ReactiveCommand<Unit, Unit> CancelCommand { get; }
+    public ReactiveCommand<Unit, Unit> CopySubscriptionUrlCommand { get; }
 
     // ── Constructor ───────────────────────────────────────────────────────
 
@@ -87,6 +91,7 @@ public class SettingsViewModel : ViewModelBase
 
         SaveCommand = ReactiveCommand.Create(Save);
         CancelCommand = ReactiveCommand.Create(LoadFromSettings);
+        CopySubscriptionUrlCommand = ReactiveCommand.CreateFromTask(CopySubscriptionUrlToClipboardAsync);
 
         LoadFromSettings();
     }
@@ -99,7 +104,7 @@ public class SettingsViewModel : ViewModelBase
         {
             var s = _settingsService.Current;
 
-            ProxyPort = s.ProxyPort;
+            ProxyPort = (decimal)s.ProxyPort;
             Language = MapLanguageCodeToDisplay(s.Language);
             MinimizeToTray = s.MinimizeToTray;
             AutoStart = s.AutoStart;
@@ -120,15 +125,16 @@ public class SettingsViewModel : ViewModelBase
         try
         {
             // Validate proxy port
-            if (ProxyPort < 1024 || ProxyPort > 65535)
+            var portValue = (int)ProxyPort;
+            if (portValue < 1024 || portValue > 65535)
             {
-                Logger.Warning("Invalid proxy port {Port}, must be 1024-65535", ProxyPort);
+                Logger.Warning("Invalid proxy port {Port}, must be 1024-65535", portValue);
                 return;
             }
 
             var s = _settingsService.Current;
 
-            s.ProxyPort = ProxyPort;
+            s.ProxyPort = portValue;
             s.Language = MapDisplayToLanguageCode(Language);
             s.MinimizeToTray = MinimizeToTray;
             s.AutoStart = AutoStart;
@@ -155,6 +161,31 @@ public class SettingsViewModel : ViewModelBase
         catch (Exception ex)
         {
             Logger.Error(ex, "Failed to save settings");
+        }
+    }
+
+    // ── Clipboard ─────────────────────────────────────────────────────────
+
+    private async Task CopySubscriptionUrlToClipboardAsync()
+    {
+        try
+        {
+            var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)
+                ?.MainWindow;
+
+            var clipboard = mainWindow is not null
+                ? TopLevel.GetTopLevel(mainWindow)?.Clipboard
+                : null;
+
+            if (clipboard is not null && !string.IsNullOrEmpty(SubscriptionUrl))
+            {
+                await clipboard.SetTextAsync(SubscriptionUrl);
+                Logger.Debug("Subscription URL copied to clipboard");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to copy subscription URL to clipboard");
         }
     }
 

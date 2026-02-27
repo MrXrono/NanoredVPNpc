@@ -57,6 +57,11 @@ public class RoutingViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _newRuleAction, value);
     }
 
+    /// <summary>
+    /// List of rule action names for the Action ComboBox in DataGrid.
+    /// </summary>
+    public ObservableCollection<string> RuleActions { get; } = new(Enum.GetNames<RuleAction>());
+
     // ── Commands ──────────────────────────────────────────────────────────
 
     public ReactiveCommand<Unit, Unit> AddRuleCommand { get; }
@@ -67,6 +72,16 @@ public class RoutingViewModel : ViewModelBase
     public ReactiveCommand<string, Unit> ToggleRuleCommand { get; }
     public ReactiveCommand<string, Unit> MoveRuleUpCommand { get; }
     public ReactiveCommand<string, Unit> MoveRuleDownCommand { get; }
+
+    /// <summary>
+    /// Alias for SyncRemoteConfigCommand — used by the View's Sync button binding.
+    /// </summary>
+    public ReactiveCommand<Unit, Unit> SyncCommand => SyncRemoteConfigCommand;
+
+    /// <summary>
+    /// Deletes a routing rule by accepting the full RoutingRule object and extracting its Id.
+    /// </summary>
+    public ReactiveCommand<RoutingRule, Unit> DeleteRuleCommand { get; }
 
     // ── Constructor ───────────────────────────────────────────────────────
 
@@ -89,6 +104,7 @@ public class RoutingViewModel : ViewModelBase
         ToggleRuleCommand = ReactiveCommand.Create<string>(ToggleRule);
         MoveRuleUpCommand = ReactiveCommand.Create<string>(MoveRuleUp);
         MoveRuleDownCommand = ReactiveCommand.Create<string>(MoveRuleDown);
+        DeleteRuleCommand = ReactiveCommand.Create<RoutingRule>(rule => RemoveRule(rule.Id));
 
         IsRemoteConfigEnabled = _settingsService.Current.RemoteConfigEnabled;
 

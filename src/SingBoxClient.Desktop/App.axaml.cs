@@ -4,6 +4,7 @@ using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
 using SingBoxClient.Core.Services;
 using SingBoxClient.Core.Platform;
+using SingBoxClient.Desktop.Services;
 using SingBoxClient.Desktop.ViewModels;
 using SingBoxClient.Desktop.Views;
 using System;
@@ -68,6 +69,9 @@ public partial class App : Application
         services.AddSingleton<IRemoteConfigService, RemoteConfigService>();
         services.AddSingleton<ISingBoxConfigBuilder, SingBoxConfigBuilderService>();
 
+        // Desktop Services
+        services.AddSingleton<TrayIconService>();
+
         // ViewModels
         services.AddTransient<MainViewModel>();
         services.AddTransient<HomeViewModel>();
@@ -75,6 +79,7 @@ public partial class App : Application
         services.AddTransient<TunSettingsViewModel>();
         services.AddTransient<LogsViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<AnnouncementsViewModel>();
     }
 
     private void OnShutdownRequested(object? sender, ShutdownRequestedEventArgs e)
@@ -92,6 +97,9 @@ public partial class App : Application
 
             var analytics = Services.GetService<IAnalyticsService>();
             analytics?.FlushAsync().GetAwaiter().GetResult();
+
+            var trayService = Services.GetService<TrayIconService>();
+            trayService?.Dispose();
         }
     }
 }
