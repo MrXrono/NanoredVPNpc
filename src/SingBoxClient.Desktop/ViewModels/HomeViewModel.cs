@@ -305,6 +305,9 @@ public class HomeViewModel : ViewModelBase, IDisposable
         // Load announcements
         LoadAnnouncements();
 
+        // Auto-load subscription on startup
+        _ = RefreshServersAsync();
+
         Logger.Information("HomeViewModel initialized");
     }
 
@@ -485,21 +488,30 @@ public class HomeViewModel : ViewModelBase, IDisposable
 
             Logger.Information("Refreshing servers from subscription...");
 
-            // 1. Fetch subscription
-            var servers = await _subscriptionService.FetchAndParseAsync(subUrl);
+            // 1. Fetch subscription with metadata
+            var (servers, info) = await _subscriptionService.FetchWithInfoAsync(subUrl);
+
+            // 2. Update subscription info panel
+            if (info is not null)
+            {
+                SubscriptionInfo = info;
+                Logger.Information("Subscription: {Title}, expires {Expires}, traffic {Used}/{Total}",
+                    info.ProfileTitle, info.ExpiresAt, info.UsedTraffic, info.TotalTraffic);
+            }
+
             if (servers.Count == 0)
             {
                 Logger.Warning("Subscription returned 0 servers");
                 return;
             }
 
-            // 2. Group by country
+            // 3. Group by country
             var groups = _countryGroupingService.GroupByCountry(servers);
 
-            // 3. Ping all servers for latency measurement
+            // 4. Ping all servers for latency measurement
             await _pingService.PingAllAsync(servers);
 
-            // 4. Update best server per group
+            // 5. Update best server per group
             foreach (var group in groups)
             {
                 group.BestServer = group.Servers

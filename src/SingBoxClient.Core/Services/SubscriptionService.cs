@@ -19,6 +19,11 @@ public interface ISubscriptionService
     Task<List<ServerNode>> FetchAndParseAsync(string url);
 
     /// <summary>
+    /// Download a subscription URL, parse servers AND subscription metadata from headers.
+    /// </summary>
+    Task<(List<ServerNode> Servers, SubscriptionData? Info)> FetchWithInfoAsync(string url);
+
+    /// <summary>
     /// Extract subscription metadata from HTTP response headers.
     /// </summary>
     SubscriptionData? ParseHeaders(HttpResponseMessage response);
@@ -65,6 +70,37 @@ public class SubscriptionService : ISubscriptionService
         return servers;
     }
 
+    // ── Fetch with Info ─────────────────────────────────────────────────
+
+    public async Task<(List<ServerNode> Servers, SubscriptionData? Info)> FetchWithInfoAsync(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            throw new ArgumentException("Subscription URL must not be empty", nameof(url));
+
+        _logger.Information("Fetching subscription with info from {Url}", url);
+
+        using var http = HttpClientFactory.CreateIgnoreCert();
+        http.DefaultRequestHeaders.UserAgent.Clear();
+        http.DefaultRequestHeaders.UserAgent.ParseAdd(AppDefaults.UserAgent);
+
+        HttpResponseMessage response = await FetchWithRetryAsync(http, url);
+        response.EnsureSuccessStatusCode();
+
+        // Parse headers for subscription metadata
+        var info = ParseHeaders(response);
+
+        var body = await response.Content.ReadAsStringAsync();
+        _logger.Debug("Subscription response length: {Length} chars", body.Length);
+
+        var servers = ParseBody(body);
+        _logger.Information("Parsed {Count} servers from subscription", servers.Count);
+
+        // Cache servers locally
+        await SaveCacheAsync(servers);
+
+        return (servers, info);
+    }
+
     // ── Header Parsing ───────────────────────────────────────────────────
 
     public SubscriptionData? ParseHeaders(HttpResponseMessage response)
@@ -82,10 +118,24 @@ public class SubscriptionService : ISubscriptionService
                 data.UpdateInterval = hours;
         }
 
-        // profile-title
+        // profile-title (may be "base64:..." encoded)
         if (response.Headers.TryGetValues("profile-title", out var titleValues))
         {
-            data.ProfileTitle = titleValues.FirstOrDefault() ?? string.Empty;
+            var titleRaw = titleValues.FirstOrDefault() ?? string.Empty;
+            if (titleRaw.StartsWith("base64:", StringComparison.OrdinalIgnoreCase))
+            {
+                data.ProfileTitle = Base64Helper.Decode(titleRaw[7..]) ?? titleRaw;
+            }
+            else
+            {
+                data.ProfileTitle = titleRaw;
+            }
+        }
+
+        // content-disposition: attachment; filename=XXXXXX (use as subscription ID)
+        if (response.Content.Headers.ContentDisposition?.FileName is { } filename)
+        {
+            data.Id = filename.Trim('"');
         }
 
         // subscription-userinfo: upload=N; download=N; total=N; expire=N
