@@ -165,8 +165,8 @@
                     <!-- Action -->
                     <DataGridTemplateColumn Header="Action" Width="100">
                         <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate x:DataType="models:RoutingRule">
-                                <ComboBox ItemsSource="{Binding $parent[DataGrid].((vm:RoutingViewModel)DataContext).RuleActions}"
+                            <DataTemplate>
+                                <ComboBox ItemsSource="{Binding $parent[DataGrid].DataContext.RuleActions}"
                                           SelectedItem="{Binding Action}"
                                           Background="{StaticResource BgInputBrush}"
                                           Foreground="{StaticResource TextPrimaryBrush}"
@@ -192,7 +192,7 @@
                     <!-- Delete -->
                     <DataGridTemplateColumn Header="" Width="40">
                         <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate x:DataType="models:RoutingRule">
+                            <DataTemplate>
                                 <Button Content="&#x2715;"
                                         Background="Transparent"
                                         Foreground="{StaticResource RedBrush}"
@@ -201,7 +201,7 @@
                                         Padding="4"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
-                                        Command="{Binding $parent[DataGrid].((vm:RoutingViewModel)DataContext).DeleteRuleCommand}"
+                                        Command="{Binding $parent[DataGrid].DataContext.DeleteRuleCommand}"
                                         CommandParameter="{Binding}" />
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
