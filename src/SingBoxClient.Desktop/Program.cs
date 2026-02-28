@@ -1,33 +1,65 @@
-using Avalonia;
-using Avalonia.ReactiveUI;
 using System;
-using System.Threading;
-using System.Runtime.InteropServices;
-using Serilog;
+using System.IO;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.Loader;
 
 namespace SingBoxClient.Desktop;
 
 class Program
 {
-    private static Mutex? _mutex;
-
     [STAThread]
     public static void Main(string[] args)
     {
+        // Setup assembly resolver for libs/ subdirectory BEFORE any third-party types are loaded.
+        // This must run before Avalonia, Serilog, ReactiveUI, etc. are referenced.
+        SetupLibsResolver();
+
+        // All third-party type usage is deferred to RunApplication.
+        // NoInlining ensures JIT won't compile it (and try to load Avalonia/Serilog)
+        // until the resolver above is registered.
+        RunApplication(args);
+    }
+
+    private static void SetupLibsResolver()
+    {
+        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        var libsDir = Path.Combine(baseDir, "libs");
+
+        if (!Directory.Exists(libsDir))
+            return;
+
+        // Managed assembly resolver — fallback when TPA doesn't find the DLL in app root
+        AssemblyLoadContext.Default.Resolving += (context, assemblyName) =>
+        {
+            var dllPath = Path.Combine(libsDir, $"{assemblyName.Name}.dll");
+            if (File.Exists(dllPath))
+                return context.LoadFromAssemblyPath(dllPath);
+            return null;
+        };
+
+        // Native library resolver — add libs/ to DLL search path for P/Invoke
+        // (SkiaSharp, HarfBuzzSharp, Avalonia native, etc.)
+        var currentPath = Environment.GetEnvironmentVariable("PATH") ?? "";
+        Environment.SetEnvironmentVariable("PATH", libsDir + Path.PathSeparator + currentPath);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void RunApplication(string[] args)
+    {
+        // === Everything below uses third-party types (Serilog, Avalonia, ReactiveUI) ===
+
         // 1. Single Instance check
         const string mutexName = "NanoredVPN_SingleInstance";
-        _mutex = new Mutex(true, mutexName, out bool createdNew);
+        using var mutex = new System.Threading.Mutex(true, mutexName, out bool createdNew);
         if (!createdNew)
-        {
-            // Already running
             return;
-        }
 
         // 2. Setup Serilog
-        Log.Logger = new LoggerConfiguration()
+        Serilog.Log.Logger = new Serilog.LoggerConfiguration()
             .MinimumLevel.Information()
             .WriteTo.File("data/logs/app.log",
-                rollingInterval: RollingInterval.Infinite,
+                rollingInterval: Serilog.RollingInterval.Infinite,
                 fileSizeLimitBytes: 10_485_760,
                 retainedFileCountLimit: 3,
                 rollOnFileSizeLimit: true)
@@ -37,46 +69,42 @@ class Program
         // 3. Global exception handlers
         AppDomain.CurrentDomain.UnhandledException += (s, e) =>
         {
-            Log.Fatal(e.ExceptionObject as Exception, "Unhandled exception");
-            Log.CloseAndFlush();
+            Serilog.Log.Fatal(e.ExceptionObject as Exception, "Unhandled exception");
+            Serilog.Log.CloseAndFlush();
         };
 
-        TaskScheduler.UnobservedTaskException += (s, e) =>
+        System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (s, e) =>
         {
-            Log.Error(e.Exception, "Unobserved task exception");
+            Serilog.Log.Error(e.Exception, "Unobserved task exception");
             e.SetObserved();
         };
 
         // 4. Handle --cleanup-update flag
         if (args.Length > 0 && args[0] == "--cleanup-update")
         {
-            Thread.Sleep(2000);
+            System.Threading.Thread.Sleep(2000);
             CleanupUpdateFiles();
         }
 
         try
         {
-            Log.Information("NanoredVPN v1.0.0 starting");
-            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+            Serilog.Log.Information("NanoredVPN v1.0.0 starting");
+            Avalonia.AppBuilder.Configure<App>()
+                .UsePlatformDetect()
+                .WithInterFont()
+                .LogToTrace()
+                .UseReactiveUI()
+                .StartWithClassicDesktopLifetime(args);
         }
         catch (Exception ex)
         {
-            Log.Fatal(ex, "Application terminated unexpectedly");
+            Serilog.Log.Fatal(ex, "Application terminated unexpectedly");
         }
         finally
         {
-            Log.CloseAndFlush();
-            _mutex?.ReleaseMutex();
-            _mutex?.Dispose();
+            Serilog.Log.CloseAndFlush();
         }
     }
-
-    public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>()
-            .UsePlatformDetect()
-            .WithInterFont()
-            .LogToTrace()
-            .UseReactiveUI();
 
     private static void CleanupUpdateFiles()
     {
@@ -86,12 +114,12 @@ class Program
             foreach (var bak in Directory.GetFiles(dir, "*.bak"))
             {
                 File.Delete(bak);
-                Log.Information("Cleaned up update file: {File}", Path.GetFileName(bak));
+                Serilog.Log.Information("Cleaned up update file: {File}", Path.GetFileName(bak));
             }
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Failed to cleanup update files");
+            Serilog.Log.Warning(ex, "Failed to cleanup update files");
         }
     }
 }
