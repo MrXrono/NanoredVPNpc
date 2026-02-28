@@ -14,16 +14,21 @@ dotnet publish ../src/SingBoxClient.Desktop -c Release -r win-arm64 \
 # Copy runtime files
 cp ../runtime/win-arm64/sing-box.exe "$DIST/"
 
-# ── Organize DLLs into subdirectories ─────────────────────────────────
-echo "Organizing DLLs..."
+# ── Organize files into subdirectories ─────────────────────────────────
+echo "Organizing files..."
+mkdir -p "$DIST/Core"
 mkdir -p "$DIST/libs"
 mkdir -p "$DIST/dotnet"
 
 cd "$DIST"
 for dll in *.dll; do
     case "$dll" in
-        # App assemblies — keep in root
-        SingBoxClient.*)
+        # Main app assembly — keep in root (loaded by apphost)
+        SingBoxClient.Desktop.dll)
+            ;;
+        # App core library → Core/
+        SingBoxClient.Core.dll)
+            mv "$dll" Core/
             ;;
         # Native host/runtime — keep in root (loaded before managed code)
         coreclr.dll|hostfxr.dll|hostpolicy.dll|clrjit.dll|clrcompression.dll)
@@ -56,5 +61,6 @@ echo ""
 echo "Root files:"
 ls -1 "$DIST"/*.exe "$DIST"/*.dll "$DIST"/*.json 2>/dev/null | xargs -I{} basename {}
 echo ""
+echo "Core/   ($(ls -1 "$DIST/Core/" | wc -l) files)"
 echo "dotnet/ ($(ls -1 "$DIST/dotnet/" | wc -l) files)"
 echo "libs/   ($(ls -1 "$DIST/libs/" | wc -l) files)"

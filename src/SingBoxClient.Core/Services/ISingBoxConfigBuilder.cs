@@ -45,9 +45,9 @@ public class SingBoxConfigBuilderService : ISingBoxConfigBuilder
             tunProxy: s.TunProxyApps,
             debugMode: s.DebugMode);
 
-        var dataDir = Constants.AppDefaults.DataDir;
-        Directory.CreateDirectory(dataDir);
-        var configPath = Path.Combine(dataDir, Constants.AppDefaults.ConfigFileName);
+        var configDir = Constants.AppDefaults.ConfigDir;
+        Directory.CreateDirectory(configDir);
+        var configPath = Path.Combine(configDir, Constants.AppDefaults.ConfigFileName);
         File.WriteAllText(configPath, json);
 
         return Path.GetFullPath(configPath);

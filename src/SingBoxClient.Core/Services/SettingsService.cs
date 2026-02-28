@@ -37,7 +37,7 @@ public interface ISettingsService
 }
 
 /// <summary>
-/// Default file-backed implementation that serializes settings to data/settings.json.
+/// Default file-backed implementation that serializes settings to Configuration/settings.json.
 /// </summary>
 public class SettingsService : ISettingsService
 {
@@ -61,7 +61,7 @@ public class SettingsService : ISettingsService
 
     public SettingsService()
     {
-        _filePath = Path.Combine(AppDefaults.DataDir, AppDefaults.SettingsFileName);
+        _filePath = Path.Combine(AppDefaults.ConfigDir, AppDefaults.SettingsFileName);
     }
 
     // ── Load ─────────────────────────────────────────────────────────────────

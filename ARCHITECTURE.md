@@ -155,7 +155,7 @@ SingBoxClient.sln
 
 ## 5. Config Generator (`SingBoxClient.Core.Config`)
 
-Generates `data/config.json` for sing-box runtime.
+Generates `Configuration/config.json` for sing-box runtime.
 
 | File | Builds Section | Key Logic |
 |------|---------------|-----------|
@@ -177,7 +177,7 @@ ISingBoxConfigBuilder.BuildAndSave(server)
               ├── RouteConfig.Build(mergedRules)
               ├── DnsConfig.Build(useFakeIp: tunEnabled)
               └── ExperimentalConfig.Build(9090)
-              → JSON string → write to data/config.json
+              → JSON string → write to Configuration/config.json
 ```
 
 ---
@@ -212,8 +212,8 @@ Connecting → Connected → [health fail x3] → Reconnecting → Connected
 
 | Service | Interface | Responsibility | Interacts With |
 |---------|-----------|---------------|----------------|
-| `RoutingService` | `IRoutingService` | CRUD routing rules (GetRules, GetAllRules, GetEnabledRules, SaveRules), load/save routing.json | data/routing.json |
-| `SettingsService` | `ISettingsService` | Load/save settings.json, Settings + Current properties | data/settings.json |
+| `RoutingService` | `IRoutingService` | CRUD routing rules (GetRules, GetAllRules, GetEnabledRules, SaveRules), load/save routing.json | Configuration/routing.json |
+| `SettingsService` | `ISettingsService` | Load/save settings.json, Settings + Current properties | Configuration/settings.json |
 | `RemoteConfigService` | `IRemoteConfigService` | FetchRoutingRulesAsync, FetchAnnouncementsAsync, cache | ApiClient |
 
 ### Backend Communication
@@ -224,7 +224,7 @@ Connecting → Connected → [health fail x3] → Reconnecting → Connected
 | `UpdateService` | `IUpdateService` | CheckForUpdateAsync + download + apply updates | ApiClient |
 | `AnalyticsService` | `IAnalyticsService` | Buffer events (TrackAsync), batch send, crash logs | ApiClient |
 | `AnnouncementService` | `IAnnouncementService` | Fetch server notifications, GetAll() | ApiClient |
-| `LogService` | `ILogService` | Log rotation (10MB x3), dedup via offset marker | data/logs/ |
+| `LogService` | `ILogService` | Log rotation (10MB x3), dedup via offset marker | Logs/ |
 
 ---
 
@@ -334,7 +334,7 @@ Themes loaded via `ResourceDictionary.MergedDictionaries` in `App.axaml`.
 ## 10. Startup Flow (`Program.cs`)
 
 ```
-0. SetupLibsResolver() — register AssemblyLoadContext fallback for libs/ subdirectory
+0. SetupLibsResolver() — register AssemblyLoadContext fallback for Core/, libs/, dotnet/
    (must run BEFORE any third-party type is loaded; RunApplication is [NoInlining])
 1. Mutex check (single instance)
 2. Serilog init (file + console)
@@ -349,21 +349,25 @@ Themes loaded via `ResourceDictionary.MergedDictionaries` in `App.axaml`.
 
 ---
 
-## 11. File Storage (data/)
+## 11. File Storage
 
 ```
-data/
-├── settings.json         ← AppSettings (proxy, tun, language, theme, ...)
-├── servers.json          ← Cached server list from subscription
-├── routing.json          ← User routing rules
-├── config.json           ← Generated sing-box config (runtime)
-└── logs/
-    ├── app.log           ← Application log (Serilog, 10MB rotation)
-    ├── app.1.log         ← Rotated log
-    ├── singbox.log       ← sing-box stdout capture
-    ├── .sent_marker.json ← Log dedup offset marker
-    └── crash_*.log       ← Crash reports (sent + deleted)
+Configuration/                    ← Runtime config (created on first launch)
+├── settings.json                 ← AppSettings (proxy, tun, language, theme, ...)
+├── servers.json                  ← Cached server list from subscription
+├── routing.json                  ← User routing rules
+├── config.json                   ← Generated sing-box config (runtime)
+└── update/                       ← Temporary update download directory
+
+Logs/                             ← Application logs
+├── app.log                       ← Application log (Serilog, 10MB rotation)
+├── app.1.log                     ← Rotated log
+├── singbox.log                   ← sing-box stdout capture
+├── .sent_marker.json             ← Log dedup offset marker
+└── crash_*.log                   ← Crash reports (sent + deleted)
 ```
+
+Paths are defined in `AppDefaults.ConfigDir` ("Configuration") and `AppDefaults.LogsDir` ("Logs").
 
 ---
 
@@ -433,15 +437,17 @@ Published output is organized by the `build/publish-*.sh` scripts:
 ```
 dist/win-x64/
 ├── SingBoxClient.Desktop.exe        # App entry point
-├── SingBoxClient.Desktop.dll        # App assembly
-├── SingBoxClient.Core.dll           # Core library
+├── SingBoxClient.Desktop.dll        # App assembly (must stay in root — loaded by apphost)
 ├── SingBoxClient.Desktop.deps.json  # Dependency manifest
 ├── SingBoxClient.Desktop.runtimeconfig.json
 ├── coreclr.dll / clrjit.dll         # Native runtime
 ├── hostfxr.dll / hostpolicy.dll     # .NET host
-├── System.Private.CoreLib.dll       # Core type system (loaded by coreclr)
+├── System.Private.CoreLib.dll       # Core type system (loaded by coreclr before managed code)
 ├── sing-box.exe                     # VPN core binary
 ├── createdump.exe                   # Crash dump utility
+│
+├── Core/                            # Application assemblies (1 file)
+│   └── SingBoxClient.Core.dll       # Core business logic library
 │
 ├── dotnet/                          # .NET framework assemblies (~178 files)
 │   ├── System.*.dll                 # Runtime libraries
@@ -456,10 +462,18 @@ dist/win-x64/
 │   ├── SkiaSharp*.dll
 │   └── ...
 │
-└── data/                            # Runtime data (created on first launch)
+├── Configuration/                   # Runtime config (created on first launch)
+│   ├── settings.json
+│   ├── servers.json
+│   ├── routing.json
+│   └── config.json
+│
+└── Logs/                            # Application logs (created on first launch)
+    ├── app.log
+    └── singbox.log
 ```
 
-**Assembly resolution:** `Program.SetupLibsResolver()` registers an `AssemblyLoadContext.Default.Resolving` handler that probes two subdirectories: `libs/` (third-party) and `dotnet/` (.NET framework). Both directories are also prepended to the `PATH` environment variable for native P/Invoke resolution (SkiaSharp, HarfBuzzSharp, etc.). Only `System.Private.CoreLib.dll` must remain in the app root — it is loaded by `coreclr` before any managed code executes. All other framework DLLs are resolved through the handler. `RunApplication()` is decorated with `[MethodImpl(MethodImplOptions.NoInlining)]` to prevent JIT from loading Avalonia/Serilog before the resolver is registered.
+**Assembly resolution:** `Program.SetupLibsResolver()` registers an `AssemblyLoadContext.Default.Resolving` handler that probes three subdirectories: `Core/` (app assemblies), `libs/` (third-party), and `dotnet/` (.NET framework). All three directories are also prepended to the `PATH` environment variable for native P/Invoke resolution (SkiaSharp, HarfBuzzSharp, etc.). `System.Private.CoreLib.dll` must remain in the app root — it is loaded by `coreclr` before any managed code executes. `SingBoxClient.Desktop.dll` must also remain in the root — it is loaded by the apphost. All other assemblies are resolved through the handler. `RunApplication()` is decorated with `[MethodImpl(MethodImplOptions.NoInlining)]` to prevent JIT from loading Avalonia/Serilog before the resolver is registered.
 
 ---
 

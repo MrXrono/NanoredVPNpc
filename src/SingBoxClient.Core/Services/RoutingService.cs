@@ -70,7 +70,7 @@ public interface IRoutingService
 }
 
 /// <summary>
-/// Default file-backed implementation that serializes rules to data/routing.json.
+/// Default file-backed implementation that serializes rules to Configuration/routing.json.
 /// </summary>
 public class RoutingService : IRoutingService
 {
@@ -86,7 +86,7 @@ public class RoutingService : IRoutingService
 
     public RoutingService()
     {
-        _filePath = Path.Combine(AppDefaults.DataDir, AppDefaults.RoutingFileName);
+        _filePath = Path.Combine(AppDefaults.ConfigDir, AppDefaults.RoutingFileName);
     }
 
     // ── Read ─────────────────────────────────────────────────────────────────

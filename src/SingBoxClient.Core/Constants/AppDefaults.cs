@@ -49,8 +49,12 @@ public static class AppDefaults
     public const string SettingsFileName = "settings.json";
     public const string ServersFileName = "servers.json";
     public const string RoutingFileName = "routing.json";
+    public const string ConfigDir = "Configuration";
+    public const string LogsDir = "Logs";
+
+    /// <summary>Kept for migration — old data directory path.</summary>
+    [Obsolete("Use ConfigDir / LogsDir instead")]
     public const string DataDir = "data";
-    public const string LogsDir = "data/logs";
 
     // ── HTTP ─────────────────────────────────────────────────────────────
     public const string UserAgent = "NanoredVPN/1.0.0";

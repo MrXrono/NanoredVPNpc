@@ -275,7 +275,7 @@ public class RoutingViewModel : ViewModelBase
             // Restart sing-box if currently connected
             if (_processManager.IsRunning)
             {
-                var configPath = System.IO.Path.Combine(AppDefaults.DataDir, AppDefaults.ConfigFileName);
+                var configPath = System.IO.Path.Combine(AppDefaults.ConfigDir, AppDefaults.ConfigFileName);
                 await _processManager.RestartAsync(configPath);
                 Logger.Information("sing-box restarted after routing rules change");
             }

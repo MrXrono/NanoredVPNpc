@@ -29,6 +29,7 @@ class Program
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
         var probeDirs = new[]
         {
+            Path.Combine(baseDir, "Core"),   // App assemblies: SingBoxClient.Core
             Path.Combine(baseDir, "libs"),   // Third-party: Avalonia, ReactiveUI, Serilog, SkiaSharp
             Path.Combine(baseDir, "dotnet")  // .NET framework: System.*, Microsoft.*, netstandard
         };
@@ -66,7 +67,7 @@ class Program
         // 2. Setup Serilog
         Serilog.Log.Logger = new Serilog.LoggerConfiguration()
             .MinimumLevel.Information()
-            .WriteTo.File("data/logs/app.log",
+            .WriteTo.File("Logs/app.log",
                 rollingInterval: Serilog.RollingInterval.Infinite,
                 fileSizeLimitBytes: 10_485_760,
                 retainedFileCountLimit: 3,

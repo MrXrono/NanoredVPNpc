@@ -223,10 +223,10 @@ public class SubscriptionService : ISubscriptionService
     {
         try
         {
-            var dataDir = AppDefaults.DataDir;
-            Directory.CreateDirectory(dataDir);
+            var configDir = AppDefaults.ConfigDir;
+            Directory.CreateDirectory(configDir);
 
-            var cachePath = Path.Combine(dataDir, AppDefaults.ServersFileName);
+            var cachePath = Path.Combine(configDir, AppDefaults.ServersFileName);
             var json = JsonSerializer.Serialize(servers, JsonOptions);
             await File.WriteAllTextAsync(cachePath, json);
 

@@ -107,7 +107,7 @@ public class UpdateService : IUpdateService, IDisposable
         try
         {
             var appDir = _platform.GetAppDirectory();
-            var updateDir = Path.Combine(appDir, AppDefaults.DataDir, "update");
+            var updateDir = Path.Combine(appDir, AppDefaults.ConfigDir, "update");
             Directory.CreateDirectory(updateDir);
 
             // Download the update package
