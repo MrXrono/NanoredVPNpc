@@ -96,15 +96,17 @@ SingBoxClient.sln
     │  │  2. RoutingService.GetRules() + RemoteConfig.GetCached()  │ │
     │  │  3. ISingBoxConfigBuilder.BuildAndSave(server)            │ │
     │  │  4. SingBoxProcessManager.StartAsync()                    │ │
-    │  │  5. WindowsPlatform.SetSystemProxy() [if Proxy mode]      │ │
-    │  │  6. ConnectionGuard.StartMonitoring()                     │ │
-    │  │  7. ClashApiClient → traffic polling (DispatcherTimer)    │ │
+    │  │  5. WaitForClashApi + validate IsRunning (crash guard)    │ │
+    │  │  6. WindowsPlatform.SetSystemProxy() [if Proxy mode]      │ │
+    │  │  7. ConnectionGuard.StartMonitoring()                     │ │
+    │  │  8. ClashApiClient → traffic polling (DispatcherTimer)    │ │
     │  └───────────────────────────┬────────────────────────────────┘ │
     │                              │                                  │
     │              ┌───────────────▼───────────────┐                  │
     │              │   SingBoxProcessManager       │                  │
     │              │   Process.Start("sing-box")   │                  │
-    │              │   stdout → LogService          │                  │
+    │              │   stdout → LogService (Debug)   │                  │
+    │              │   stderr → LogService (Warning) │                  │
     │              │   Exited → ConnectionGuard     │                  │
     │              └───────────────┬───────────────┘                  │
     └──────────────────────────────┼──────────────────────────────────┘
@@ -140,7 +142,7 @@ SingBoxClient.sln
 | `CountryGroup.cs` | Country grouping | Code, DisplayName, Servers[], BestServer, AverageLatency |
 | `SubscriptionData.cs` | Subscription metadata | Id, ExpiresAt, TotalTraffic, UsedTraffic, UpdateInterval, ProfileTitle |
 | `RoutingRule.cs` | Routing rule (INotifyPropertyChanged) | Id, Type(enum), Value, Action(enum), IsRemote, IsEnabled, Priority |
-| `AppSettings.cs` | All app settings | ProxyEnabled, TunEnabled, ProxyPort, Theme, Language, AutoStart, AutoConnect, RemoteConfigEnabled, DebugMode, TunBypassApps, TunProxyApps, TunBlockApps, SubscriptionUrl, SelectedCountry |
+| `AppSettings.cs` | All app settings | ProxyEnabled, TunEnabled, ProxyPort, Theme, Language, AutoStart, AutoConnect, RemoteConfigEnabled, DebugMode (default: true), TunBypassApps, TunProxyApps, TunBlockApps, SubscriptionUrl, SelectedCountry |
 | `PingResult.cs` | Ping result | Server, LatencyMs, IsReachable |
 | `TrafficStats.cs` | Real-time traffic | UploadSpeed, DownloadSpeed (bytes/sec), TotalUpload, TotalDownload |
 | `Announcement.cs` | Server notification | Id, Title, Body, CreatedAt, IsRead |
@@ -163,7 +165,7 @@ Generates `Configuration/config.json` for sing-box runtime.
 | `InboundConfig.cs` | `inbounds[]` | Mixed proxy (port) and/or TUN (with per-app rules) |
 | `OutboundConfig.cs` | `outbounds[]` | Server (VLESS/VMess/Trojan/SS) + direct + block + dns |
 | `RouteConfig.cs` | `route` | Merges remote + user rules, auto_detect_interface, final=proxy |
-| `DnsConfig.cs` | `dns` | DoH servers (Google, CF), FakeIP for TUN mode |
+| `DnsConfig.cs` | `dns` | DoH servers (Google, CF), FakeIP for TUN mode, fallback rule `"outbound": "any"` (string, not array) |
 | `ExperimentalConfig.cs` | `experimental` | Clash API on :9090, cache_file |
 
 **Config generation flow:**
@@ -188,7 +190,7 @@ ISingBoxConfigBuilder.BuildAndSave(server)
 
 | Service | Interface | Responsibility | Interacts With |
 |---------|-----------|---------------|----------------|
-| `SingBoxProcessManager` | `ISingBoxProcessManager` | Start/Stop/Restart sing-box.exe, capture stdout | IPlatformService |
+| `SingBoxProcessManager` | `ISingBoxProcessManager` | Start/Stop/Restart sing-box.exe, capture stdout (Debug) / stderr (Warning) | IPlatformService |
 | `ClashApiClient` | `IClashApiClient` | HTTP to localhost:9090 — health, traffic, proxies | sing-box Clash API |
 | `ConnectionGuardService` | `IConnectionGuardService` | Health monitoring every 5s, auto-reconnect, failover | ClashApiClient, SingBoxProcessManager, ISingBoxConfigBuilder |
 | `SingBoxConfigBuilderService` | `ISingBoxConfigBuilder` | Wraps static ConfigBuilder with DI services, writes config.json | ISettingsService, IRoutingService |
@@ -285,7 +287,7 @@ Connecting → Connected → [health fail x3] → Reconnecting → Connected
 
 | ViewModel | View | Key Properties | Key Commands |
 |-----------|------|----------------|--------------|
-| `MainViewModel` | `MainWindow` | CurrentPage, IsConnected, ConnectionStatus, IsDarkTheme, IsNotNavigating | NavigateCommand, ToggleThemeCommand, MinimizeCommand, MaximizeCommand, CloseCommand |
+| `MainViewModel` | `MainWindow` | CurrentPage, CurrentPageName, IsConnected, ConnectionStatus, IsDarkTheme, IsNotNavigating | NavigateCommand, ToggleThemeCommand, MinimizeCommand, MaximizeCommand, CloseCommand |
 | `HomeViewModel` | `HomeView` | IsProxyEnabled, IsTunEnabled, Status, StatusText, ConnectButtonText, Countries, SelectedCountry, Timer, UploadSpeed, DownloadSpeed, SubscriptionId, ExpiresAt, TrafficUsageText, TrafficPercent, HasAnnouncements | ConnectCommand, DisconnectCommand, ToggleConnectionCommand, RefreshServersCommand, RenewCommand |
 | `RoutingViewModel` | `RoutingView` | Rules (ObservableCollection), IsRemoteConfigEnabled, NewRuleValue, NewRuleAction, RuleActions | AddRuleCommand, RemoveRuleCommand, SaveCommand, SyncCommand, ToggleRuleCommand, MoveRuleUpCommand, MoveRuleDownCommand, DeleteRuleCommand |
 | `TunSettingsViewModel` | `TunSettingsView` | BypassApps, ProxyApps, BlockApps | SaveCommand, CancelCommand |
@@ -297,7 +299,7 @@ Connecting → Connected → [health fail x3] → Reconnecting → Connected
 
 | View | Layout |
 |------|--------|
-| `MainWindow.axaml` | Custom title bar (Minimize/Maximize/Close) + Sidebar (64px) + ContentControl (page switching) |
+| `MainWindow.axaml` | Custom title bar (Minimize/Maximize/Close/Theme toggle) + Sidebar (64px, active page indicator with accent bar + colored icon/label) + ContentControl (page switching via DataTemplates) |
 | `HomeView.axaml` | Mode checkboxes → Connect panel → Info panels (2-col) → Country list |
 | `RoutingView.axaml` | Header + Remote config toggle → DataGrid (editable columns) → Add/Save buttons |
 | `TunSettingsView.axaml` | Header → 3-column TextBoxes (bypass/proxy/block) |
@@ -312,6 +314,17 @@ Connecting → Connected → [health fail x3] → Reconnecting → Connected
 | `CountrySelector` | ListBox with flag + name + ping (LetterSpacing for flag), bound to Countries/SelectedCountry |
 | `TrafficWidget` | Upload/Download speed display with arrows |
 | `StatusIndicator` | Colored dot (12px Ellipse) based on ConnectionStatus |
+
+### Converters
+
+| File | Converter | Description |
+|------|-----------|-------------|
+| `StringEqualsConverter.cs` | `StringEqualsConverter` | Returns `bool` — true if bound string equals ConverterParameter (case-insensitive). Used for sidebar active indicator visibility. |
+| `StringEqualsConverter.cs` | `ActivePageBrushConverter` | Returns `IBrush` — resolves ActiveBrushKey or InactiveBrushKey from `Application.Current` resources on every call (theme-safe). Used for sidebar icon/label foreground. |
+| `ConnectionStatusConverter.cs` | `ConnectionStatusToStringConverter` | Converts `ConnectionStatus` enum to localized display string via DynamicResource lookup. |
+| `ConnectionStatusConverter.cs` | `ConnectionStatusToColorConverter` | Converts `ConnectionStatus` enum to `SolidColorBrush` for status indication. |
+| `BoolToColorConverter.cs` | `BoolToColorConverter` | Converts boolean to color brush. |
+| `BytesToHumanConverter.cs` | `BytesToHumanConverter` | Converts byte counts to human-readable strings (KB, MB, GB). |
 
 ### Themes
 
@@ -337,14 +350,16 @@ Themes loaded via `ResourceDictionary.MergedDictionaries` in `App.axaml`.
 0. SetupLibsResolver() — register AssemblyLoadContext fallback for Core/, libs/, dotnet/
    (must run BEFORE any third-party type is loaded; RunApplication is [NoInlining])
 1. Mutex check (single instance)
-2. Serilog init (file + console)
+2. Serilog init (file + console, controlled by LoggingLevelSwitch — initial level: Debug)
 3. Global exception handlers
 4. --cleanup-update flag handling (delete *.bak files after self-update)
 5. Avalonia AppBuilder → App.Initialize()
 6. DI container build (all services + ViewModels)
 7. SettingsService.Load()
-8. MainWindow + MainViewModel
-9. On shutdown: Stop sing-box → Clear proxy → Save settings → Flush analytics → Dispose TrayIcon
+8. ApplyDebugMode() — sync LogLevelSwitch with DebugMode setting + subscribe to OnSettingsChanged
+9. ApplyTheme() + ApplyLanguage()
+10. MainWindow + MainViewModel
+11. On shutdown: Stop sing-box → Clear proxy → Save settings → Flush analytics → Dispose TrayIcon
 ```
 
 ---
@@ -426,6 +441,7 @@ Paths are defined in `AppDefaults.ConfigDir` ("Configuration") and `AppDefaults.
 | Service Locator | App.Services static IServiceProvider for edge cases |
 | UI Thread Marshaling | Avalonia Dispatcher.UIThread for background → UI updates |
 | Cancellation Tokens | CancellationTokenSource for traffic polling, health checks |
+| Dynamic Log Level | Serilog `LoggingLevelSwitch` controlled by DebugMode setting, applied via `App.ApplyDebugMode()` on startup and settings change |
 | IDisposable | ViewModels unsubscribe from events in Dispose() |
 
 ---
@@ -483,13 +499,16 @@ dist/win-x64/
 
 ```json
 {
-  "log": { "level": "info", "timestamp": true },
+  "log": { "level": "debug", "timestamp": true },
   "dns": {
     "servers": [
       { "tag": "google-doh", "address": "https://dns.google/dns-query", "detour": "proxy" },
       { "tag": "direct-dns", "address": "223.5.5.5", "detour": "direct" }
     ],
-    "rules": [{ "domain_suffix": [".local",".localhost"], "server": "direct-dns" }]
+    "rules": [
+      { "domain_suffix": [".local",".localhost"], "server": "direct-dns" },
+      { "outbound": "any", "server": "direct-dns" }
+    ]
   },
   "inbounds": [
     { "type": "mixed", "tag": "mixed-in", "listen": "127.0.0.1", "listen_port": 2080 },
