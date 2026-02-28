@@ -80,6 +80,13 @@ public class MainViewModel : ViewModelBase, IDisposable
         set => this.RaiseAndSetIfChanged(ref _isNotNavigating, value);
     }
 
+    private string _currentPageName = "Home";
+    public string CurrentPageName
+    {
+        get => _currentPageName;
+        set => this.RaiseAndSetIfChanged(ref _currentPageName, value);
+    }
+
     // ── Events (window chrome actions) ──────────────────────────────────
 
     public event Action? OnMinimizeRequested;
@@ -146,7 +153,8 @@ public class MainViewModel : ViewModelBase, IDisposable
     {
         try
         {
-            CurrentPage = pageName.ToLowerInvariant() switch
+            var normalized = pageName.ToLowerInvariant();
+            CurrentPage = normalized switch
             {
                 "home" => HomeViewModel,
                 "routing" => RoutingViewModel,
@@ -154,6 +162,16 @@ public class MainViewModel : ViewModelBase, IDisposable
                 "logs" => LogsViewModel,
                 "settings" => SettingsViewModel,
                 _ => HomeViewModel
+            };
+
+            CurrentPageName = normalized switch
+            {
+                "home" => "Home",
+                "routing" => "Routing",
+                "tun" or "tunsettings" => "TunSettings",
+                "logs" => "Logs",
+                "settings" => "Settings",
+                _ => "Home"
             };
 
             Logger.Debug("Navigated to {Page}", pageName);

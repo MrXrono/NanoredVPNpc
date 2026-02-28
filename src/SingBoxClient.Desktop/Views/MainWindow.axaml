@@ -4,6 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
         xmlns:views="using:SingBoxClient.Desktop.Views"
+        xmlns:conv="using:SingBoxClient.Desktop.Converters"
         x:Class="SingBoxClient.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         mc:Ignorable="d"
@@ -16,6 +17,14 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaChromeHints="NoChrome"
         ExtendClientAreaTitleBarHeightHint="40">
+
+    <Window.Resources>
+        <conv:StringEqualsConverter x:Key="IsActivePage" />
+        <conv:ActivePageBrushConverter x:Key="NavIconBrush"
+            ActiveBrushKey="AccentLightBrush" InactiveBrushKey="TextSecondaryBrush" />
+        <conv:ActivePageBrushConverter x:Key="NavLabelBrush"
+            ActiveBrushKey="AccentLightBrush" InactiveBrushKey="TextMutedBrush" />
+    </Window.Resources>
 
     <!-- ═══════════════════════════════════════════════════════════════════
          Main Layout: Title Bar + (Sidebar | Content)
@@ -106,6 +115,7 @@
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="0,0,1,0">
                 <StackPanel VerticalAlignment="Top"
+                            HorizontalAlignment="Center"
                             Spacing="4"
                             Margin="0,12">
 
@@ -115,16 +125,26 @@
                             CommandParameter="Home"
                             ToolTip.Tip="{DynamicResource Home}"
                             IsEnabled="{Binding IsNotNavigating}">
-                        <StackPanel HorizontalAlignment="Center" Spacing="2">
-                            <TextBlock Text="&#x2302;"
-                                       FontSize="20"
-                                       HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextSecondaryBrush}" />
-                            <TextBlock Text="{DynamicResource Home}"
-                                       FontSize="9"
-                                       HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextMutedBrush}" />
-                        </StackPanel>
+                        <Grid>
+                            <!-- Active indicator bar (left edge) -->
+                            <Border Width="3" Height="28"
+                                    CornerRadius="0,2,2,0"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Margin="-8,0,0,0"
+                                    Background="{DynamicResource AccentBrush}"
+                                    IsVisible="{Binding CurrentPageName, Converter={StaticResource IsActivePage}, ConverterParameter=Home}" />
+                            <StackPanel HorizontalAlignment="Center" Spacing="2">
+                                <TextBlock Text="&#x2302;"
+                                           FontSize="20"
+                                           HorizontalAlignment="Center"
+                                           Foreground="{Binding CurrentPageName, Converter={StaticResource NavIconBrush}, ConverterParameter=Home}" />
+                                <TextBlock Text="{DynamicResource Home}"
+                                           FontSize="9"
+                                           HorizontalAlignment="Center"
+                                           Foreground="{Binding CurrentPageName, Converter={StaticResource NavLabelBrush}, ConverterParameter=Home}" />
+                            </StackPanel>
+                        </Grid>
                     </Button>
 
                     <!-- Route -->
@@ -133,16 +153,25 @@
                             CommandParameter="Routing"
                             ToolTip.Tip="{DynamicResource Routing}"
                             IsEnabled="{Binding IsNotNavigating}">
-                        <StackPanel HorizontalAlignment="Center" Spacing="2">
-                            <TextBlock Text="&#x21C4;"
-                                       FontSize="20"
-                                       HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextSecondaryBrush}" />
-                            <TextBlock Text="{DynamicResource Route}"
-                                       FontSize="9"
-                                       HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextMutedBrush}" />
-                        </StackPanel>
+                        <Grid>
+                            <Border Width="3" Height="28"
+                                    CornerRadius="0,2,2,0"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Margin="-8,0,0,0"
+                                    Background="{DynamicResource AccentBrush}"
+                                    IsVisible="{Binding CurrentPageName, Converter={StaticResource IsActivePage}, ConverterParameter=Routing}" />
+                            <StackPanel HorizontalAlignment="Center" Spacing="2">
+                                <TextBlock Text="&#x21C4;"
+                                           FontSize="20"
+                                           HorizontalAlignment="Center"
+                                           Foreground="{Binding CurrentPageName, Converter={StaticResource NavIconBrush}, ConverterParameter=Routing}" />
+                                <TextBlock Text="{DynamicResource Route}"
+                                           FontSize="9"
+                                           HorizontalAlignment="Center"
+                                           Foreground="{Binding CurrentPageName, Converter={StaticResource NavLabelBrush}, ConverterParameter=Routing}" />
+                            </StackPanel>
+                        </Grid>
                     </Button>
 
                     <!-- TUN -->
@@ -151,16 +180,25 @@
                             CommandParameter="TunSettings"
                             ToolTip.Tip="{DynamicResource TunSettings}"
                             IsEnabled="{Binding IsNotNavigating}">
-                        <StackPanel HorizontalAlignment="Center" Spacing="2">
-                            <TextBlock Text="&#x26A1;"
-                                       FontSize="20"
-                                       HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextSecondaryBrush}" />
-                            <TextBlock Text="{DynamicResource TUN}"
-                                       FontSize="9"
-                                       HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextMutedBrush}" />
-                        </StackPanel>
+                        <Grid>
+                            <Border Width="3" Height="28"
+                                    CornerRadius="0,2,2,0"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Margin="-8,0,0,0"
+                                    Background="{DynamicResource AccentBrush}"
+                                    IsVisible="{Binding CurrentPageName, Converter={StaticResource IsActivePage}, ConverterParameter=TunSettings}" />
+                            <StackPanel HorizontalAlignment="Center" Spacing="2">
+                                <TextBlock Text="&#x26A1;"
+                                           FontSize="20"
+                                           HorizontalAlignment="Center"
+                                           Foreground="{Binding CurrentPageName, Converter={StaticResource NavIconBrush}, ConverterParameter=TunSettings}" />
+                                <TextBlock Text="{DynamicResource TUN}"
+                                           FontSize="9"
+                                           HorizontalAlignment="Center"
+                                           Foreground="{Binding CurrentPageName, Converter={StaticResource NavLabelBrush}, ConverterParameter=TunSettings}" />
+                            </StackPanel>
+                        </Grid>
                     </Button>
 
                     <!-- Logs -->
@@ -169,16 +207,25 @@
                             CommandParameter="Logs"
                             ToolTip.Tip="{DynamicResource Logs}"
                             IsEnabled="{Binding IsNotNavigating}">
-                        <StackPanel HorizontalAlignment="Center" Spacing="2">
-                            <TextBlock Text="&#x2263;"
-                                       FontSize="20"
-                                       HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextSecondaryBrush}" />
-                            <TextBlock Text="{DynamicResource Logs}"
-                                       FontSize="9"
-                                       HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextMutedBrush}" />
-                        </StackPanel>
+                        <Grid>
+                            <Border Width="3" Height="28"
+                                    CornerRadius="0,2,2,0"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Margin="-8,0,0,0"
+                                    Background="{DynamicResource AccentBrush}"
+                                    IsVisible="{Binding CurrentPageName, Converter={StaticResource IsActivePage}, ConverterParameter=Logs}" />
+                            <StackPanel HorizontalAlignment="Center" Spacing="2">
+                                <TextBlock Text="&#x2263;"
+                                           FontSize="20"
+                                           HorizontalAlignment="Center"
+                                           Foreground="{Binding CurrentPageName, Converter={StaticResource NavIconBrush}, ConverterParameter=Logs}" />
+                                <TextBlock Text="{DynamicResource Logs}"
+                                           FontSize="9"
+                                           HorizontalAlignment="Center"
+                                           Foreground="{Binding CurrentPageName, Converter={StaticResource NavLabelBrush}, ConverterParameter=Logs}" />
+                            </StackPanel>
+                        </Grid>
                     </Button>
 
                     <!-- Settings -->
@@ -187,16 +234,25 @@
                             CommandParameter="Settings"
                             ToolTip.Tip="{DynamicResource Settings}"
                             IsEnabled="{Binding IsNotNavigating}">
-                        <StackPanel HorizontalAlignment="Center" Spacing="2">
-                            <TextBlock Text="&#x2699;"
-                                       FontSize="20"
-                                       HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextSecondaryBrush}" />
-                            <TextBlock Text="{DynamicResource Setup}"
-                                       FontSize="9"
-                                       HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextMutedBrush}" />
-                        </StackPanel>
+                        <Grid>
+                            <Border Width="3" Height="28"
+                                    CornerRadius="0,2,2,0"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Margin="-8,0,0,0"
+                                    Background="{DynamicResource AccentBrush}"
+                                    IsVisible="{Binding CurrentPageName, Converter={StaticResource IsActivePage}, ConverterParameter=Settings}" />
+                            <StackPanel HorizontalAlignment="Center" Spacing="2">
+                                <TextBlock Text="&#x2699;"
+                                           FontSize="20"
+                                           HorizontalAlignment="Center"
+                                           Foreground="{Binding CurrentPageName, Converter={StaticResource NavIconBrush}, ConverterParameter=Settings}" />
+                                <TextBlock Text="{DynamicResource Setup}"
+                                           FontSize="9"
+                                           HorizontalAlignment="Center"
+                                           Foreground="{Binding CurrentPageName, Converter={StaticResource NavLabelBrush}, ConverterParameter=Settings}" />
+                            </StackPanel>
+                        </Grid>
                     </Button>
                 </StackPanel>
             </Border>
