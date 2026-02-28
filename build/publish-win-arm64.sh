@@ -107,8 +107,8 @@ for dll in *.dll; do
         # Native host/runtime — keep in root (loaded before managed code)
         coreclr.dll|hostfxr.dll|hostpolicy.dll|clrjit.dll|clrcompression.dll)
             ;;
-        # CoreLib — keep in root (loaded by coreclr before any managed code)
-        System.Private.CoreLib.dll)
+        # Boot-critical CLR assemblies — keep in root (loaded before managed resolver runs)
+        System.Private.CoreLib.dll|System.Runtime.dll|System.Runtime.Loader.dll)
             ;;
         # Windows CRT — keep in root
         ucrtbase.dll|api-ms-*)

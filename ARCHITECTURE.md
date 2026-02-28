@@ -443,6 +443,8 @@ dist/win-x64/
 ├── coreclr.dll / clrjit.dll         # Native runtime
 ├── hostfxr.dll / hostpolicy.dll     # .NET host
 ├── System.Private.CoreLib.dll       # Core type system (loaded by coreclr before managed code)
+├── System.Runtime.dll               # Type forwarders (needed before managed resolver runs)
+├── System.Runtime.Loader.dll        # AssemblyLoadContext (needed by SetupLibsResolver)
 ├── sing-box.exe                     # VPN core binary
 ├── createdump.exe                   # Crash dump utility
 │
