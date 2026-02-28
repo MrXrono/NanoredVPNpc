@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
+using Avalonia.Styling;
 using System;
 using System.Globalization;
 
@@ -41,7 +42,9 @@ public class ActivePageBrushConverter : IValueConverter
 
         var key = isActive ? ActiveBrushKey : InactiveBrushKey;
 
-        if (Application.Current?.TryFindResource(key, out var resource) == true && resource is IBrush brush)
+        if (Application.Current is { } app
+            && app.Resources.TryGetResource(key, app.ActualThemeVariant, out var resource)
+            && resource is IBrush brush)
             return brush;
 
         return null;
