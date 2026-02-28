@@ -14,8 +14,8 @@ class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        // Setup assembly resolver for libs/ subdirectory BEFORE any third-party types are loaded.
-        // This must run before Avalonia, Serilog, ReactiveUI, etc. are referenced.
+        // Setup assembly resolver for libs/ and dotnet/ subdirectories BEFORE any third-party types are loaded.
+        // This must run before Avalonia, Serilog, ReactiveUI, System.Threading, etc. are referenced.
         SetupLibsResolver();
 
         // All third-party type usage is deferred to RunApplication.
@@ -27,24 +27,29 @@ class Program
     private static void SetupLibsResolver()
     {
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        var libsDir = Path.Combine(baseDir, "libs");
-
-        if (!Directory.Exists(libsDir))
-            return;
+        var probeDirs = new[]
+        {
+            Path.Combine(baseDir, "libs"),   // Third-party: Avalonia, ReactiveUI, Serilog, SkiaSharp
+            Path.Combine(baseDir, "dotnet")  // .NET framework: System.*, Microsoft.*, netstandard
+        };
 
         // Managed assembly resolver — fallback when TPA doesn't find the DLL in app root
         AssemblyLoadContext.Default.Resolving += (context, assemblyName) =>
         {
-            var dllPath = Path.Combine(libsDir, $"{assemblyName.Name}.dll");
-            if (File.Exists(dllPath))
-                return context.LoadFromAssemblyPath(dllPath);
+            foreach (var dir in probeDirs)
+            {
+                var dllPath = Path.Combine(dir, $"{assemblyName.Name}.dll");
+                if (File.Exists(dllPath))
+                    return context.LoadFromAssemblyPath(dllPath);
+            }
             return null;
         };
 
-        // Native library resolver — add libs/ to DLL search path for P/Invoke
+        // Native library resolver — add probe dirs to DLL search path for P/Invoke
         // (SkiaSharp, HarfBuzzSharp, Avalonia native, etc.)
         var currentPath = Environment.GetEnvironmentVariable("PATH") ?? "";
-        Environment.SetEnvironmentVariable("PATH", libsDir + Path.PathSeparator + currentPath);
+        var extraPaths = string.Join(Path.PathSeparator, probeDirs);
+        Environment.SetEnvironmentVariable("PATH", extraPaths + Path.PathSeparator + currentPath);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

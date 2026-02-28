@@ -432,21 +432,34 @@ Published output is organized by the `build/publish-*.sh` scripts:
 
 ```
 dist/win-x64/
-├── SingBoxClient.Desktop.exe      # App entry point
-├── SingBoxClient.*.dll             # App assemblies (root)
-├── System.*.dll / Microsoft.*.dll  # .NET runtime & framework (root)
-├── coreclr.dll / hostfxr.dll / ... # Native runtime host (root)
-├── sing-box.exe                    # Copied from runtime/win-x64/
-├── libs/                           # Third-party managed + native DLLs
+├── SingBoxClient.Desktop.exe        # App entry point
+├── SingBoxClient.Desktop.dll        # App assembly
+├── SingBoxClient.Core.dll           # Core library
+├── SingBoxClient.Desktop.deps.json  # Dependency manifest
+├── SingBoxClient.Desktop.runtimeconfig.json
+├── coreclr.dll / clrjit.dll         # Native runtime
+├── hostfxr.dll / hostpolicy.dll     # .NET host
+├── System.Private.CoreLib.dll       # Core type system (loaded by coreclr)
+├── sing-box.exe                     # VPN core binary
+├── createdump.exe                   # Crash dump utility
+│
+├── dotnet/                          # .NET framework assemblies (~178 files)
+│   ├── System.*.dll                 # Runtime libraries
+│   ├── Microsoft.*.dll              # Framework extensions
+│   ├── netstandard.dll / mscorlib.dll / WindowsBase.dll
+│   └── mscordaccore.dll / mscordbi.dll  # Diagnostics
+│
+├── libs/                            # Third-party libraries (~44 files)
 │   ├── Avalonia*.dll
 │   ├── ReactiveUI*.dll
 │   ├── Serilog*.dll
 │   ├── SkiaSharp*.dll
 │   └── ...
-└── data/                           # Runtime data (created on first launch)
+│
+└── data/                            # Runtime data (created on first launch)
 ```
 
-**Assembly resolution:** `Program.SetupLibsResolver()` registers an `AssemblyLoadContext.Default.Resolving` handler that falls back to `libs/` for managed assemblies. It also prepends `libs/` to the `PATH` environment variable for native P/Invoke resolution (SkiaSharp, HarfBuzzSharp, etc.). This runs before any third-party type is referenced — `RunApplication()` is decorated with `[MethodImpl(MethodImplOptions.NoInlining)]` to prevent JIT from loading Avalonia/Serilog prematurely.
+**Assembly resolution:** `Program.SetupLibsResolver()` registers an `AssemblyLoadContext.Default.Resolving` handler that probes two subdirectories: `libs/` (third-party) and `dotnet/` (.NET framework). Both directories are also prepended to the `PATH` environment variable for native P/Invoke resolution (SkiaSharp, HarfBuzzSharp, etc.). Only `System.Private.CoreLib.dll` must remain in the app root — it is loaded by `coreclr` before any managed code executes. All other framework DLLs are resolved through the handler. `RunApplication()` is decorated with `[MethodImpl(MethodImplOptions.NoInlining)]` to prevent JIT from loading Avalonia/Serilog before the resolver is registered.
 
 ---
 

@@ -14,9 +14,10 @@ dotnet publish ../src/SingBoxClient.Desktop -c Release -r win-x64 \
 # Copy runtime files
 cp ../runtime/win-x64/sing-box.exe "$DIST/"
 
-# ── Organize DLLs into libs/ ──────────────────────────────────────────
+# ── Organize DLLs into subdirectories ─────────────────────────────────
 echo "Organizing DLLs..."
 mkdir -p "$DIST/libs"
+mkdir -p "$DIST/dotnet"
 
 cd "$DIST"
 for dll in *.dll; do
@@ -24,17 +25,22 @@ for dll in *.dll; do
         # App assemblies — keep in root
         SingBoxClient.*)
             ;;
-        # .NET runtime & framework — keep in root
-        System.*|Microsoft.*|netstandard.dll|mscorlib.dll|WindowsBase.dll)
-            ;;
-        # Native host/runtime — keep in root
+        # Native host/runtime — keep in root (loaded before managed code)
         coreclr.dll|hostfxr.dll|hostpolicy.dll|clrjit.dll|clrcompression.dll)
             ;;
-        # Debug/diagnostics — keep in root
-        mscordaccore.dll|mscordbi.dll)
+        # CoreLib — keep in root (loaded by coreclr before any managed code)
+        System.Private.CoreLib.dll)
             ;;
         # Windows CRT — keep in root
         ucrtbase.dll|api-ms-*)
+            ;;
+        # .NET framework & runtime → dotnet/
+        System.*|Microsoft.*|netstandard.dll|mscorlib.dll|WindowsBase.dll)
+            mv "$dll" dotnet/
+            ;;
+        # Debug/diagnostics → dotnet/
+        mscordaccore.dll|mscordbi.dll)
+            mv "$dll" dotnet/
             ;;
         # Everything else (Avalonia, ReactiveUI, Serilog, SkiaSharp, etc.) → libs/
         *)
@@ -50,6 +56,5 @@ echo ""
 echo "Root files:"
 ls -1 "$DIST"/*.exe "$DIST"/*.dll "$DIST"/*.json 2>/dev/null | xargs -I{} basename {}
 echo ""
-echo "libs/ ($(ls -1 "$DIST/libs/" | wc -l) files):"
-ls -1 "$DIST/libs/" | head -10
-echo "..."
+echo "dotnet/ ($(ls -1 "$DIST/dotnet/" | wc -l) files)"
+echo "libs/   ($(ls -1 "$DIST/libs/" | wc -l) files)"
