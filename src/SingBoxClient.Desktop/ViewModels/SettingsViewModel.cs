@@ -34,7 +34,18 @@ public class SettingsViewModel : ViewModelBase
     public string Language
     {
         get => _language;
-        set => this.RaiseAndSetIfChanged(ref _language, value);
+        set
+        {
+            var old = _language;
+            this.RaiseAndSetIfChanged(ref _language, value);
+            if (old != value)
+            {
+                // Apply language immediately on selection change
+                var langCode = MapDisplayToLanguageCode(value);
+                if (Avalonia.Application.Current is App app)
+                    app.ApplyLanguage(langCode);
+            }
+        }
     }
 
     private bool _minimizeToTray;
