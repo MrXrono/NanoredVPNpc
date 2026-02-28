@@ -136,17 +136,17 @@ SingBoxClient.sln
 |------|-------------|------------|
 | `ConnectionStatus.cs` | Enum | Disconnected=0, Connecting=1, Connected=2, Reconnecting=3, Error=4, Disconnecting=5 |
 | `ConnectionMode.cs` | Enum | Proxy, TUN |
-| `ServerNode.cs` | Server from subscription | Protocol, Address, Port, UuidOrPassword, Tls, Transport, Name, Latency, IsReachable |
+| `ServerNode.cs` | Server from subscription | Protocol, Address, Port, UuidOrPassword, TlsSettings, Transport, Name, Latency, IsReachable, ShadowsocksMethod |
 | `CountryGroup.cs` | Country grouping | Code, DisplayName, Servers[], BestServer, AverageLatency |
-| `SubscriptionData.cs` | Subscription metadata | Id, ExpiresAt, TotalTraffic, UsedTraffic |
+| `SubscriptionData.cs` | Subscription metadata | Id, ExpiresAt, TotalTraffic, UsedTraffic, UpdateInterval, ProfileTitle |
 | `RoutingRule.cs` | Routing rule (INotifyPropertyChanged) | Id, Type(enum), Value, Action(enum), IsRemote, IsEnabled, Priority |
 | `AppSettings.cs` | All app settings | ProxyEnabled, TunEnabled, ProxyPort, Theme, Language, AutoStart, AutoConnect, RemoteConfigEnabled, DebugMode, TunBypassApps, TunProxyApps, TunBlockApps, SubscriptionUrl, SelectedCountry |
 | `PingResult.cs` | Ping result | Server, LatencyMs, IsReachable |
-| `TrafficStats.cs` | Real-time traffic | UploadSpeed, DownloadSpeed (bytes/sec) |
+| `TrafficStats.cs` | Real-time traffic | UploadSpeed, DownloadSpeed (bytes/sec), TotalUpload, TotalDownload |
 | `Announcement.cs` | Server notification | Id, Title, Body, CreatedAt, IsRead |
-| `UpdateInfo.cs` | Update info | Available, Version, DownloadUrl, SingBoxUrl |
+| `UpdateInfo.cs` | Update info | Available, Version, DownloadUrl, SingBoxUrl, ReleaseNotes |
 | `AnalyticsEvent.cs` | Analytics event | EventName, Properties{}, Timestamp |
-| `TlsSettings.cs` | TLS config | ServerName, Fingerprint, Alpn[], RealityPublicKey, RealityShortId |
+| `TlsSettings.cs` | TLS config | ServerName, Fingerprint, Alpn[], AllowInsecure, RealityPublicKey, RealityShortId, IsReality (computed) |
 | `TransportSettings.cs` | Transport config | Type, Path, Host, ServiceName |
 
 **Note:** `RoutingRule` implements `INotifyPropertyChanged` with backing fields and `PropertyChanged` event for all 7 properties. This enables DataGrid live editing in RoutingView.
@@ -334,15 +334,17 @@ Themes loaded via `ResourceDictionary.MergedDictionaries` in `App.axaml`.
 ## 10. Startup Flow (`Program.cs`)
 
 ```
+0. SetupLibsResolver() — register AssemblyLoadContext fallback for libs/ subdirectory
+   (must run BEFORE any third-party type is loaded; RunApplication is [NoInlining])
 1. Mutex check (single instance)
 2. Serilog init (file + console)
 3. Global exception handlers
-4. --cleanup-update flag handling
+4. --cleanup-update flag handling (delete *.bak files after self-update)
 5. Avalonia AppBuilder → App.Initialize()
 6. DI container build (all services + ViewModels)
 7. SettingsService.Load()
 8. MainWindow + MainViewModel
-9. On shutdown: Stop sing-box → Clear proxy → Save settings → Flush analytics
+9. On shutdown: Stop sing-box → Clear proxy → Save settings → Flush analytics → Dispose TrayIcon
 ```
 
 ---
@@ -424,7 +426,31 @@ data/
 
 ---
 
-## 16. Config Example (generated)
+## 16. Deployment Layout & Assembly Resolution
+
+Published output is organized by the `build/publish-*.sh` scripts:
+
+```
+dist/win-x64/
+├── SingBoxClient.Desktop.exe      # App entry point
+├── SingBoxClient.*.dll             # App assemblies (root)
+├── System.*.dll / Microsoft.*.dll  # .NET runtime & framework (root)
+├── coreclr.dll / hostfxr.dll / ... # Native runtime host (root)
+├── sing-box.exe                    # Copied from runtime/win-x64/
+├── libs/                           # Third-party managed + native DLLs
+│   ├── Avalonia*.dll
+│   ├── ReactiveUI*.dll
+│   ├── Serilog*.dll
+│   ├── SkiaSharp*.dll
+│   └── ...
+└── data/                           # Runtime data (created on first launch)
+```
+
+**Assembly resolution:** `Program.SetupLibsResolver()` registers an `AssemblyLoadContext.Default.Resolving` handler that falls back to `libs/` for managed assemblies. It also prepends `libs/` to the `PATH` environment variable for native P/Invoke resolution (SkiaSharp, HarfBuzzSharp, etc.). This runs before any third-party type is referenced — `RunApplication()` is decorated with `[MethodImpl(MethodImplOptions.NoInlining)]` to prevent JIT from loading Avalonia/Serilog prematurely.
+
+---
+
+## 17. Config Example (generated)
 
 ```json
 {
