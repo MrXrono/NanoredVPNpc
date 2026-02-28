@@ -226,8 +226,8 @@ public static class ShareLinkParser
             Protocol = Protocol.Shadowsocks,
             Address = host,
             Port = port,
-            // Store method:password -- the config builder will split them
-            UuidOrPassword = $"{method}:{password}",
+            UuidOrPassword = password,
+            ShadowsocksMethod = method,
             Name = name,
         };
     }
@@ -245,10 +245,22 @@ public static class ShareLinkParser
         var security = qs["security"] ?? string.Empty;
         if (security.Equals("reality", StringComparison.OrdinalIgnoreCase))
         {
-            // Reality-specific: pbk (public key) and sid (short id) are stored in SNI/Fingerprint fields
-            // The config builder will handle them.
-            if (!string.IsNullOrEmpty(qs["pbk"]))
-                tls.Fingerprint = qs["fp"] ?? string.Empty;
+            tls.RealityPublicKey = qs["pbk"] ?? string.Empty;
+            tls.RealityShortId = qs["sid"] ?? string.Empty;
+        }
+
+        // Parse ALPN if present (comma-separated)
+        var alpn = qs["alpn"];
+        if (!string.IsNullOrEmpty(alpn))
+        {
+            tls.Alpn = alpn.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        }
+
+        // Allow insecure flag
+        var insecure = qs["allowInsecure"] ?? qs["insecure"];
+        if (insecure == "1" || string.Equals(insecure, "true", StringComparison.OrdinalIgnoreCase))
+        {
+            tls.AllowInsecure = true;
         }
 
         return tls;
@@ -277,7 +289,7 @@ public static class ShareLinkParser
             "http" or "h2" => "http",
             "httpupgrade" => "httpupgrade",
             "quic" => "quic",
-            "tcp" => "tcp",
+            "tcp" or "" => string.Empty, // TCP is the default transport, no explicit section needed
             _ => raw.ToLowerInvariant(),
         };
     }

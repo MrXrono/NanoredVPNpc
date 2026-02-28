@@ -204,7 +204,9 @@ public static class OutboundConfig
     /// </summary>
     private static void ApplyTransport(JsonObject outbound, TransportSettings transport)
     {
-        if (string.IsNullOrEmpty(transport.Type))
+        // TCP is the default transport in sing-box — no explicit section needed
+        if (string.IsNullOrEmpty(transport.Type) ||
+            transport.Type.Equals("tcp", StringComparison.OrdinalIgnoreCase))
             return;
 
         var transportObj = new JsonObject

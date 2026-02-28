@@ -104,8 +104,8 @@ public class SingBoxProcessManager : ISingBoxProcessManager, IDisposable
         _logger.Information("sing-box started with PID {Pid}", _process.Id);
 
         // Read stdout and stderr in background
-        _ = ReadStreamAsync(_process.StandardOutput, _outputCts.Token);
-        _ = ReadStreamAsync(_process.StandardError, _outputCts.Token);
+        _ = ReadStreamAsync(_process.StandardOutput, "stdout", _outputCts.Token);
+        _ = ReadStreamAsync(_process.StandardError, "stderr", _outputCts.Token);
 
         await Task.CompletedTask;
     }
@@ -175,7 +175,7 @@ public class SingBoxProcessManager : ISingBoxProcessManager, IDisposable
         return Path.Combine(appDir, AppDefaults.SingBoxExe);
     }
 
-    private async Task ReadStreamAsync(System.IO.StreamReader reader, CancellationToken ct)
+    private async Task ReadStreamAsync(System.IO.StreamReader reader, string streamName, CancellationToken ct)
     {
         try
         {
@@ -185,6 +185,7 @@ public class SingBoxProcessManager : ISingBoxProcessManager, IDisposable
                 if (line is null)
                     break;
 
+                _logger.Debug("[sing-box {Stream}] {Line}", streamName, line);
                 OnLogLine?.Invoke(line);
             }
         }
@@ -194,12 +195,15 @@ public class SingBoxProcessManager : ISingBoxProcessManager, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.Debug(ex, "Stream reading ended");
+            _logger.Debug(ex, "Stream reading ended ({Stream})", streamName);
         }
     }
 
-    private void OnExited(object? sender, EventArgs e)
+    private async void OnExited(object? sender, EventArgs e)
     {
+        // Brief delay to let stderr/stdout readers drain remaining output
+        await Task.Delay(100);
+
         var exitCode = _process?.ExitCode ?? -1;
         _logger.Information("sing-box exited with code {ExitCode}", exitCode);
         OnProcessExited?.Invoke(exitCode);
