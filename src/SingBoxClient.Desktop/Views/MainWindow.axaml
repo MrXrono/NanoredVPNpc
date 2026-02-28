@@ -13,7 +13,9 @@
         MinWidth="800" MinHeight="550"
         Background="{StaticResource BgMainBrush}"
         WindowStartupLocation="CenterScreen"
-        ExtendClientAreaToDecorationsHint="False">
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="40">
 
     <!-- ═══════════════════════════════════════════════════════════════════
          Main Layout: Title Bar + (Sidebar | Content)
@@ -41,46 +43,51 @@
                             Spacing="4"
                             VerticalAlignment="Center">
                     <!-- Theme toggle -->
-                    <Button Background="Transparent"
-                            BorderThickness="0"
-                            Padding="8,4"
+                    <Button Background="{StaticResource BgInputBrush}"
+                            BorderBrush="{StaticResource BorderLightBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="10,5"
                             ToolTip.Tip="Toggle Theme"
                             Command="{Binding ToggleThemeCommand}">
-                        <TextBlock Text="&#x263E;"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                   FontSize="16" />
+                        <Panel>
+                            <TextBlock Text="&#x2600;"
+                                       IsVisible="{Binding IsDarkTheme}"
+                                       Foreground="{StaticResource YellowBrush}"
+                                       FontSize="16"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="&#x263E;"
+                                       IsVisible="{Binding !IsDarkTheme}"
+                                       Foreground="{StaticResource AccentLightBrush}"
+                                       FontSize="16"
+                                       VerticalAlignment="Center" />
+                        </Panel>
                     </Button>
 
                     <!-- Minimize -->
-                    <Button Background="Transparent"
-                            BorderThickness="0"
-                            Padding="8,4"
+                    <Button Classes="titlebar-btn"
                             ToolTip.Tip="Minimize"
                             Command="{Binding MinimizeCommand}">
                         <TextBlock Text="&#x2500;"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
                                    FontSize="13" />
                     </Button>
 
                     <!-- Maximize -->
-                    <Button Background="Transparent"
-                            BorderThickness="0"
-                            Padding="8,4"
+                    <Button Classes="titlebar-btn"
                             ToolTip.Tip="Maximize"
                             Command="{Binding MaximizeCommand}">
                         <TextBlock Text="&#x25A1;"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
                                    FontSize="13" />
                     </Button>
 
                     <!-- Close -->
-                    <Button Background="Transparent"
-                            BorderThickness="0"
-                            Padding="8,4"
+                    <Button Classes="titlebar-btn close-btn"
                             ToolTip.Tip="Close"
                             Command="{Binding CloseCommand}">
                         <TextBlock Text="&#x2715;"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
                                    FontSize="13" />
                     </Button>
                 </StackPanel>
@@ -240,6 +247,20 @@
         </Style>
         <Style Selector="Button.nav-button:pressed /template/ ContentPresenter">
             <Setter Property="Background" Value="{StaticResource BgCardBrush}" />
+        </Style>
+
+        <!-- Title bar window buttons -->
+        <Style Selector="Button.titlebar-btn">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+        <Style Selector="Button.titlebar-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource BgHoverBrush}" />
+        </Style>
+        <Style Selector="Button.close-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource RedBrush}" />
         </Style>
     </Window.Styles>
 
