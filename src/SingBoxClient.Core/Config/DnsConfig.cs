@@ -78,9 +78,10 @@ public static class DnsConfig
 
         // 3. Fallback: queries triggered by any outbound (e.g. direct) use direct DNS
         // This MUST be last — it matches all remaining queries.
+        // Note: sing-box DNS rules use "outbound" as a string match, not an array.
         rules.Add(new JsonObject
         {
-            ["outbound"] = new JsonArray { "any" },
+            ["outbound"] = "any",
             ["server"] = "direct-dns"
         });
 

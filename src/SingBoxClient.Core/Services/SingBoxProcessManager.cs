@@ -219,7 +219,11 @@ public class SingBoxProcessManager : ISingBoxProcessManager, IDisposable
                 if (line is null)
                     break;
 
-                _logger.Debug("[sing-box {Stream}] {Line}", streamName, line);
+                if (string.Equals(streamName, "stderr", StringComparison.Ordinal))
+                    _logger.Warning("[sing-box] {Line}", line);
+                else
+                    _logger.Debug("[sing-box] {Line}", line);
+
                 OnLogLine?.Invoke(line);
             }
         }

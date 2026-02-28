@@ -386,6 +386,12 @@ public class HomeViewModel : ViewModelBase, IDisposable
             var apiReady = await WaitForClashApiAsync(TimeSpan.FromSeconds(10));
             if (!apiReady)
             {
+                if (!_processManager.IsRunning)
+                {
+                    Logger.Error("sing-box process has exited unexpectedly after start");
+                    throw new InvalidOperationException("sing-box crashed during startup — check logs for details");
+                }
+
                 Logger.Warning("Clash API did not become available, proceeding anyway");
             }
 
