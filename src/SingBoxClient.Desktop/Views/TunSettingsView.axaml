@@ -16,11 +16,11 @@
              ═══════════════════════════════════════════════════════ -->
         <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,16">
             <TextBlock Text="{Binding [TunPerAppRules], Source={x:Static local:LocalizationManager.Instance}}"
-                       Foreground="{StaticResource TextPrimaryBrush}"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
                        FontSize="18"
                        FontWeight="SemiBold" />
             <TextBlock Text="{Binding [TunDescription], Source={x:Static local:LocalizationManager.Instance}}"
-                       Foreground="{StaticResource TextMutedBrush}"
+                       Foreground="{DynamicResource TextMutedBrush}"
                        FontSize="12"
                        TextWrapping="Wrap" />
         </StackPanel>
@@ -30,11 +30,11 @@
              ═══════════════════════════════════════════════════════ -->
         <StackPanel DockPanel.Dock="Bottom" Spacing="12" Margin="0,16,0,0">
             <!-- Note -->
-            <Border Background="{StaticResource BgInputBrush}"
+            <Border Background="{DynamicResource BgInputBrush}"
                     CornerRadius="8"
                     Padding="12,8">
                 <TextBlock Text="{Binding [TunNote], Source={x:Static local:LocalizationManager.Instance}}"
-                           Foreground="{StaticResource TextMutedBrush}"
+                           Foreground="{DynamicResource TextMutedBrush}"
                            FontSize="11"
                            TextWrapping="Wrap" />
             </Border>
@@ -44,14 +44,14 @@
                         HorizontalAlignment="Right"
                         Spacing="10">
                 <Button Content="{Binding [Cancel], Source={x:Static local:LocalizationManager.Instance}}"
-                        Background="{StaticResource BgInputBrush}"
-                        Foreground="{StaticResource TextSecondaryBrush}"
+                        Background="{DynamicResource BgInputBrush}"
+                        Foreground="{DynamicResource TextSecondaryBrush}"
                         CornerRadius="8"
                         Padding="20,8"
                         FontSize="13"
                         Command="{Binding CancelCommand}" />
                 <Button Content="{Binding [Save], Source={x:Static local:LocalizationManager.Instance}}"
-                        Background="{StaticResource AccentBrush}"
+                        Background="{DynamicResource AccentBrush}"
                         Foreground="White"
                         CornerRadius="8"
                         Padding="20,8"
@@ -67,15 +67,15 @@
 
             <!-- ── Column 1: Bypass Proxy ───────────────────────── -->
             <Border Grid.Column="0"
-                    Background="{StaticResource BgCardBrush}"
-                    BorderBrush="{StaticResource BorderBrush}"
+                    Background="{DynamicResource BgCardBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1"
                     CornerRadius="12"
                     Padding="14">
                 <DockPanel LastChildFill="True">
                     <!-- Header -->
                     <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,10">
-                        <Border Background="{StaticResource GreenBrush}"
+                        <Border Background="{DynamicResource GreenBrush}"
                                 CornerRadius="4"
                                 Padding="8,4"
                                 HorizontalAlignment="Left">
@@ -85,7 +85,7 @@
                                        FontWeight="SemiBold" />
                         </Border>
                         <TextBlock Text="{Binding [BypassDescription], Source={x:Static local:LocalizationManager.Instance}}"
-                                   Foreground="{StaticResource TextMutedBrush}"
+                                   Foreground="{DynamicResource TextMutedBrush}"
                                    FontSize="11"
                                    TextWrapping="Wrap" />
                     </StackPanel>
@@ -95,9 +95,9 @@
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
                              Watermark="chrome.exe&#x0a;discord.exe&#x0a;..."
-                             Background="{StaticResource BgInputBrush}"
-                             Foreground="{StaticResource TextPrimaryBrush}"
-                             BorderBrush="{StaticResource BorderBrush}"
+                             Background="{DynamicResource BgInputBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
                              CornerRadius="8"
                              Padding="10,8"
                              FontSize="12"
@@ -108,15 +108,15 @@
 
             <!-- ── Column 2: Route via Proxy ────────────────────── -->
             <Border Grid.Column="2"
-                    Background="{StaticResource BgCardBrush}"
-                    BorderBrush="{StaticResource BorderBrush}"
+                    Background="{DynamicResource BgCardBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1"
                     CornerRadius="12"
                     Padding="14">
                 <DockPanel LastChildFill="True">
                     <!-- Header -->
                     <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,10">
-                        <Border Background="{StaticResource AccentBrush}"
+                        <Border Background="{DynamicResource AccentBrush}"
                                 CornerRadius="4"
                                 Padding="8,4"
                                 HorizontalAlignment="Left">
@@ -126,7 +126,7 @@
                                        FontWeight="SemiBold" />
                         </Border>
                         <TextBlock Text="{Binding [RouteViaDescription], Source={x:Static local:LocalizationManager.Instance}}"
-                                   Foreground="{StaticResource TextMutedBrush}"
+                                   Foreground="{DynamicResource TextMutedBrush}"
                                    FontSize="11"
                                    TextWrapping="Wrap" />
                     </StackPanel>
@@ -136,9 +136,9 @@
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
                              Watermark="telegram.exe&#x0a;browser.exe&#x0a;..."
-                             Background="{StaticResource BgInputBrush}"
-                             Foreground="{StaticResource TextPrimaryBrush}"
-                             BorderBrush="{StaticResource BorderBrush}"
+                             Background="{DynamicResource BgInputBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
                              CornerRadius="8"
                              Padding="10,8"
                              FontSize="12"
@@ -149,15 +149,15 @@
 
             <!-- ── Column 3: Block Traffic ──────────────────────── -->
             <Border Grid.Column="4"
-                    Background="{StaticResource BgCardBrush}"
-                    BorderBrush="{StaticResource BorderBrush}"
+                    Background="{DynamicResource BgCardBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1"
                     CornerRadius="12"
                     Padding="14">
                 <DockPanel LastChildFill="True">
                     <!-- Header -->
                     <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,10">
-                        <Border Background="{StaticResource RedBrush}"
+                        <Border Background="{DynamicResource RedBrush}"
                                 CornerRadius="4"
                                 Padding="8,4"
                                 HorizontalAlignment="Left">
@@ -167,7 +167,7 @@
                                        FontWeight="SemiBold" />
                         </Border>
                         <TextBlock Text="{Binding [BlockDescription], Source={x:Static local:LocalizationManager.Instance}}"
-                                   Foreground="{StaticResource TextMutedBrush}"
+                                   Foreground="{DynamicResource TextMutedBrush}"
                                    FontSize="11"
                                    TextWrapping="Wrap" />
                     </StackPanel>
@@ -177,9 +177,9 @@
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
                              Watermark="malware.exe&#x0a;tracker.exe&#x0a;..."
-                             Background="{StaticResource BgInputBrush}"
-                             Foreground="{StaticResource TextPrimaryBrush}"
-                             BorderBrush="{StaticResource BorderBrush}"
+                             Background="{DynamicResource BgInputBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
                              CornerRadius="8"
                              Padding="10,8"
                              FontSize="12"

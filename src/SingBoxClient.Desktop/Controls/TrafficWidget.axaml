@@ -6,13 +6,13 @@
                 Spacing="16">
         <!-- Upload -->
         <StackPanel Orientation="Horizontal" Spacing="4">
-            <TextBlock Text="&#x2191;" FontSize="12" Foreground="{StaticResource GreenBrush}" VerticalAlignment="Center"/>
-            <TextBlock Text="{Binding UploadSpeed}" FontSize="12" Foreground="{StaticResource GreenBrush}" VerticalAlignment="Center"/>
+            <TextBlock Text="&#x2191;" FontSize="12" Foreground="{DynamicResource GreenBrush}" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding UploadSpeed}" FontSize="12" Foreground="{DynamicResource GreenBrush}" VerticalAlignment="Center"/>
         </StackPanel>
         <!-- Download -->
         <StackPanel Orientation="Horizontal" Spacing="4">
-            <TextBlock Text="&#x2193;" FontSize="12" Foreground="{StaticResource AccentLightBrush}" VerticalAlignment="Center"/>
-            <TextBlock Text="{Binding DownloadSpeed}" FontSize="12" Foreground="{StaticResource AccentLightBrush}" VerticalAlignment="Center"/>
+            <TextBlock Text="&#x2193;" FontSize="12" Foreground="{DynamicResource AccentLightBrush}" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding DownloadSpeed}" FontSize="12" Foreground="{DynamicResource AccentLightBrush}" VerticalAlignment="Center"/>
         </StackPanel>
     </StackPanel>
 </UserControl>

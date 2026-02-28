@@ -4,5 +4,5 @@
              Width="12" Height="12">
     <Ellipse x:Name="StatusDot"
              Width="12" Height="12"
-             Fill="{StaticResource TextMutedBrush}"/>
+             Fill="{DynamicResource TextMutedBrush}"/>
 </UserControl>

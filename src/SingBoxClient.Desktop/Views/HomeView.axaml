@@ -26,17 +26,17 @@
                  ═══════════════════════════════════════════════════════ -->
             <StackPanel Orientation="Horizontal" Spacing="16">
                 <TextBlock Text="{Binding [Mode], Source={x:Static local:LocalizationManager.Instance}}"
-                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
                            FontSize="13"
                            VerticalAlignment="Center" />
                 <CheckBox Content="{Binding [Proxy], Source={x:Static local:LocalizationManager.Instance}}"
                           IsChecked="{Binding IsProxyEnabled}"
-                          Foreground="{StaticResource TextPrimaryBrush}"
+                          Foreground="{DynamicResource TextPrimaryBrush}"
                           FontSize="13"
                           VerticalAlignment="Center" />
                 <CheckBox Content="{Binding [TUN], Source={x:Static local:LocalizationManager.Instance}}"
                           IsChecked="{Binding IsTunEnabled}"
-                          Foreground="{StaticResource TextPrimaryBrush}"
+                          Foreground="{DynamicResource TextPrimaryBrush}"
                           FontSize="13"
                           VerticalAlignment="Center" />
             </StackPanel>
@@ -44,8 +44,8 @@
             <!-- ═══════════════════════════════════════════════════════
                  Connection Panel
                  ═══════════════════════════════════════════════════════ -->
-            <Border Background="{StaticResource BgCardBrush}"
-                    BorderBrush="{StaticResource BorderBrush}"
+            <Border Background="{DynamicResource BgCardBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1"
                     CornerRadius="12"
                     Padding="24,20"
@@ -60,7 +60,7 @@
                                  VerticalAlignment="Center"
                                  Fill="{Binding Status, Converter={StaticResource StatusToColor}}" />
                         <TextBlock Text="{Binding StatusText}"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontSize="14"
                                    FontWeight="SemiBold"
                                    VerticalAlignment="Center" />
@@ -78,15 +78,15 @@
                             Content="{Binding ConnectButtonText}">
                         <Button.Background>
                             <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-                                <GradientStop Color="{StaticResource Accent}" Offset="0" />
-                                <GradientStop Color="{StaticResource AccentLight}" Offset="1" />
+                                <GradientStop Color="{DynamicResource Accent}" Offset="0" />
+                                <GradientStop Color="{DynamicResource AccentLight}" Offset="1" />
                             </LinearGradientBrush>
                         </Button.Background>
                     </Button>
 
                     <!-- Timer -->
                     <TextBlock Text="{Binding Timer}"
-                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
                                FontSize="28"
                                FontFamily="Consolas, monospace"
                                FontWeight="Light"
@@ -99,11 +99,11 @@
                                     HorizontalAlignment="Center"
                                     Spacing="6">
                             <TextBlock Text="&#x2191;"
-                                       Foreground="{StaticResource GreenBrush}"
+                                       Foreground="{DynamicResource GreenBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center" />
                             <TextBlock Text="{Binding UploadSpeed}"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="12"
                                        VerticalAlignment="Center" />
                         </StackPanel>
@@ -112,11 +112,11 @@
                                     HorizontalAlignment="Center"
                                     Spacing="6">
                             <TextBlock Text="&#x2193;"
-                                       Foreground="{StaticResource AccentLightBrush}"
+                                       Foreground="{DynamicResource AccentLightBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center" />
                             <TextBlock Text="{Binding DownloadSpeed}"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="12"
                                        VerticalAlignment="Center" />
                         </StackPanel>
@@ -131,14 +131,14 @@
 
                 <!-- ── Subscription Info Card ───────────────────────── -->
                 <Border Grid.Column="0"
-                        Background="{StaticResource BgCardBrush}"
-                        BorderBrush="{StaticResource BorderBrush}"
+                        Background="{DynamicResource BgCardBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1"
                         CornerRadius="12"
                         Padding="16,14">
                     <StackPanel Spacing="10">
                         <TextBlock Text="{Binding [SubscriptionInfo], Source={x:Static local:LocalizationManager.Instance}}"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontSize="14"
                                    FontWeight="SemiBold" />
 
@@ -146,12 +146,12 @@
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
                                        Text="ID:"
-                                       Foreground="{StaticResource TextMutedBrush}"
+                                       Foreground="{DynamicResource TextMutedBrush}"
                                        FontSize="12"
                                        Width="70" />
                             <TextBlock Grid.Column="1"
                                        Text="{Binding SubscriptionId}"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="12"
                                        TextTrimming="CharacterEllipsis" />
                         </Grid>
@@ -160,12 +160,12 @@
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
                                        Text="{Binding [Expires], Source={x:Static local:LocalizationManager.Instance}}"
-                                       Foreground="{StaticResource TextMutedBrush}"
+                                       Foreground="{DynamicResource TextMutedBrush}"
                                        FontSize="12"
                                        Width="70" />
                             <TextBlock Grid.Column="1"
                                        Text="{Binding ExpiresAt}"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="12" />
                         </Grid>
 
@@ -173,12 +173,12 @@
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
                                        Text="{Binding [Traffic], Source={x:Static local:LocalizationManager.Instance}}"
-                                       Foreground="{StaticResource TextMutedBrush}"
+                                       Foreground="{DynamicResource TextMutedBrush}"
                                        FontSize="12"
                                        Width="70" />
                             <TextBlock Grid.Column="1"
                                        Text="{Binding TrafficUsageText}"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="12" />
                         </Grid>
 
@@ -188,13 +188,13 @@
                                      Value="{Binding TrafficPercent}"
                                      Height="6"
                                      CornerRadius="3"
-                                     Foreground="{StaticResource AccentBrush}"
-                                     Background="{StaticResource BgInputBrush}" />
+                                     Foreground="{DynamicResource AccentBrush}"
+                                     Background="{DynamicResource BgInputBrush}" />
 
                         <!-- Renew button -->
                         <Button Content="{Binding [Renew], Source={x:Static local:LocalizationManager.Instance}}"
                                 HorizontalAlignment="Left"
-                                Background="{StaticResource AccentBrush}"
+                                Background="{DynamicResource AccentBrush}"
                                 Foreground="White"
                                 CornerRadius="8"
                                 Padding="16,6"
@@ -205,14 +205,14 @@
 
                 <!-- ── Information Server Card ──────────────────────── -->
                 <Border Grid.Column="2"
-                        Background="{StaticResource BgCardBrush}"
-                        BorderBrush="{StaticResource BorderBrush}"
+                        Background="{DynamicResource BgCardBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1"
                         CornerRadius="12"
                         Padding="16,14">
                     <StackPanel Spacing="10">
                         <TextBlock Text="{Binding [InformationServer], Source={x:Static local:LocalizationManager.Instance}}"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontSize="14"
                                    FontWeight="SemiBold" />
 
@@ -221,22 +221,22 @@
                                 <DataTemplate>
                                     <Border Margin="0,0,0,8"
                                             Padding="10,8"
-                                            Background="{StaticResource BgInputBrush}"
+                                            Background="{DynamicResource BgInputBrush}"
                                             CornerRadius="6"
-                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}"
                                             BorderThickness="1">
                                         <StackPanel Spacing="4">
                                             <TextBlock Text="{Binding Title}"
-                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
                                                        FontSize="12"
                                                        FontWeight="SemiBold" />
                                             <TextBlock Text="{Binding Body}"
-                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                                        FontSize="11"
                                                        TextWrapping="Wrap"
                                                        MaxLines="3" />
                                             <TextBlock Text="{Binding CreatedAt, StringFormat='{}{0:yyyy-MM-dd}'}"
-                                                       Foreground="{StaticResource TextMutedBrush}"
+                                                       Foreground="{DynamicResource TextMutedBrush}"
                                                        FontSize="10" />
                                         </StackPanel>
                                     </Border>
@@ -246,7 +246,7 @@
 
                         <!-- No announcements fallback -->
                         <TextBlock Text="{Binding [NoAnnouncements], Source={x:Static local:LocalizationManager.Instance}}"
-                                   Foreground="{StaticResource TextMutedBrush}"
+                                   Foreground="{DynamicResource TextMutedBrush}"
                                    FontSize="12"
                                    IsVisible="{Binding !HasAnnouncements}"
                                    HorizontalAlignment="Center" />
@@ -257,14 +257,14 @@
             <!-- ═══════════════════════════════════════════════════════
                  Country List
                  ═══════════════════════════════════════════════════════ -->
-            <Border Background="{StaticResource BgCardBrush}"
-                    BorderBrush="{StaticResource BorderBrush}"
+            <Border Background="{DynamicResource BgCardBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1"
                     CornerRadius="12"
                     Padding="16,14">
                 <StackPanel Spacing="10">
                     <TextBlock Text="{Binding [SelectServer], Source={x:Static local:LocalizationManager.Instance}}"
-                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
                                FontSize="14"
                                FontWeight="SemiBold" />
 
@@ -281,14 +281,14 @@
                                     <!-- Flag + Country Name -->
                                     <TextBlock Grid.Column="0"
                                                Text="{Binding DisplayName}"
-                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
                                                FontSize="13"
                                                VerticalAlignment="Center" />
 
                                     <!-- Server count -->
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding Servers.Count, StringFormat='{}{0} servers'}"
-                                               Foreground="{StaticResource TextMutedBrush}"
+                                               Foreground="{DynamicResource TextMutedBrush}"
                                                FontSize="11"
                                                HorizontalAlignment="Right"
                                                VerticalAlignment="Center"
@@ -297,7 +297,7 @@
                                     <!-- Ping -->
                                     <TextBlock Grid.Column="2"
                                                Text="{Binding AverageLatency, StringFormat='{}{0} ms'}"
-                                               Foreground="{StaticResource GreenBrush}"
+                                               Foreground="{DynamicResource GreenBrush}"
                                                FontSize="11"
                                                VerticalAlignment="Center"
                                                MinWidth="50"
@@ -313,10 +313,10 @@
                                 <Setter Property="Margin" Value="0,1" />
                             </Style>
                             <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
-                                <Setter Property="Background" Value="{StaticResource BgHoverBrush}" />
+                                <Setter Property="Background" Value="{DynamicResource BgHoverBrush}" />
                             </Style>
                             <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-                                <Setter Property="Background" Value="{StaticResource BgInputBrush}" />
+                                <Setter Property="Background" Value="{DynamicResource BgInputBrush}" />
                             </Style>
                         </ListBox.Styles>
                     </ListBox>

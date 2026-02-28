@@ -19,7 +19,7 @@
             <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Grid.Column="0"
                            Text="{Binding [RoutingRules], Source={x:Static local:LocalizationManager.Instance}}"
-                           Foreground="{StaticResource TextPrimaryBrush}"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
                            FontSize="18"
                            FontWeight="SemiBold"
                            VerticalAlignment="Center" />
@@ -30,7 +30,7 @@
                             VerticalAlignment="Center">
                     <!-- Remote config toggle -->
                     <TextBlock Text="{Binding [RemoteConfig], Source={x:Static local:LocalizationManager.Instance}}"
-                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
                                FontSize="12"
                                VerticalAlignment="Center" />
                     <ToggleSwitch IsChecked="{Binding IsRemoteConfigEnabled}"
@@ -40,7 +40,7 @@
 
                     <!-- Sync button -->
                     <Button Content="{Binding [Sync], Source={x:Static local:LocalizationManager.Instance}}"
-                            Background="{StaticResource AccentBrush}"
+                            Background="{DynamicResource AccentBrush}"
                             Foreground="White"
                             CornerRadius="8"
                             Padding="16,6"
@@ -50,7 +50,7 @@
             </Grid>
 
             <TextBlock Text="{Binding [RoutingDescription], Source={x:Static local:LocalizationManager.Instance}}"
-                       Foreground="{StaticResource TextMutedBrush}"
+                       Foreground="{DynamicResource TextMutedBrush}"
                        FontSize="12" />
         </StackPanel>
 
@@ -63,14 +63,14 @@
                     Spacing="10"
                     Margin="0,16,0,0">
             <Button Content="{Binding [Cancel], Source={x:Static local:LocalizationManager.Instance}}"
-                    Background="{StaticResource BgInputBrush}"
-                    Foreground="{StaticResource TextSecondaryBrush}"
+                    Background="{DynamicResource BgInputBrush}"
+                    Foreground="{DynamicResource TextSecondaryBrush}"
                     CornerRadius="8"
                     Padding="20,8"
                     FontSize="13"
                     Command="{Binding CancelCommand}" />
             <Button Content="{Binding [Save], Source={x:Static local:LocalizationManager.Instance}}"
-                    Background="{StaticResource AccentBrush}"
+                    Background="{DynamicResource AccentBrush}"
                     Foreground="White"
                     CornerRadius="8"
                     Padding="20,8"
@@ -82,8 +82,8 @@
              Add New Rule
              ═══════════════════════════════════════════════════════ -->
         <Border DockPanel.Dock="Bottom"
-                Background="{StaticResource BgCardBrush}"
-                BorderBrush="{StaticResource BorderBrush}"
+                Background="{DynamicResource BgCardBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1"
                 CornerRadius="10"
                 Padding="14,10"
@@ -92,15 +92,15 @@
                 <TextBox Grid.Column="0"
                          Watermark="{Binding [RulePlaceholder], Source={x:Static local:LocalizationManager.Instance}}"
                          Text="{Binding NewRuleValue}"
-                         Background="{StaticResource BgInputBrush}"
-                         Foreground="{StaticResource TextPrimaryBrush}"
-                         BorderBrush="{StaticResource BorderBrush}"
+                         Background="{DynamicResource BgInputBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
                          CornerRadius="8"
                          Padding="12,8"
                          FontSize="13" />
                 <Button Grid.Column="2"
                         Content="{Binding [AddRule], Source={x:Static local:LocalizationManager.Instance}}"
-                        Background="{StaticResource AccentBrush}"
+                        Background="{DynamicResource AccentBrush}"
                         Foreground="White"
                         CornerRadius="8"
                         Padding="16,8"
@@ -112,8 +112,8 @@
         <!-- ═══════════════════════════════════════════════════════
              Rules DataGrid
              ═══════════════════════════════════════════════════════ -->
-        <Border Background="{StaticResource BgCardBrush}"
-                BorderBrush="{StaticResource BorderBrush}"
+        <Border Background="{DynamicResource BgCardBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1"
                 CornerRadius="12"
                 Padding="2">
@@ -128,7 +128,7 @@
                       BorderThickness="0"
                       Background="Transparent"
                       RowBackground="Transparent"
-                      Foreground="{StaticResource TextPrimaryBrush}"
+                      Foreground="{DynamicResource TextPrimaryBrush}"
                       FontSize="12">
 
                 <DataGrid.Columns>
@@ -155,7 +155,7 @@
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate x:DataType="models:RoutingRule">
                                 <TextBlock Text="{Binding IsRemote, StringFormat='{}{0}'}"
-                                           Foreground="{StaticResource TextMutedBrush}"
+                                           Foreground="{DynamicResource TextMutedBrush}"
                                            FontSize="11"
                                            VerticalAlignment="Center"
                                            HorizontalAlignment="Center" />
@@ -169,8 +169,8 @@
                             <DataTemplate>
                                 <ComboBox ItemsSource="{Binding $parent[DataGrid].DataContext.RuleActions}"
                                           SelectedItem="{Binding Action}"
-                                          Background="{StaticResource BgInputBrush}"
-                                          Foreground="{StaticResource TextPrimaryBrush}"
+                                          Background="{DynamicResource BgInputBrush}"
+                                          Foreground="{DynamicResource TextPrimaryBrush}"
                                           FontSize="11"
                                           MinWidth="80"
                                           Padding="6,3"
@@ -196,7 +196,7 @@
                             <DataTemplate>
                                 <Button Content="&#x2715;"
                                         Background="Transparent"
-                                        Foreground="{StaticResource RedBrush}"
+                                        Foreground="{DynamicResource RedBrush}"
                                         BorderThickness="0"
                                         FontSize="12"
                                         Padding="4"
@@ -211,7 +211,7 @@
 
                 <DataGrid.Styles>
                     <Style Selector="DataGridColumnHeader">
-                        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
                         <Setter Property="FontSize" Value="11" />
                         <Setter Property="Padding" Value="8,6" />
                     </Style>

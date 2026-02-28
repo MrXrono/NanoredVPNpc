@@ -19,7 +19,7 @@
               Margin="0,0,0,12">
             <TextBlock Grid.Column="0"
                        Text="{Binding [Logs], Source={x:Static local:LocalizationManager.Instance}}"
-                       Foreground="{StaticResource TextPrimaryBrush}"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
                        FontSize="18"
                        FontWeight="SemiBold"
                        VerticalAlignment="Center" />
@@ -31,14 +31,14 @@
                 <!-- Auto-scroll toggle -->
                 <CheckBox Content="{Binding [AutoScroll], Source={x:Static local:LocalizationManager.Instance}}"
                           IsChecked="{Binding AutoScroll}"
-                          Foreground="{StaticResource TextSecondaryBrush}"
+                          Foreground="{DynamicResource TextSecondaryBrush}"
                           FontSize="12"
                           VerticalAlignment="Center" />
 
                 <!-- Clear button -->
                 <Button Content="{Binding [Clear], Source={x:Static local:LocalizationManager.Instance}}"
-                        Background="{StaticResource BgInputBrush}"
-                        Foreground="{StaticResource TextSecondaryBrush}"
+                        Background="{DynamicResource BgInputBrush}"
+                        Foreground="{DynamicResource TextSecondaryBrush}"
                         CornerRadius="8"
                         Padding="14,6"
                         FontSize="12"
@@ -46,7 +46,7 @@
 
                 <!-- Copy button -->
                 <Button Content="{Binding [Copy], Source={x:Static local:LocalizationManager.Instance}}"
-                        Background="{StaticResource AccentBrush}"
+                        Background="{DynamicResource AccentBrush}"
                         Foreground="White"
                         CornerRadius="8"
                         Padding="14,6"
@@ -58,8 +58,8 @@
         <!-- ═══════════════════════════════════════════════════════
              Log Output
              ═══════════════════════════════════════════════════════ -->
-        <Border Background="{StaticResource BgMainBrush}"
-                BorderBrush="{StaticResource BorderBrush}"
+        <Border Background="{DynamicResource BgMainBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1"
                 CornerRadius="12"
                 Padding="4">
@@ -73,7 +73,7 @@
                      Background="Transparent"
                      BorderThickness="0"
                      Padding="12,10"
-                     CaretBrush="{StaticResource AccentBrush}"
+                     CaretBrush="{DynamicResource AccentBrush}"
                      Name="LogTextBox" />
         </Border>
 

@@ -18,7 +18,7 @@
                  ═══════════════════════════════════════════════════════ -->
             <TextBlock DockPanel.Dock="Top"
                        Text="{Binding [Settings], Source={x:Static local:LocalizationManager.Instance}}"
-                       Foreground="{StaticResource TextPrimaryBrush}"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
                        FontSize="18"
                        FontWeight="SemiBold"
                        Margin="0,0,0,16" />
@@ -32,14 +32,14 @@
                         Spacing="10"
                         Margin="0,20,0,0">
                 <Button Content="{Binding [Cancel], Source={x:Static local:LocalizationManager.Instance}}"
-                        Background="{StaticResource BgInputBrush}"
-                        Foreground="{StaticResource TextSecondaryBrush}"
+                        Background="{DynamicResource BgInputBrush}"
+                        Foreground="{DynamicResource TextSecondaryBrush}"
                         CornerRadius="8"
                         Padding="20,8"
                         FontSize="13"
                         Command="{Binding CancelCommand}" />
                 <Button Content="{Binding [Save], Source={x:Static local:LocalizationManager.Instance}}"
-                        Background="{StaticResource AccentBrush}"
+                        Background="{DynamicResource AccentBrush}"
                         Foreground="White"
                         CornerRadius="8"
                         Padding="20,8"
@@ -53,21 +53,21 @@
             <StackPanel Spacing="16">
 
                 <!-- ── Section 1: Proxy Port ────────────────────────── -->
-                <Border Background="{StaticResource BgCardBrush}"
-                        BorderBrush="{StaticResource BorderBrush}"
+                <Border Background="{DynamicResource BgCardBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1"
                         CornerRadius="12"
                         Padding="18,14">
                     <StackPanel Spacing="10">
                         <TextBlock Text="{Binding [ProxyConfiguration], Source={x:Static local:LocalizationManager.Instance}}"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontSize="14"
                                    FontWeight="SemiBold" />
 
                         <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto">
                             <TextBlock Grid.Column="0"
                                        Text="{Binding [LocalProxyPort], Source={x:Static local:LocalizationManager.Instance}}"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
                                        Width="160" />
@@ -77,9 +77,9 @@
                                            Maximum="65535"
                                            Increment="1"
                                            FormatString="0"
-                                           Background="{StaticResource BgInputBrush}"
-                                           Foreground="{StaticResource TextPrimaryBrush}"
-                                           BorderBrush="{StaticResource BorderBrush}"
+                                           Background="{DynamicResource BgInputBrush}"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           BorderBrush="{DynamicResource BorderBrush}"
                                            CornerRadius="8"
                                            Padding="10,6"
                                            FontSize="13"
@@ -90,14 +90,14 @@
                 </Border>
 
                 <!-- ── Section 2: General Settings ──────────────────── -->
-                <Border Background="{StaticResource BgCardBrush}"
-                        BorderBrush="{StaticResource BorderBrush}"
+                <Border Background="{DynamicResource BgCardBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1"
                         CornerRadius="12"
                         Padding="18,14">
                     <StackPanel Spacing="14">
                         <TextBlock Text="{Binding [General], Source={x:Static local:LocalizationManager.Instance}}"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontSize="14"
                                    FontWeight="SemiBold" />
 
@@ -105,16 +105,16 @@
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
                                        Text="{Binding [Language], Source={x:Static local:LocalizationManager.Instance}}"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
                                        Width="160" />
                             <ComboBox Grid.Column="1"
                                       ItemsSource="{Binding Languages}"
                                       SelectedItem="{Binding Language}"
-                                      Background="{StaticResource BgInputBrush}"
-                                      Foreground="{StaticResource TextPrimaryBrush}"
-                                      BorderBrush="{StaticResource BorderBrush}"
+                                      Background="{DynamicResource BgInputBrush}"
+                                      Foreground="{DynamicResource TextPrimaryBrush}"
+                                      BorderBrush="{DynamicResource BorderBrush}"
                                       CornerRadius="8"
                                       Padding="10,6"
                                       FontSize="13"
@@ -126,7 +126,7 @@
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
                                        Text="{Binding [MinimizeToTray], Source={x:Static local:LocalizationManager.Instance}}"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
                                        Width="160" />
@@ -141,7 +141,7 @@
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
                                        Text="{Binding [StartWithWindows], Source={x:Static local:LocalizationManager.Instance}}"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
                                        Width="160" />
@@ -156,7 +156,7 @@
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
                                        Text="{Binding [AutoConnect], Source={x:Static local:LocalizationManager.Instance}}"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
                                        Width="160" />
@@ -171,7 +171,7 @@
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
                                        Text="{Binding [DebugMode], Source={x:Static local:LocalizationManager.Instance}}"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
                                        Width="160" />
@@ -185,14 +185,14 @@
                 </Border>
 
                 <!-- ── Section 3: Subscription ──────────────────────── -->
-                <Border Background="{StaticResource BgCardBrush}"
-                        BorderBrush="{StaticResource BorderBrush}"
+                <Border Background="{DynamicResource BgCardBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1"
                         CornerRadius="12"
                         Padding="18,14">
                     <StackPanel Spacing="10">
                         <TextBlock Text="{Binding [Subscription], Source={x:Static local:LocalizationManager.Instance}}"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontSize="14"
                                    FontWeight="SemiBold" />
 
@@ -200,16 +200,16 @@
                             <TextBox Grid.Column="0"
                                      Text="{Binding SubscriptionUrl}"
                                      IsReadOnly="True"
-                                     Background="{StaticResource BgInputBrush}"
-                                     Foreground="{StaticResource TextSecondaryBrush}"
-                                     BorderBrush="{StaticResource BorderBrush}"
+                                     Background="{DynamicResource BgInputBrush}"
+                                     Foreground="{DynamicResource TextSecondaryBrush}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
                                      CornerRadius="8"
                                      Padding="12,8"
                                      FontSize="12"
                                      Watermark="{Binding [NoSubscriptionUrl], Source={x:Static local:LocalizationManager.Instance}}" />
                             <Button Grid.Column="1"
                                     Content="{Binding [Copy], Source={x:Static local:LocalizationManager.Instance}}"
-                                    Background="{StaticResource AccentBrush}"
+                                    Background="{DynamicResource AccentBrush}"
                                     Foreground="White"
                                     CornerRadius="8"
                                     Padding="14,8"
@@ -219,7 +219,7 @@
                         </Grid>
 
                         <TextBlock Text="{Binding [SubscriptionUrlNote], Source={x:Static local:LocalizationManager.Instance}}"
-                                   Foreground="{StaticResource TextMutedBrush}"
+                                   Foreground="{DynamicResource TextMutedBrush}"
                                    FontSize="11"
                                    TextWrapping="Wrap" />
                     </StackPanel>

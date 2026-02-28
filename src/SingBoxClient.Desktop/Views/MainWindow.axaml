@@ -12,7 +12,7 @@
         Title="NanoredVPN v1.0.0"
         Width="960" Height="640"
         MinWidth="800" MinHeight="550"
-        Background="{StaticResource BgMainBrush}"
+        Background="{DynamicResource BgMainBrush}"
         WindowStartupLocation="CenterScreen"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaChromeHints="NoChrome"
@@ -25,15 +25,15 @@
 
         <!-- ── Title Bar ────────────────────────────────────────────── -->
         <Border DockPanel.Dock="Top"
-                Background="{StaticResource BgSidebarBrush}"
+                Background="{DynamicResource BgSidebarBrush}"
                 Height="40"
-                BorderBrush="{StaticResource BorderBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel Margin="12,0">
                 <!-- App title -->
                 <TextBlock DockPanel.Dock="Left"
                            Text="NanoredVPN v1.0.0"
-                           Foreground="{StaticResource TextPrimaryBrush}"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
                            FontSize="13"
                            FontWeight="SemiBold"
                            VerticalAlignment="Center" />
@@ -44,8 +44,8 @@
                             Spacing="4"
                             VerticalAlignment="Center">
                     <!-- Theme toggle -->
-                    <Button Background="{StaticResource BgInputBrush}"
-                            BorderBrush="{StaticResource BorderLightBrush}"
+                    <Button Background="{DynamicResource BgInputBrush}"
+                            BorderBrush="{DynamicResource BorderLightBrush}"
                             BorderThickness="1"
                             CornerRadius="8"
                             Padding="10,5"
@@ -54,12 +54,12 @@
                         <Panel>
                             <TextBlock Text="&#x2600;"
                                        IsVisible="{Binding IsDarkTheme}"
-                                       Foreground="{StaticResource YellowBrush}"
+                                       Foreground="{DynamicResource YellowBrush}"
                                        FontSize="16"
                                        VerticalAlignment="Center" />
                             <TextBlock Text="&#x263E;"
                                        IsVisible="{Binding !IsDarkTheme}"
-                                       Foreground="{StaticResource AccentLightBrush}"
+                                       Foreground="{DynamicResource AccentLightBrush}"
                                        FontSize="16"
                                        VerticalAlignment="Center" />
                         </Panel>
@@ -70,7 +70,7 @@
                             ToolTip.Tip="{Binding [Minimize], Source={x:Static local:LocalizationManager.Instance}}"
                             Command="{Binding MinimizeCommand}">
                         <TextBlock Text="&#x2500;"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontSize="13" />
                     </Button>
 
@@ -79,7 +79,7 @@
                             ToolTip.Tip="{Binding [Maximize], Source={x:Static local:LocalizationManager.Instance}}"
                             Command="{Binding MaximizeCommand}">
                         <TextBlock Text="&#x25A1;"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontSize="13" />
                     </Button>
 
@@ -88,7 +88,7 @@
                             ToolTip.Tip="{Binding [Close], Source={x:Static local:LocalizationManager.Instance}}"
                             Command="{Binding CloseCommand}">
                         <TextBlock Text="&#x2715;"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontSize="13" />
                     </Button>
                 </StackPanel>
@@ -103,8 +103,8 @@
 
             <!-- ── Sidebar ──────────────────────────────────────────── -->
             <Border Grid.Column="0"
-                    Background="{StaticResource BgSidebarBrush}"
-                    BorderBrush="{StaticResource BorderBrush}"
+                    Background="{DynamicResource BgSidebarBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="0,0,1,0">
                 <StackPanel VerticalAlignment="Top"
                             Spacing="4"
@@ -120,11 +120,11 @@
                             <TextBlock Text="&#x2302;"
                                        FontSize="20"
                                        HorizontalAlignment="Center"
-                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
                             <TextBlock Text="{Binding [Home], Source={x:Static local:LocalizationManager.Instance}}"
                                        FontSize="9"
                                        HorizontalAlignment="Center"
-                                       Foreground="{StaticResource TextMutedBrush}" />
+                                       Foreground="{DynamicResource TextMutedBrush}" />
                         </StackPanel>
                     </Button>
 
@@ -138,11 +138,11 @@
                             <TextBlock Text="&#x21C4;"
                                        FontSize="20"
                                        HorizontalAlignment="Center"
-                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
                             <TextBlock Text="{Binding [Route], Source={x:Static local:LocalizationManager.Instance}}"
                                        FontSize="9"
                                        HorizontalAlignment="Center"
-                                       Foreground="{StaticResource TextMutedBrush}" />
+                                       Foreground="{DynamicResource TextMutedBrush}" />
                         </StackPanel>
                     </Button>
 
@@ -156,11 +156,11 @@
                             <TextBlock Text="&#x26A1;"
                                        FontSize="20"
                                        HorizontalAlignment="Center"
-                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
                             <TextBlock Text="{Binding [TUN], Source={x:Static local:LocalizationManager.Instance}}"
                                        FontSize="9"
                                        HorizontalAlignment="Center"
-                                       Foreground="{StaticResource TextMutedBrush}" />
+                                       Foreground="{DynamicResource TextMutedBrush}" />
                         </StackPanel>
                     </Button>
 
@@ -174,11 +174,11 @@
                             <TextBlock Text="&#x2263;"
                                        FontSize="20"
                                        HorizontalAlignment="Center"
-                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
                             <TextBlock Text="{Binding [Logs], Source={x:Static local:LocalizationManager.Instance}}"
                                        FontSize="9"
                                        HorizontalAlignment="Center"
-                                       Foreground="{StaticResource TextMutedBrush}" />
+                                       Foreground="{DynamicResource TextMutedBrush}" />
                         </StackPanel>
                     </Button>
 
@@ -192,11 +192,11 @@
                             <TextBlock Text="&#x2699;"
                                        FontSize="20"
                                        HorizontalAlignment="Center"
-                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
                             <TextBlock Text="{Binding [Setup], Source={x:Static local:LocalizationManager.Instance}}"
                                        FontSize="9"
                                        HorizontalAlignment="Center"
-                                       Foreground="{StaticResource TextMutedBrush}" />
+                                       Foreground="{DynamicResource TextMutedBrush}" />
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -204,7 +204,7 @@
 
             <!-- ── Content Area ─────────────────────────────────────── -->
             <Border Grid.Column="1"
-                    Background="{StaticResource BgContentBrush}">
+                    Background="{DynamicResource BgContentBrush}">
                 <ContentControl Content="{Binding CurrentPage}">
                     <ContentControl.DataTemplates>
                         <DataTemplate DataType="{x:Type vm:HomeViewModel}">
@@ -244,10 +244,10 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.nav-button:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{StaticResource BgHoverBrush}" />
+            <Setter Property="Background" Value="{DynamicResource BgHoverBrush}" />
         </Style>
         <Style Selector="Button.nav-button:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="{StaticResource BgCardBrush}" />
+            <Setter Property="Background" Value="{DynamicResource BgCardBrush}" />
         </Style>
 
         <!-- Title bar window buttons -->
@@ -258,10 +258,10 @@
             <Setter Property="CornerRadius" Value="6" />
         </Style>
         <Style Selector="Button.titlebar-btn:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{StaticResource BgHoverBrush}" />
+            <Setter Property="Background" Value="{DynamicResource BgHoverBrush}" />
         </Style>
         <Style Selector="Button.close-btn:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{StaticResource RedBrush}" />
+            <Setter Property="Background" Value="{DynamicResource RedBrush}" />
         </Style>
     </Window.Styles>
 

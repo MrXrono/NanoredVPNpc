@@ -11,7 +11,7 @@
         Title="{Binding [Announcements], Source={x:Static local:LocalizationManager.Instance}}"
         Width="500" Height="400"
         MinWidth="400" MinHeight="300"
-        Background="{StaticResource BgMainBrush}"
+        Background="{DynamicResource BgMainBrush}"
         WindowStartupLocation="CenterOwner"
         ExtendClientAreaToDecorationsHint="False">
 
@@ -25,7 +25,7 @@
               Margin="0,0,0,16">
             <TextBlock Grid.Column="0"
                        Text="{Binding [Announcements], Source={x:Static local:LocalizationManager.Instance}}"
-                       Foreground="{StaticResource TextPrimaryBrush}"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
                        FontSize="18"
                        FontWeight="SemiBold"
                        VerticalAlignment="Center" />
@@ -40,14 +40,14 @@
                     Spacing="10"
                     Margin="0,16,0,0">
             <Button Content="{Binding [MarkAllRead], Source={x:Static local:LocalizationManager.Instance}}"
-                    Background="{StaticResource BgInputBrush}"
-                    Foreground="{StaticResource TextSecondaryBrush}"
+                    Background="{DynamicResource BgInputBrush}"
+                    Foreground="{DynamicResource TextSecondaryBrush}"
                     CornerRadius="8"
                     Padding="16,8"
                     FontSize="13"
                     Command="{Binding MarkAllReadCommand}" />
             <Button Content="{Binding [Close], Source={x:Static local:LocalizationManager.Instance}}"
-                    Background="{StaticResource AccentBrush}"
+                    Background="{DynamicResource AccentBrush}"
                     Foreground="White"
                     CornerRadius="8"
                     Padding="20,8"
@@ -65,8 +65,8 @@
                     <DataTemplate>
                         <Border Margin="0,0,0,10"
                                 Padding="14,12"
-                                Background="{StaticResource BgCardBrush}"
-                                BorderBrush="{StaticResource BorderBrush}"
+                                Background="{DynamicResource BgCardBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="10">
                             <StackPanel Spacing="6">
@@ -74,27 +74,27 @@
                                 <Grid ColumnDefinitions="*,Auto">
                                     <TextBlock Grid.Column="0"
                                                Text="{Binding Title}"
-                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
                                                FontSize="14"
                                                FontWeight="Bold"
                                                TextTrimming="CharacterEllipsis" />
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding CreatedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
-                                               Foreground="{StaticResource TextMutedBrush}"
+                                               Foreground="{DynamicResource TextMutedBrush}"
                                                FontSize="11"
                                                VerticalAlignment="Center" />
                                 </Grid>
 
                                 <!-- Body -->
                                 <TextBlock Text="{Binding Body}"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
                                            FontSize="13"
                                            TextWrapping="Wrap"
                                            LineHeight="20" />
 
                                 <!-- Read indicator -->
                                 <TextBlock Text="{Binding [ReadStatus], Source={x:Static local:LocalizationManager.Instance}}"
-                                           Foreground="{StaticResource GreenBrush}"
+                                           Foreground="{DynamicResource GreenBrush}"
                                            FontSize="10"
                                            IsVisible="{Binding IsRead}"
                                            HorizontalAlignment="Right" />
