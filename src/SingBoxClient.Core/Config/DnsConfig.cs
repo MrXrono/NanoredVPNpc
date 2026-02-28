@@ -4,7 +4,7 @@ namespace SingBoxClient.Core.Config;
 
 /// <summary>
 /// Builds the sing-box DNS configuration section.
-/// Uses new DNS server format (sing-box 1.12+) with typed servers and address_resolver.
+/// Uses new DNS server format (sing-box 1.12+) with typed servers.
 /// Supports FakeIP mode for TUN operation.
 /// </summary>
 public static class DnsConfig
@@ -30,8 +30,7 @@ public static class DnsConfig
             ["type"] = "https",
             ["server"] = "dns.google",
             ["server_port"] = 443,
-            ["detour"] = "proxy",
-            ["address_resolver"] = "direct-dns"
+            ["detour"] = "proxy"
         });
 
         // Fallback: Direct UDP DNS for local/private domain resolution and DoH bootstrap
@@ -58,7 +57,14 @@ public static class DnsConfig
         // Rule evaluation order matters: first match wins.
         var rules = new JsonArray();
 
-        // 1. Route queries for private/local domain suffixes to direct DNS
+        // 1. Bootstrap: resolve DoH server domain via direct DNS to avoid circular dependency
+        rules.Add(new JsonObject
+        {
+            ["domain"] = new JsonArray { "dns.google" },
+            ["server"] = "direct-dns"
+        });
+
+        // 2. Route queries for private/local domain suffixes to direct DNS
         rules.Add(new JsonObject
         {
             ["domain_suffix"] = new JsonArray
@@ -71,7 +77,7 @@ public static class DnsConfig
             ["server"] = "direct-dns"
         });
 
-        // 2. In FakeIP mode, intercept A/AAAA queries with synthetic IPs
+        // 3. In FakeIP mode, intercept A/AAAA queries with synthetic IPs
         if (useFakeIp)
         {
             rules.Add(new JsonObject
