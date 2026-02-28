@@ -9,6 +9,7 @@ using SingBoxClient.Core.Platform;
 using SingBoxClient.Desktop.Services;
 using SingBoxClient.Desktop.ViewModels;
 using SingBoxClient.Desktop.Views;
+using Serilog.Events;
 using System;
 using System.Runtime.InteropServices;
 
@@ -32,6 +33,10 @@ public partial class App : Application
         // Load settings
         var settingsService = Services.GetRequiredService<ISettingsService>();
         settingsService.Load();
+
+        // Apply DebugMode to Serilog level switch (and re-apply on every settings save)
+        ApplyDebugMode(settingsService.Current.DebugMode);
+        settingsService.OnSettingsChanged += () => ApplyDebugMode(settingsService.Current.DebugMode);
 
         // Apply saved theme
         ApplyTheme(settingsService.Current.Theme == "dark");
@@ -88,6 +93,17 @@ public partial class App : Application
             merged[1] = langDict;
         else
             merged.Add(langDict);
+    }
+
+    /// <summary>
+    /// Sync Serilog minimum level with the DebugMode setting.
+    /// Debug=true → Verbose/Debug logs visible; Debug=false → Information and above only.
+    /// </summary>
+    private static void ApplyDebugMode(bool debugMode)
+    {
+        Program.LogLevelSwitch.MinimumLevel = debugMode
+            ? LogEventLevel.Debug
+            : LogEventLevel.Information;
     }
 
     private void ConfigureServices(ServiceCollection services)

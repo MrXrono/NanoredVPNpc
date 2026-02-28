@@ -6,11 +6,19 @@ using System.Runtime.Loader;
 using Avalonia;
 using Avalonia.ReactiveUI;
 using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 
 namespace SingBoxClient.Desktop;
 
 class Program
 {
+    /// <summary>
+    /// Serilog level switch — allows changing the minimum log level at runtime
+    /// when DebugMode is toggled in settings.
+    /// </summary>
+    public static readonly LoggingLevelSwitch LogLevelSwitch = new(LogEventLevel.Debug);
+
     [STAThread]
     public static void Main(string[] args)
     {
@@ -67,7 +75,7 @@ class Program
         // 2. Setup Serilog (absolute path — UAC changes working dir to System32)
         var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs", "app.log");
         Serilog.Log.Logger = new Serilog.LoggerConfiguration()
-            .MinimumLevel.Information()
+            .MinimumLevel.ControlledBy(LogLevelSwitch)
             .WriteTo.File(logPath,
                 rollingInterval: Serilog.RollingInterval.Infinite,
                 fileSizeLimitBytes: 10_485_760,

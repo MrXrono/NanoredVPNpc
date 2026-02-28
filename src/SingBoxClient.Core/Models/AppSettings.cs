@@ -72,7 +72,7 @@ public class AppSettings
     /// Enable verbose debug logging.
     /// </summary>
     [JsonPropertyName("debug_mode")]
-    public bool DebugMode { get; set; } = false;
+    public bool DebugMode { get; set; } = true;
 
     /// <summary>
     /// Applications excluded from TUN tunnel (bypass list).
