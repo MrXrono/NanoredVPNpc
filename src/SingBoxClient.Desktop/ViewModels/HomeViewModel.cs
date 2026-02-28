@@ -40,6 +40,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
     private DispatcherTimer? _connectionTimer;
     private DateTime _connectedSince;
     private CancellationTokenSource? _trafficCts;
+    private string? _lastSubscriptionUrl;
     private bool _disposed;
 
     // ── Properties ────────────────────────────────────────────────────────
@@ -310,6 +311,10 @@ public class HomeViewModel : ViewModelBase, IDisposable
 
         // Subscribe to connection guard status changes
         _connectionGuard.OnStatusChanged += OnConnectionStatusChanged;
+
+        // Refresh servers when subscription URL changes in settings
+        _lastSubscriptionUrl = _settingsService.Current.SubscriptionUrl;
+        _settingsService.OnSettingsChanged += OnSettingsChanged;
 
         // Load announcements
         LoadAnnouncements();
@@ -808,6 +813,19 @@ public class HomeViewModel : ViewModelBase, IDisposable
         return $"{value:F1} {units[unitIndex]}";
     }
 
+    // ── Settings Changed ─────────────────────────────────────────────────
+
+    private async void OnSettingsChanged()
+    {
+        var newUrl = _settingsService.Current.SubscriptionUrl;
+        if (string.Equals(newUrl, _lastSubscriptionUrl, StringComparison.Ordinal))
+            return;
+
+        _lastSubscriptionUrl = newUrl;
+        Logger.Information("Subscription URL changed, refreshing servers...");
+        await RefreshServersAsync();
+    }
+
     // ── IDisposable ──────────────────────────────────────────────────────
 
     public void Dispose()
@@ -817,6 +835,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
 
         _disposed = true;
 
+        _settingsService.OnSettingsChanged -= OnSettingsChanged;
         _connectionGuard.OnStatusChanged -= OnConnectionStatusChanged;
         StopConnectionTimer();
         StopTrafficStreaming();
