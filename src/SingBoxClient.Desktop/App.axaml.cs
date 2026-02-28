@@ -10,7 +10,6 @@ using SingBoxClient.Desktop.Services;
 using SingBoxClient.Desktop.ViewModels;
 using SingBoxClient.Desktop.Views;
 using System;
-using System.Globalization;
 using System.Runtime.InteropServices;
 
 namespace SingBoxClient.Desktop;
@@ -53,8 +52,10 @@ public partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
+    // MergedDictionaries layout: [0] = Theme, [1] = Language
+
     /// <summary>
-    /// Switch theme at runtime by swapping the ResourceDictionary and Avalonia theme variant.
+    /// Switch theme at runtime by replacing slot 0 in MergedDictionaries.
     /// </summary>
     public void ApplyTheme(bool isDark)
     {
@@ -63,26 +64,30 @@ public partial class App : Application
             : new Uri("avares://SingBoxClient.Desktop/Themes/LightTheme.axaml");
 
         var merged = Resources.MergedDictionaries;
-        merged.Clear();
-        merged.Add(new ResourceInclude(themeUri) { Source = themeUri });
+        var themeDict = new ResourceInclude(themeUri) { Source = themeUri };
+        if (merged.Count > 0)
+            merged[0] = themeDict;
+        else
+            merged.Add(themeDict);
 
         RequestedThemeVariant = isDark ? ThemeVariant.Dark : ThemeVariant.Light;
     }
 
     /// <summary>
-    /// Switch UI language at runtime.
+    /// Switch UI language at runtime by replacing slot 1 in MergedDictionaries.
     /// </summary>
     public void ApplyLanguage(string langCode)
     {
-        var culture = langCode switch
-        {
-            "ru" => new CultureInfo("ru-RU"),
-            _ => new CultureInfo("en-US")
-        };
+        var langUri = langCode == "ru"
+            ? new Uri("avares://SingBoxClient.Desktop/Localization/RU.axaml")
+            : new Uri("avares://SingBoxClient.Desktop/Localization/EN.axaml");
 
-        CultureInfo.CurrentUICulture = culture;
-        Thread.CurrentThread.CurrentUICulture = culture;
-        LocalizationManager.Instance.SetCulture(culture);
+        var merged = Resources.MergedDictionaries;
+        var langDict = new ResourceInclude(langUri) { Source = langUri };
+        if (merged.Count > 1)
+            merged[1] = langDict;
+        else
+            merged.Add(langDict);
     }
 
     private void ConfigureServices(ServiceCollection services)

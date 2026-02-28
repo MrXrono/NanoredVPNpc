@@ -98,7 +98,12 @@ public class HomeViewModel : ViewModelBase, IDisposable
     /// </summary>
     public ConnectionStatus Status => ConnectionStatus;
 
-    private static string L(string key) => LocalizationManager.Instance[key];
+    private static string L(string key)
+    {
+        if (Avalonia.Application.Current?.Resources.TryGetResource(key, null, out var val) == true && val is string s)
+            return s;
+        return key;
+    }
 
     private string _statusText = L("Disconnected");
     public string StatusText

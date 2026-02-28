@@ -3,7 +3,6 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
-             xmlns:local="using:SingBoxClient.Desktop"
              xmlns:conv="using:SingBoxClient.Desktop.Converters"
              x:Class="SingBoxClient.Desktop.Views.HomeView"
              x:DataType="vm:HomeViewModel"
@@ -25,16 +24,16 @@
                  Mode Bar
                  ═══════════════════════════════════════════════════════ -->
             <StackPanel Orientation="Horizontal" Spacing="16">
-                <TextBlock Text="{Binding [Mode], Source={x:Static local:LocalizationManager.Instance}}"
+                <TextBlock Text="{DynamicResource Mode}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            FontSize="13"
                            VerticalAlignment="Center" />
-                <CheckBox Content="{Binding [Proxy], Source={x:Static local:LocalizationManager.Instance}}"
+                <CheckBox Content="{DynamicResource Proxy}"
                           IsChecked="{Binding IsProxyEnabled}"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           FontSize="13"
                           VerticalAlignment="Center" />
-                <CheckBox Content="{Binding [TUN], Source={x:Static local:LocalizationManager.Instance}}"
+                <CheckBox Content="{DynamicResource TUN}"
                           IsChecked="{Binding IsTunEnabled}"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           FontSize="13"
@@ -137,7 +136,7 @@
                         CornerRadius="12"
                         Padding="16,14">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="{Binding [SubscriptionInfo], Source={x:Static local:LocalizationManager.Instance}}"
+                        <TextBlock Text="{DynamicResource SubscriptionInfo}"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontSize="14"
                                    FontWeight="SemiBold" />
@@ -159,7 +158,7 @@
                         <!-- Expires row -->
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
-                                       Text="{Binding [Expires], Source={x:Static local:LocalizationManager.Instance}}"
+                                       Text="{DynamicResource Expires}"
                                        Foreground="{DynamicResource TextMutedBrush}"
                                        FontSize="12"
                                        Width="70" />
@@ -172,7 +171,7 @@
                         <!-- Traffic row -->
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
-                                       Text="{Binding [Traffic], Source={x:Static local:LocalizationManager.Instance}}"
+                                       Text="{DynamicResource Traffic}"
                                        Foreground="{DynamicResource TextMutedBrush}"
                                        FontSize="12"
                                        Width="70" />
@@ -192,7 +191,7 @@
                                      Background="{DynamicResource BgInputBrush}" />
 
                         <!-- Renew button -->
-                        <Button Content="{Binding [Renew], Source={x:Static local:LocalizationManager.Instance}}"
+                        <Button Content="{DynamicResource Renew}"
                                 HorizontalAlignment="Left"
                                 Background="{DynamicResource AccentBrush}"
                                 Foreground="White"
@@ -211,7 +210,7 @@
                         CornerRadius="12"
                         Padding="16,14">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="{Binding [InformationServer], Source={x:Static local:LocalizationManager.Instance}}"
+                        <TextBlock Text="{DynamicResource InformationServer}"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontSize="14"
                                    FontWeight="SemiBold" />
@@ -245,7 +244,7 @@
                         </ItemsControl>
 
                         <!-- No announcements fallback -->
-                        <TextBlock Text="{Binding [NoAnnouncements], Source={x:Static local:LocalizationManager.Instance}}"
+                        <TextBlock Text="{DynamicResource NoAnnouncements}"
                                    Foreground="{DynamicResource TextMutedBrush}"
                                    FontSize="12"
                                    IsVisible="{Binding !HasAnnouncements}"
@@ -263,7 +262,7 @@
                     CornerRadius="12"
                     Padding="16,14">
                 <StackPanel Spacing="10">
-                    <TextBlock Text="{Binding [SelectServer], Source={x:Static local:LocalizationManager.Instance}}"
+                    <TextBlock Text="{DynamicResource SelectServer}"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                FontSize="14"
                                FontWeight="SemiBold" />

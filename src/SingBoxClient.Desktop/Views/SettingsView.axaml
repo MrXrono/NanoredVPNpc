@@ -3,7 +3,6 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
-             xmlns:local="using:SingBoxClient.Desktop"
              x:Class="SingBoxClient.Desktop.Views.SettingsView"
              x:DataType="vm:SettingsViewModel"
              mc:Ignorable="d"
@@ -17,7 +16,7 @@
                  Header
                  ═══════════════════════════════════════════════════════ -->
             <TextBlock DockPanel.Dock="Top"
-                       Text="{Binding [Settings], Source={x:Static local:LocalizationManager.Instance}}"
+                       Text="{DynamicResource Settings}"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        FontSize="18"
                        FontWeight="SemiBold"
@@ -31,14 +30,14 @@
                         HorizontalAlignment="Right"
                         Spacing="10"
                         Margin="0,20,0,0">
-                <Button Content="{Binding [Cancel], Source={x:Static local:LocalizationManager.Instance}}"
+                <Button Content="{DynamicResource Cancel}"
                         Background="{DynamicResource BgInputBrush}"
                         Foreground="{DynamicResource TextSecondaryBrush}"
                         CornerRadius="8"
                         Padding="20,8"
                         FontSize="13"
                         Command="{Binding CancelCommand}" />
-                <Button Content="{Binding [Save], Source={x:Static local:LocalizationManager.Instance}}"
+                <Button Content="{DynamicResource Save}"
                         Background="{DynamicResource AccentBrush}"
                         Foreground="White"
                         CornerRadius="8"
@@ -59,14 +58,14 @@
                         CornerRadius="12"
                         Padding="18,14">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="{Binding [ProxyConfiguration], Source={x:Static local:LocalizationManager.Instance}}"
+                        <TextBlock Text="{DynamicResource ProxyConfiguration}"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontSize="14"
                                    FontWeight="SemiBold" />
 
                         <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto">
                             <TextBlock Grid.Column="0"
-                                       Text="{Binding [LocalProxyPort], Source={x:Static local:LocalizationManager.Instance}}"
+                                       Text="{DynamicResource LocalProxyPort}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
@@ -96,7 +95,7 @@
                         CornerRadius="12"
                         Padding="18,14">
                     <StackPanel Spacing="14">
-                        <TextBlock Text="{Binding [General], Source={x:Static local:LocalizationManager.Instance}}"
+                        <TextBlock Text="{DynamicResource General}"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontSize="14"
                                    FontWeight="SemiBold" />
@@ -104,7 +103,7 @@
                         <!-- Language -->
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
-                                       Text="{Binding [Language], Source={x:Static local:LocalizationManager.Instance}}"
+                                       Text="{DynamicResource Language}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
@@ -125,7 +124,7 @@
                         <!-- Minimize to tray -->
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
-                                       Text="{Binding [MinimizeToTray], Source={x:Static local:LocalizationManager.Instance}}"
+                                       Text="{DynamicResource MinimizeToTray}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
@@ -140,7 +139,7 @@
                         <!-- Start with Windows -->
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
-                                       Text="{Binding [StartWithWindows], Source={x:Static local:LocalizationManager.Instance}}"
+                                       Text="{DynamicResource StartWithWindows}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
@@ -155,7 +154,7 @@
                         <!-- Auto-connect -->
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
-                                       Text="{Binding [AutoConnect], Source={x:Static local:LocalizationManager.Instance}}"
+                                       Text="{DynamicResource AutoConnect}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
@@ -170,7 +169,7 @@
                         <!-- Debug mode -->
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
-                                       Text="{Binding [DebugMode], Source={x:Static local:LocalizationManager.Instance}}"
+                                       Text="{DynamicResource DebugMode}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
@@ -191,7 +190,7 @@
                         CornerRadius="12"
                         Padding="18,14">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="{Binding [Subscription], Source={x:Static local:LocalizationManager.Instance}}"
+                        <TextBlock Text="{DynamicResource Subscription}"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontSize="14"
                                    FontWeight="SemiBold" />
@@ -206,9 +205,9 @@
                                      CornerRadius="8"
                                      Padding="12,8"
                                      FontSize="12"
-                                     Watermark="{Binding [NoSubscriptionUrl], Source={x:Static local:LocalizationManager.Instance}}" />
+                                     Watermark="{DynamicResource NoSubscriptionUrl}" />
                             <Button Grid.Column="1"
-                                    Content="{Binding [Copy], Source={x:Static local:LocalizationManager.Instance}}"
+                                    Content="{DynamicResource Copy}"
                                     Background="{DynamicResource AccentBrush}"
                                     Foreground="White"
                                     CornerRadius="8"
@@ -218,7 +217,7 @@
                                     Command="{Binding CopySubscriptionUrlCommand}" />
                         </Grid>
 
-                        <TextBlock Text="{Binding [SubscriptionUrlNote], Source={x:Static local:LocalizationManager.Instance}}"
+                        <TextBlock Text="{DynamicResource SubscriptionUrlNote}"
                                    Foreground="{DynamicResource TextMutedBrush}"
                                    FontSize="11"
                                    TextWrapping="Wrap" />

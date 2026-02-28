@@ -3,7 +3,6 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
-             xmlns:local="using:SingBoxClient.Desktop"
              xmlns:models="using:SingBoxClient.Core.Models"
              x:Class="SingBoxClient.Desktop.Views.RoutingView"
              x:DataType="vm:RoutingViewModel"
@@ -18,7 +17,7 @@
         <StackPanel DockPanel.Dock="Top" Spacing="12" Margin="0,0,0,16">
             <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Grid.Column="0"
-                           Text="{Binding [RoutingRules], Source={x:Static local:LocalizationManager.Instance}}"
+                           Text="{DynamicResource RoutingRules}"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            FontSize="18"
                            FontWeight="SemiBold"
@@ -29,7 +28,7 @@
                             Spacing="12"
                             VerticalAlignment="Center">
                     <!-- Remote config toggle -->
-                    <TextBlock Text="{Binding [RemoteConfig], Source={x:Static local:LocalizationManager.Instance}}"
+                    <TextBlock Text="{DynamicResource RemoteConfig}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                FontSize="12"
                                VerticalAlignment="Center" />
@@ -39,7 +38,7 @@
                                   VerticalAlignment="Center" />
 
                     <!-- Sync button -->
-                    <Button Content="{Binding [Sync], Source={x:Static local:LocalizationManager.Instance}}"
+                    <Button Content="{DynamicResource Sync}"
                             Background="{DynamicResource AccentBrush}"
                             Foreground="White"
                             CornerRadius="8"
@@ -49,7 +48,7 @@
                 </StackPanel>
             </Grid>
 
-            <TextBlock Text="{Binding [RoutingDescription], Source={x:Static local:LocalizationManager.Instance}}"
+            <TextBlock Text="{DynamicResource RoutingDescription}"
                        Foreground="{DynamicResource TextMutedBrush}"
                        FontSize="12" />
         </StackPanel>
@@ -62,14 +61,14 @@
                     HorizontalAlignment="Right"
                     Spacing="10"
                     Margin="0,16,0,0">
-            <Button Content="{Binding [Cancel], Source={x:Static local:LocalizationManager.Instance}}"
+            <Button Content="{DynamicResource Cancel}"
                     Background="{DynamicResource BgInputBrush}"
                     Foreground="{DynamicResource TextSecondaryBrush}"
                     CornerRadius="8"
                     Padding="20,8"
                     FontSize="13"
                     Command="{Binding CancelCommand}" />
-            <Button Content="{Binding [Save], Source={x:Static local:LocalizationManager.Instance}}"
+            <Button Content="{DynamicResource Save}"
                     Background="{DynamicResource AccentBrush}"
                     Foreground="White"
                     CornerRadius="8"
@@ -90,7 +89,7 @@
                 Margin="0,12,0,0">
             <Grid ColumnDefinitions="*,12,Auto">
                 <TextBox Grid.Column="0"
-                         Watermark="{Binding [RulePlaceholder], Source={x:Static local:LocalizationManager.Instance}}"
+                         Watermark="{DynamicResource RulePlaceholder}"
                          Text="{Binding NewRuleValue}"
                          Background="{DynamicResource BgInputBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
@@ -99,7 +98,7 @@
                          Padding="12,8"
                          FontSize="13" />
                 <Button Grid.Column="2"
-                        Content="{Binding [AddRule], Source={x:Static local:LocalizationManager.Instance}}"
+                        Content="{DynamicResource AddRule}"
                         Background="{DynamicResource AccentBrush}"
                         Foreground="White"
                         CornerRadius="8"

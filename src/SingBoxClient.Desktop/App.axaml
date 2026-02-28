@@ -9,7 +9,10 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <!-- Slot 0: Theme colors -->
                 <ResourceInclude Source="avares://SingBoxClient.Desktop/Themes/DarkTheme.axaml" />
+                <!-- Slot 1: Language strings -->
+                <ResourceInclude Source="avares://SingBoxClient.Desktop/Localization/EN.axaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

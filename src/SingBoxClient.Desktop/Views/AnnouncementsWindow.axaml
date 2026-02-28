@@ -3,12 +3,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
-        xmlns:local="using:SingBoxClient.Desktop"
         x:Class="SingBoxClient.Desktop.Views.AnnouncementsWindow"
         x:DataType="vm:AnnouncementsViewModel"
         mc:Ignorable="d"
         d:DesignWidth="500" d:DesignHeight="400"
-        Title="{Binding [Announcements], Source={x:Static local:LocalizationManager.Instance}}"
+        Title="{DynamicResource Announcements}"
         Width="500" Height="400"
         MinWidth="400" MinHeight="300"
         Background="{DynamicResource BgMainBrush}"
@@ -24,7 +23,7 @@
               ColumnDefinitions="*,Auto"
               Margin="0,0,0,16">
             <TextBlock Grid.Column="0"
-                       Text="{Binding [Announcements], Source={x:Static local:LocalizationManager.Instance}}"
+                       Text="{DynamicResource Announcements}"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        FontSize="18"
                        FontWeight="SemiBold"
@@ -39,14 +38,14 @@
                     HorizontalAlignment="Right"
                     Spacing="10"
                     Margin="0,16,0,0">
-            <Button Content="{Binding [MarkAllRead], Source={x:Static local:LocalizationManager.Instance}}"
+            <Button Content="{DynamicResource MarkAllRead}"
                     Background="{DynamicResource BgInputBrush}"
                     Foreground="{DynamicResource TextSecondaryBrush}"
                     CornerRadius="8"
                     Padding="16,8"
                     FontSize="13"
                     Command="{Binding MarkAllReadCommand}" />
-            <Button Content="{Binding [Close], Source={x:Static local:LocalizationManager.Instance}}"
+            <Button Content="{DynamicResource Close}"
                     Background="{DynamicResource AccentBrush}"
                     Foreground="White"
                     CornerRadius="8"
@@ -93,7 +92,7 @@
                                            LineHeight="20" />
 
                                 <!-- Read indicator -->
-                                <TextBlock Text="{Binding [ReadStatus], Source={x:Static local:LocalizationManager.Instance}}"
+                                <TextBlock Text="{DynamicResource ReadStatus}"
                                            Foreground="{DynamicResource GreenBrush}"
                                            FontSize="10"
                                            IsVisible="{Binding IsRead}"

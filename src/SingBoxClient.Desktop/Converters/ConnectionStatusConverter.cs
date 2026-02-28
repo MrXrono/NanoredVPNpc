@@ -1,18 +1,24 @@
 namespace SingBoxClient.Desktop.Converters;
 
+using Avalonia;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 using SingBoxClient.Core.Models;
-using SingBoxClient.Desktop;
 using System;
 using System.Globalization;
 
 /// <summary>
 /// Converts ConnectionStatus enum to a localized display string.
+/// Reads from Application.Resources (DynamicResource-backed language dictionaries).
 /// </summary>
 public class ConnectionStatusToStringConverter : IValueConverter
 {
-    private static string L(string key) => LocalizationManager.Instance[key];
+    private static string L(string key)
+    {
+        if (Application.Current?.Resources.TryGetResource(key, null, out var val) == true && val is string s)
+            return s;
+        return key;
+    }
 
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {

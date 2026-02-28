@@ -3,7 +3,6 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
-             xmlns:local="using:SingBoxClient.Desktop"
              x:Class="SingBoxClient.Desktop.Views.TunSettingsView"
              x:DataType="vm:TunSettingsViewModel"
              mc:Ignorable="d"
@@ -15,11 +14,11 @@
              Header
              ═══════════════════════════════════════════════════════ -->
         <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,16">
-            <TextBlock Text="{Binding [TunPerAppRules], Source={x:Static local:LocalizationManager.Instance}}"
+            <TextBlock Text="{DynamicResource TunPerAppRules}"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        FontSize="18"
                        FontWeight="SemiBold" />
-            <TextBlock Text="{Binding [TunDescription], Source={x:Static local:LocalizationManager.Instance}}"
+            <TextBlock Text="{DynamicResource TunDescription}"
                        Foreground="{DynamicResource TextMutedBrush}"
                        FontSize="12"
                        TextWrapping="Wrap" />
@@ -33,7 +32,7 @@
             <Border Background="{DynamicResource BgInputBrush}"
                     CornerRadius="8"
                     Padding="12,8">
-                <TextBlock Text="{Binding [TunNote], Source={x:Static local:LocalizationManager.Instance}}"
+                <TextBlock Text="{DynamicResource TunNote}"
                            Foreground="{DynamicResource TextMutedBrush}"
                            FontSize="11"
                            TextWrapping="Wrap" />
@@ -43,14 +42,14 @@
             <StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Right"
                         Spacing="10">
-                <Button Content="{Binding [Cancel], Source={x:Static local:LocalizationManager.Instance}}"
+                <Button Content="{DynamicResource Cancel}"
                         Background="{DynamicResource BgInputBrush}"
                         Foreground="{DynamicResource TextSecondaryBrush}"
                         CornerRadius="8"
                         Padding="20,8"
                         FontSize="13"
                         Command="{Binding CancelCommand}" />
-                <Button Content="{Binding [Save], Source={x:Static local:LocalizationManager.Instance}}"
+                <Button Content="{DynamicResource Save}"
                         Background="{DynamicResource AccentBrush}"
                         Foreground="White"
                         CornerRadius="8"
@@ -79,12 +78,12 @@
                                 CornerRadius="4"
                                 Padding="8,4"
                                 HorizontalAlignment="Left">
-                            <TextBlock Text="{Binding [BypassProxy], Source={x:Static local:LocalizationManager.Instance}}"
+                            <TextBlock Text="{DynamicResource BypassProxy}"
                                        Foreground="White"
                                        FontSize="12"
                                        FontWeight="SemiBold" />
                         </Border>
-                        <TextBlock Text="{Binding [BypassDescription], Source={x:Static local:LocalizationManager.Instance}}"
+                        <TextBlock Text="{DynamicResource BypassDescription}"
                                    Foreground="{DynamicResource TextMutedBrush}"
                                    FontSize="11"
                                    TextWrapping="Wrap" />
@@ -120,12 +119,12 @@
                                 CornerRadius="4"
                                 Padding="8,4"
                                 HorizontalAlignment="Left">
-                            <TextBlock Text="{Binding [RouteViaProxy], Source={x:Static local:LocalizationManager.Instance}}"
+                            <TextBlock Text="{DynamicResource RouteViaProxy}"
                                        Foreground="White"
                                        FontSize="12"
                                        FontWeight="SemiBold" />
                         </Border>
-                        <TextBlock Text="{Binding [RouteViaDescription], Source={x:Static local:LocalizationManager.Instance}}"
+                        <TextBlock Text="{DynamicResource RouteViaDescription}"
                                    Foreground="{DynamicResource TextMutedBrush}"
                                    FontSize="11"
                                    TextWrapping="Wrap" />
@@ -161,12 +160,12 @@
                                 CornerRadius="4"
                                 Padding="8,4"
                                 HorizontalAlignment="Left">
-                            <TextBlock Text="{Binding [BlockTraffic], Source={x:Static local:LocalizationManager.Instance}}"
+                            <TextBlock Text="{DynamicResource BlockTraffic}"
                                        Foreground="White"
                                        FontSize="12"
                                        FontWeight="SemiBold" />
                         </Border>
-                        <TextBlock Text="{Binding [BlockDescription], Source={x:Static local:LocalizationManager.Instance}}"
+                        <TextBlock Text="{DynamicResource BlockDescription}"
                                    Foreground="{DynamicResource TextMutedBrush}"
                                    FontSize="11"
                                    TextWrapping="Wrap" />

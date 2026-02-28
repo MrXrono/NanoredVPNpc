@@ -1,0 +1,94 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="using:System">
+    <!-- Connection -->
+    <sys:String x:Key="Connect">Подключить</sys:String>
+    <sys:String x:Key="Disconnect">Отключить</sys:String>
+    <sys:String x:Key="Connected">Подключено</sys:String>
+    <sys:String x:Key="Disconnected">Отключено</sys:String>
+    <sys:String x:Key="Connecting">Подключение...</sys:String>
+    <sys:String x:Key="Disconnecting">Отключение...</sys:String>
+    <sys:String x:Key="Reconnecting">Переподключение...</sys:String>
+    <sys:String x:Key="ConnectionLost">Соединение потеряно</sys:String>
+    <sys:String x:Key="ConnectionError">Ошибка подключения</sys:String>
+    <sys:String x:Key="Unknown">Неизвестно</sys:String>
+
+    <!-- Navigation -->
+    <sys:String x:Key="Home">Главная</sys:String>
+    <sys:String x:Key="Route">Маршрут</sys:String>
+    <sys:String x:Key="Routing">Маршрутизация</sys:String>
+    <sys:String x:Key="TUN">TUN</sys:String>
+    <sys:String x:Key="TunSettings">Настройки TUN</sys:String>
+    <sys:String x:Key="Logs">Логи</sys:String>
+    <sys:String x:Key="Settings">Настройки</sys:String>
+    <sys:String x:Key="Setup">Настройки</sys:String>
+
+    <!-- Home -->
+    <sys:String x:Key="Mode">Режим</sys:String>
+    <sys:String x:Key="Proxy">Прокси</sys:String>
+    <sys:String x:Key="SubscriptionInfo">Подписка</sys:String>
+    <sys:String x:Key="Expires">Истекает:</sys:String>
+    <sys:String x:Key="Traffic">Трафик:</sys:String>
+    <sys:String x:Key="Renew">Продлить</sys:String>
+    <sys:String x:Key="InformationServer">Информация</sys:String>
+    <sys:String x:Key="NoAnnouncements">Нет объявлений</sys:String>
+    <sys:String x:Key="SelectServer">Выбор сервера</sys:String>
+
+    <!-- Routing -->
+    <sys:String x:Key="RoutingRules">Правила маршрутизации</sys:String>
+    <sys:String x:Key="RemoteConfig">Удалённая конфигурация</sys:String>
+    <sys:String x:Key="Sync">Синхронизация</sys:String>
+    <sys:String x:Key="RoutingDescription">Настройте маршрутизацию трафика через VPN-туннель.</sys:String>
+    <sys:String x:Key="AddRule">+ Добавить правило</sys:String>
+    <sys:String x:Key="RulePlaceholder">Введите домен, IP CIDR или GeoIP код...</sys:String>
+    <sys:String x:Key="Type">Тип</sys:String>
+    <sys:String x:Key="Value">Значение</sys:String>
+    <sys:String x:Key="Source">Источник</sys:String>
+    <sys:String x:Key="Action">Действие</sys:String>
+    <sys:String x:Key="On">Вкл</sys:String>
+
+    <!-- Common -->
+    <sys:String x:Key="Save">Сохранить</sys:String>
+    <sys:String x:Key="Cancel">Отмена</sys:String>
+    <sys:String x:Key="Copy">Копировать</sys:String>
+    <sys:String x:Key="Clear">Очистить</sys:String>
+
+    <!-- Settings -->
+    <sys:String x:Key="ProxyConfiguration">Настройки прокси</sys:String>
+    <sys:String x:Key="LocalProxyPort">Локальный порт прокси</sys:String>
+    <sys:String x:Key="General">Общие</sys:String>
+    <sys:String x:Key="Language">Язык</sys:String>
+    <sys:String x:Key="MinimizeToTray">Сворачивать в трей</sys:String>
+    <sys:String x:Key="StartWithWindows">Запускать с Windows</sys:String>
+    <sys:String x:Key="AutoConnect">Автоподключение</sys:String>
+    <sys:String x:Key="DebugMode">Режим отладки</sys:String>
+    <sys:String x:Key="Subscription">Подписка</sys:String>
+    <sys:String x:Key="SubscriptionUrl">URL подписки</sys:String>
+    <sys:String x:Key="NoSubscriptionUrl">URL подписки не настроен</sys:String>
+    <sys:String x:Key="SubscriptionUrlNote">Этот URL используется для получения конфигурации серверов. Не передавайте его посторонним.</sys:String>
+
+    <!-- TUN Settings -->
+    <sys:String x:Key="TunPerAppRules">TUN — Правила для приложений</sys:String>
+    <sys:String x:Key="TunDescription">Укажите по одному приложению на строку (имя процесса или полный путь). Правила работают только в режиме TUN.</sys:String>
+    <sys:String x:Key="TunNote">Примечание: имена процессов нечувствительны к регистру. Используйте полное имя файла (например, chrome.exe, firefox.exe). Изменения вступят в силу после переподключения.</sys:String>
+    <sys:String x:Key="BypassProxy">Мимо прокси</sys:String>
+    <sys:String x:Key="BypassDescription">Эти приложения НЕ будут использовать VPN-туннель.</sys:String>
+    <sys:String x:Key="RouteViaProxy">Через прокси</sys:String>
+    <sys:String x:Key="RouteViaDescription">Только эти приложения будут использовать VPN-туннель.</sys:String>
+    <sys:String x:Key="BlockTraffic">Блокировать</sys:String>
+    <sys:String x:Key="BlockDescription">Весь трафик этих приложений будет заблокирован.</sys:String>
+
+    <!-- Logs -->
+    <sys:String x:Key="AutoScroll">Авто-прокрутка</sys:String>
+
+    <!-- Announcements -->
+    <sys:String x:Key="Announcements">Объявления</sys:String>
+    <sys:String x:Key="MarkAllRead">Прочитать все</sys:String>
+    <sys:String x:Key="Close">Закрыть</sys:String>
+    <sys:String x:Key="ReadStatus">Прочитано</sys:String>
+
+    <!-- Window -->
+    <sys:String x:Key="ToggleTheme">Переключить тему</sys:String>
+    <sys:String x:Key="Minimize">Свернуть</sys:String>
+    <sys:String x:Key="Maximize">Развернуть</sys:String>
+</ResourceDictionary>

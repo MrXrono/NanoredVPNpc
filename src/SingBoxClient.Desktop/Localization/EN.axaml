@@ -1,0 +1,94 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="using:System">
+    <!-- Connection -->
+    <sys:String x:Key="Connect">Connect</sys:String>
+    <sys:String x:Key="Disconnect">Disconnect</sys:String>
+    <sys:String x:Key="Connected">Connected</sys:String>
+    <sys:String x:Key="Disconnected">Disconnected</sys:String>
+    <sys:String x:Key="Connecting">Connecting...</sys:String>
+    <sys:String x:Key="Disconnecting">Disconnecting...</sys:String>
+    <sys:String x:Key="Reconnecting">Reconnecting...</sys:String>
+    <sys:String x:Key="ConnectionLost">Connection lost</sys:String>
+    <sys:String x:Key="ConnectionError">Connection Error</sys:String>
+    <sys:String x:Key="Unknown">Unknown</sys:String>
+
+    <!-- Navigation -->
+    <sys:String x:Key="Home">Home</sys:String>
+    <sys:String x:Key="Route">Route</sys:String>
+    <sys:String x:Key="Routing">Routing</sys:String>
+    <sys:String x:Key="TUN">TUN</sys:String>
+    <sys:String x:Key="TunSettings">TUN Settings</sys:String>
+    <sys:String x:Key="Logs">Logs</sys:String>
+    <sys:String x:Key="Settings">Settings</sys:String>
+    <sys:String x:Key="Setup">Setup</sys:String>
+
+    <!-- Home -->
+    <sys:String x:Key="Mode">Mode</sys:String>
+    <sys:String x:Key="Proxy">Proxy</sys:String>
+    <sys:String x:Key="SubscriptionInfo">Subscription Info</sys:String>
+    <sys:String x:Key="Expires">Expires:</sys:String>
+    <sys:String x:Key="Traffic">Traffic:</sys:String>
+    <sys:String x:Key="Renew">Renew</sys:String>
+    <sys:String x:Key="InformationServer">Information Server</sys:String>
+    <sys:String x:Key="NoAnnouncements">No announcements</sys:String>
+    <sys:String x:Key="SelectServer">Select Server</sys:String>
+
+    <!-- Routing -->
+    <sys:String x:Key="RoutingRules">Routing Rules</sys:String>
+    <sys:String x:Key="RemoteConfig">Remote Config</sys:String>
+    <sys:String x:Key="Sync">Sync</sys:String>
+    <sys:String x:Key="RoutingDescription">Configure how traffic is routed through the VPN tunnel.</sys:String>
+    <sys:String x:Key="AddRule">+ Add Rule</sys:String>
+    <sys:String x:Key="RulePlaceholder">Enter domain, IP CIDR, or GeoIP code...</sys:String>
+    <sys:String x:Key="Type">Type</sys:String>
+    <sys:String x:Key="Value">Value</sys:String>
+    <sys:String x:Key="Source">Source</sys:String>
+    <sys:String x:Key="Action">Action</sys:String>
+    <sys:String x:Key="On">On</sys:String>
+
+    <!-- Common -->
+    <sys:String x:Key="Save">Save</sys:String>
+    <sys:String x:Key="Cancel">Cancel</sys:String>
+    <sys:String x:Key="Copy">Copy</sys:String>
+    <sys:String x:Key="Clear">Clear</sys:String>
+
+    <!-- Settings -->
+    <sys:String x:Key="ProxyConfiguration">Proxy Configuration</sys:String>
+    <sys:String x:Key="LocalProxyPort">Local Proxy Port</sys:String>
+    <sys:String x:Key="General">General</sys:String>
+    <sys:String x:Key="Language">Language</sys:String>
+    <sys:String x:Key="MinimizeToTray">Minimize to tray</sys:String>
+    <sys:String x:Key="StartWithWindows">Start with Windows</sys:String>
+    <sys:String x:Key="AutoConnect">Auto-connect</sys:String>
+    <sys:String x:Key="DebugMode">Debug mode</sys:String>
+    <sys:String x:Key="Subscription">Subscription</sys:String>
+    <sys:String x:Key="SubscriptionUrl">Subscription URL</sys:String>
+    <sys:String x:Key="NoSubscriptionUrl">No subscription URL configured</sys:String>
+    <sys:String x:Key="SubscriptionUrlNote">This URL is used to fetch server configurations. Share it carefully.</sys:String>
+
+    <!-- TUN Settings -->
+    <sys:String x:Key="TunPerAppRules">TUN — Per-App Rules</sys:String>
+    <sys:String x:Key="TunDescription">Specify one application per line (process name or full path). Rules apply in TUN mode only.</sys:String>
+    <sys:String x:Key="TunNote">Note: Process names are case-insensitive. Use the full executable name (e.g., chrome.exe, firefox.exe). Changes take effect after reconnecting.</sys:String>
+    <sys:String x:Key="BypassProxy">Bypass Proxy</sys:String>
+    <sys:String x:Key="BypassDescription">These apps will NOT use the VPN tunnel.</sys:String>
+    <sys:String x:Key="RouteViaProxy">Route via Proxy</sys:String>
+    <sys:String x:Key="RouteViaDescription">Only these apps will use the VPN tunnel.</sys:String>
+    <sys:String x:Key="BlockTraffic">Block Traffic</sys:String>
+    <sys:String x:Key="BlockDescription">All traffic from these apps will be blocked.</sys:String>
+
+    <!-- Logs -->
+    <sys:String x:Key="AutoScroll">Auto-scroll</sys:String>
+
+    <!-- Announcements -->
+    <sys:String x:Key="Announcements">Announcements</sys:String>
+    <sys:String x:Key="MarkAllRead">Mark All Read</sys:String>
+    <sys:String x:Key="Close">Close</sys:String>
+    <sys:String x:Key="ReadStatus">Read</sys:String>
+
+    <!-- Window -->
+    <sys:String x:Key="ToggleTheme">Toggle Theme</sys:String>
+    <sys:String x:Key="Minimize">Minimize</sys:String>
+    <sys:String x:Key="Maximize">Maximize</sys:String>
+</ResourceDictionary>

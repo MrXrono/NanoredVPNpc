@@ -3,7 +3,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
-        xmlns:local="using:SingBoxClient.Desktop"
         xmlns:views="using:SingBoxClient.Desktop.Views"
         x:Class="SingBoxClient.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
@@ -49,7 +48,7 @@
                             BorderThickness="1"
                             CornerRadius="8"
                             Padding="10,5"
-                            ToolTip.Tip="{Binding [ToggleTheme], Source={x:Static local:LocalizationManager.Instance}}"
+                            ToolTip.Tip="{DynamicResource ToggleTheme}"
                             Command="{Binding ToggleThemeCommand}">
                         <Panel>
                             <TextBlock Text="&#x2600;"
@@ -67,7 +66,7 @@
 
                     <!-- Minimize -->
                     <Button Classes="titlebar-btn"
-                            ToolTip.Tip="{Binding [Minimize], Source={x:Static local:LocalizationManager.Instance}}"
+                            ToolTip.Tip="{DynamicResource Minimize}"
                             Command="{Binding MinimizeCommand}">
                         <TextBlock Text="&#x2500;"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
@@ -76,7 +75,7 @@
 
                     <!-- Maximize -->
                     <Button Classes="titlebar-btn"
-                            ToolTip.Tip="{Binding [Maximize], Source={x:Static local:LocalizationManager.Instance}}"
+                            ToolTip.Tip="{DynamicResource Maximize}"
                             Command="{Binding MaximizeCommand}">
                         <TextBlock Text="&#x25A1;"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
@@ -85,7 +84,7 @@
 
                     <!-- Close -->
                     <Button Classes="titlebar-btn close-btn"
-                            ToolTip.Tip="{Binding [Close], Source={x:Static local:LocalizationManager.Instance}}"
+                            ToolTip.Tip="{DynamicResource Close}"
                             Command="{Binding CloseCommand}">
                         <TextBlock Text="&#x2715;"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
@@ -114,14 +113,14 @@
                     <Button Classes="nav-button"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="Home"
-                            ToolTip.Tip="{Binding [Home], Source={x:Static local:LocalizationManager.Instance}}"
+                            ToolTip.Tip="{DynamicResource Home}"
                             IsEnabled="{Binding IsNotNavigating}">
                         <StackPanel HorizontalAlignment="Center" Spacing="2">
                             <TextBlock Text="&#x2302;"
                                        FontSize="20"
                                        HorizontalAlignment="Center"
                                        Foreground="{DynamicResource TextSecondaryBrush}" />
-                            <TextBlock Text="{Binding [Home], Source={x:Static local:LocalizationManager.Instance}}"
+                            <TextBlock Text="{DynamicResource Home}"
                                        FontSize="9"
                                        HorizontalAlignment="Center"
                                        Foreground="{DynamicResource TextMutedBrush}" />
@@ -132,14 +131,14 @@
                     <Button Classes="nav-button"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="Routing"
-                            ToolTip.Tip="{Binding [Routing], Source={x:Static local:LocalizationManager.Instance}}"
+                            ToolTip.Tip="{DynamicResource Routing}"
                             IsEnabled="{Binding IsNotNavigating}">
                         <StackPanel HorizontalAlignment="Center" Spacing="2">
                             <TextBlock Text="&#x21C4;"
                                        FontSize="20"
                                        HorizontalAlignment="Center"
                                        Foreground="{DynamicResource TextSecondaryBrush}" />
-                            <TextBlock Text="{Binding [Route], Source={x:Static local:LocalizationManager.Instance}}"
+                            <TextBlock Text="{DynamicResource Route}"
                                        FontSize="9"
                                        HorizontalAlignment="Center"
                                        Foreground="{DynamicResource TextMutedBrush}" />
@@ -150,14 +149,14 @@
                     <Button Classes="nav-button"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="TunSettings"
-                            ToolTip.Tip="{Binding [TunSettings], Source={x:Static local:LocalizationManager.Instance}}"
+                            ToolTip.Tip="{DynamicResource TunSettings}"
                             IsEnabled="{Binding IsNotNavigating}">
                         <StackPanel HorizontalAlignment="Center" Spacing="2">
                             <TextBlock Text="&#x26A1;"
                                        FontSize="20"
                                        HorizontalAlignment="Center"
                                        Foreground="{DynamicResource TextSecondaryBrush}" />
-                            <TextBlock Text="{Binding [TUN], Source={x:Static local:LocalizationManager.Instance}}"
+                            <TextBlock Text="{DynamicResource TUN}"
                                        FontSize="9"
                                        HorizontalAlignment="Center"
                                        Foreground="{DynamicResource TextMutedBrush}" />
@@ -168,14 +167,14 @@
                     <Button Classes="nav-button"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="Logs"
-                            ToolTip.Tip="{Binding [Logs], Source={x:Static local:LocalizationManager.Instance}}"
+                            ToolTip.Tip="{DynamicResource Logs}"
                             IsEnabled="{Binding IsNotNavigating}">
                         <StackPanel HorizontalAlignment="Center" Spacing="2">
                             <TextBlock Text="&#x2263;"
                                        FontSize="20"
                                        HorizontalAlignment="Center"
                                        Foreground="{DynamicResource TextSecondaryBrush}" />
-                            <TextBlock Text="{Binding [Logs], Source={x:Static local:LocalizationManager.Instance}}"
+                            <TextBlock Text="{DynamicResource Logs}"
                                        FontSize="9"
                                        HorizontalAlignment="Center"
                                        Foreground="{DynamicResource TextMutedBrush}" />
@@ -186,14 +185,14 @@
                     <Button Classes="nav-button"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="Settings"
-                            ToolTip.Tip="{Binding [Settings], Source={x:Static local:LocalizationManager.Instance}}"
+                            ToolTip.Tip="{DynamicResource Settings}"
                             IsEnabled="{Binding IsNotNavigating}">
                         <StackPanel HorizontalAlignment="Center" Spacing="2">
                             <TextBlock Text="&#x2699;"
                                        FontSize="20"
                                        HorizontalAlignment="Center"
                                        Foreground="{DynamicResource TextSecondaryBrush}" />
-                            <TextBlock Text="{Binding [Setup], Source={x:Static local:LocalizationManager.Instance}}"
+                            <TextBlock Text="{DynamicResource Setup}"
                                        FontSize="9"
                                        HorizontalAlignment="Center"
                                        Foreground="{DynamicResource TextMutedBrush}" />
