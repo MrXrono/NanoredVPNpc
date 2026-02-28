@@ -50,28 +50,23 @@ public static class DnsConfig
         }
 
         // --- DNS Rules ---
+        // Rule evaluation order matters: first match wins.
         var rules = new JsonArray();
 
-        // Private/local domains always resolve via direct DNS
-        rules.Add(new JsonObject
-        {
-            ["outbound"] = new JsonArray { "any" },
-            ["server"] = "direct-dns"
-        });
-
-        // Route queries for private domain suffixes to direct DNS
+        // 1. Route queries for private/local domain suffixes to direct DNS
         rules.Add(new JsonObject
         {
             ["domain_suffix"] = new JsonArray
             {
                 ".local",
                 ".localhost",
-                ".internal"
+                ".internal",
+                ".lan"
             },
             ["server"] = "direct-dns"
         });
 
-        // In FakeIP mode, all non-direct queries get fake IPs for interception
+        // 2. In FakeIP mode, intercept A/AAAA queries with synthetic IPs
         if (useFakeIp)
         {
             rules.Add(new JsonObject
@@ -80,6 +75,14 @@ public static class DnsConfig
                 ["server"] = "fakeip"
             });
         }
+
+        // 3. Fallback: queries triggered by any outbound (e.g. direct) use direct DNS
+        // This MUST be last — it matches all remaining queries.
+        rules.Add(new JsonObject
+        {
+            ["outbound"] = new JsonArray { "any" },
+            ["server"] = "direct-dns"
+        });
 
         // --- Assemble DNS config ---
         var dns = new JsonObject

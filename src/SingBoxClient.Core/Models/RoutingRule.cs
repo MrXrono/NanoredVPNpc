@@ -13,7 +13,8 @@ public enum RuleType
     DomainSuffix = 1,
     IpCidr = 2,
     GeoIP = 3,
-    GeoSite = 4
+    GeoSite = 4,
+    RuleSet = 5
 }
 
 /// <summary>

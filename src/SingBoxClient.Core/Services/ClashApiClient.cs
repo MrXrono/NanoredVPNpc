@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using System.Text.Json;
 using Serilog;
 using SingBoxClient.Core.Constants;
@@ -17,9 +16,12 @@ public interface IClashApiClient
     Task<bool> HealthCheckAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// Fetch current real-time traffic statistics.
+    /// Start streaming traffic stats from the /traffic endpoint.
+    /// Invokes <paramref name="onStats"/> on each update (~1/sec from sing-box).
+    /// Runs until <paramref name="ct"/> is cancelled or the stream ends.
+    /// Automatically reconnects on transient failures.
     /// </summary>
-    Task<TrafficStats> GetTrafficAsync();
+    Task StreamTrafficAsync(Action<TrafficStats> onStats, CancellationToken ct);
 
     /// <summary>
     /// Close all active proxy connections.
@@ -41,20 +43,14 @@ public class ClashApiClient : IClashApiClient, IDisposable
     private readonly HttpClient _http;
     private bool _disposed;
 
-    private const int MaxRetries = 3;
-    private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(1);
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-    };
-
     public ClashApiClient()
     {
         _http = new HttpClient
         {
             BaseAddress = new Uri(AppDefaults.ClashApiUrl),
-            Timeout = TimeSpan.FromSeconds(10),
+            // Infinite timeout: streaming /traffic keeps the connection open indefinitely.
+            // Per-request timeouts are enforced via CancellationTokenSource where needed.
+            Timeout = Timeout.InfiniteTimeSpan,
         };
     }
 
@@ -64,7 +60,10 @@ public class ClashApiClient : IClashApiClient, IDisposable
     {
         try
         {
-            var response = await ExecuteWithRetryAsync(() => _http.GetAsync("/", ct));
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(5));
+
+            var response = await _http.GetAsync("/", cts.Token);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
@@ -74,36 +73,63 @@ public class ClashApiClient : IClashApiClient, IDisposable
         }
     }
 
-    // ── Traffic ──────────────────────────────────────────────────────────
+    // ── Traffic (streaming) ──────────────────────────────────────────────
 
-    public async Task<TrafficStats> GetTrafficAsync()
+    public async Task StreamTrafficAsync(Action<TrafficStats> onStats, CancellationToken ct)
     {
-        try
+        while (!ct.IsCancellationRequested)
         {
-            var response = await ExecuteWithRetryAsync(() => _http.GetAsync("/traffic"));
-            response.EnsureSuccessStatusCode();
-
-            var json = await response.Content.ReadAsStringAsync();
-
-            // The /traffic endpoint returns streaming JSON lines: {"up":N,"down":N}
-            // We parse the last complete line.
-            var lastLine = GetLastJsonLine(json);
-            if (string.IsNullOrWhiteSpace(lastLine))
-                return new TrafficStats();
-
-            using var doc = JsonDocument.Parse(lastLine);
-            var root = doc.RootElement;
-
-            return new TrafficStats
+            try
             {
-                UploadSpeed = root.TryGetProperty("up", out var up) ? up.GetInt64() : 0,
-                DownloadSpeed = root.TryGetProperty("down", out var down) ? down.GetInt64() : 0,
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.Warning(ex, "Failed to fetch traffic stats from Clash API");
-            return new TrafficStats();
+                // ResponseHeadersRead: returns as soon as headers arrive,
+                // body is read lazily via the stream — essential for streaming endpoints.
+                using var response = await _http.GetAsync(
+                    "/traffic", HttpCompletionOption.ResponseHeadersRead, ct);
+                response.EnsureSuccessStatusCode();
+
+                using var stream = await response.Content.ReadAsStreamAsync(ct);
+                using var reader = new StreamReader(stream);
+
+                // Read JSON lines as they arrive from sing-box (~1 line/sec)
+                while (!ct.IsCancellationRequested)
+                {
+                    var line = await reader.ReadLineAsync(ct);
+                    if (line is null)
+                        break; // stream closed by sing-box (process stopped)
+
+                    if (string.IsNullOrWhiteSpace(line))
+                        continue;
+
+                    try
+                    {
+                        using var doc = JsonDocument.Parse(line);
+                        var root = doc.RootElement;
+
+                        var stats = new TrafficStats
+                        {
+                            UploadSpeed = root.TryGetProperty("up", out var up) ? up.GetInt64() : 0,
+                            DownloadSpeed = root.TryGetProperty("down", out var down) ? down.GetInt64() : 0,
+                        };
+
+                        onStats(stats);
+                    }
+                    catch (JsonException ex)
+                    {
+                        _logger.Debug(ex, "Failed to parse traffic JSON line: {Line}", line);
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Traffic stream interrupted, reconnecting in 2s");
+
+                try { await Task.Delay(2000, ct); }
+                catch (OperationCanceledException) { break; }
+            }
         }
     }
 
@@ -113,7 +139,8 @@ public class ClashApiClient : IClashApiClient, IDisposable
     {
         try
         {
-            var response = await ExecuteWithRetryAsync(() => _http.DeleteAsync("/connections"));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var response = await _http.DeleteAsync("/connections", cts.Token);
             response.EnsureSuccessStatusCode();
             _logger.Information("All Clash API connections closed");
         }
@@ -129,55 +156,16 @@ public class ClashApiClient : IClashApiClient, IDisposable
     {
         try
         {
-            var response = await ExecuteWithRetryAsync(() => _http.GetAsync("/proxies"));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var response = await _http.GetAsync("/proxies", cts.Token);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsStringAsync();
+            return await response.Content.ReadAsStringAsync(cts.Token);
         }
         catch (Exception ex)
         {
             _logger.Warning(ex, "Failed to fetch proxies from Clash API");
             return "{}";
         }
-    }
-
-    // ── Retry Logic ──────────────────────────────────────────────────────
-
-    private async Task<HttpResponseMessage> ExecuteWithRetryAsync(
-        Func<Task<HttpResponseMessage>> action)
-    {
-        Exception? lastException = null;
-
-        for (var attempt = 1; attempt <= MaxRetries; attempt++)
-        {
-            try
-            {
-                return await action();
-            }
-            catch (Exception ex) when (attempt < MaxRetries)
-            {
-                lastException = ex;
-                _logger.Debug(ex, "Clash API request failed (attempt {Attempt}/{Max}), retrying",
-                    attempt, MaxRetries);
-                await Task.Delay(RetryDelay);
-            }
-            catch (Exception ex)
-            {
-                lastException = ex;
-            }
-        }
-
-        throw lastException ?? new InvalidOperationException("Retry logic completed without result");
-    }
-
-    // ── Helpers ──────────────────────────────────────────────────────────
-
-    private static string? GetLastJsonLine(string input)
-    {
-        if (string.IsNullOrWhiteSpace(input))
-            return null;
-
-        var lines = input.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return lines.Length > 0 ? lines[^1] : null;
     }
 
     // ── IDisposable ──────────────────────────────────────────────────────

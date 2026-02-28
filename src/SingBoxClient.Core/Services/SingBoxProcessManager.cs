@@ -43,19 +43,30 @@ public interface ISingBoxProcessManager
 
 /// <summary>
 /// Default implementation that spawns sing-box as a child process.
+/// Thread-safe: all operations are serialized via <see cref="_gate"/>.
 /// </summary>
 public class SingBoxProcessManager : ISingBoxProcessManager, IDisposable
 {
     private readonly ILogger _logger = Log.ForContext<SingBoxProcessManager>();
     private readonly IPlatformService _platform;
+    private readonly SemaphoreSlim _gate = new(1, 1);
 
     private Process? _process;
     private CancellationTokenSource? _outputCts;
     private bool _disposed;
 
-    private const int GracefulStopTimeoutMs = 5000;
+    private const int GracefulStopTimeoutMs = 3000;
+    private const int ForceKillTimeoutMs = 2000;
 
-    public bool IsRunning => _process is not null && !_process.HasExited;
+    public bool IsRunning
+    {
+        get
+        {
+            var proc = _process;
+            try { return proc is not null && !proc.HasExited; }
+            catch (InvalidOperationException) { return false; }
+        }
+    }
 
     public event Action<string>? OnLogLine;
     public event Action<int>? OnProcessExited;
@@ -69,92 +80,115 @@ public class SingBoxProcessManager : ISingBoxProcessManager, IDisposable
 
     public async Task StartAsync(string configPath)
     {
-        if (IsRunning)
+        await _gate.WaitAsync();
+        try
         {
-            _logger.Warning("sing-box is already running (PID {Pid}), ignoring StartAsync", _process!.Id);
-            return;
+            if (IsRunning)
+            {
+                _logger.Warning("sing-box is already running (PID {Pid}), ignoring StartAsync", _process!.Id);
+                return;
+            }
+
+            var exePath = ResolveSingBoxPath();
+            if (!File.Exists(exePath))
+                throw new FileNotFoundException($"sing-box executable not found at {exePath}");
+
+            if (!File.Exists(configPath))
+                throw new FileNotFoundException($"Configuration file not found at {configPath}");
+
+            _logger.Information("Starting sing-box: {Exe} run -c {Config}", exePath, configPath);
+
+            _outputCts = new CancellationTokenSource();
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = exePath,
+                Arguments = $"run -c \"{configPath}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                RedirectStandardInput = true, // Needed for graceful shutdown via stdin close
+            };
+
+            _process = new Process { StartInfo = psi, EnableRaisingEvents = true };
+            _process.Exited += OnExited;
+
+            _process.Start();
+
+            _logger.Information("sing-box started with PID {Pid}", _process.Id);
+
+            // Read stdout and stderr in background
+            _ = ReadStreamAsync(_process.StandardOutput, "stdout", _outputCts.Token);
+            _ = ReadStreamAsync(_process.StandardError, "stderr", _outputCts.Token);
         }
-
-        var exePath = ResolveSingBoxPath();
-        if (!File.Exists(exePath))
-            throw new FileNotFoundException($"sing-box executable not found at {exePath}");
-
-        if (!File.Exists(configPath))
-            throw new FileNotFoundException($"Configuration file not found at {configPath}");
-
-        _logger.Information("Starting sing-box: {Exe} run -c {Config}", exePath, configPath);
-
-        _outputCts = new CancellationTokenSource();
-
-        var psi = new ProcessStartInfo
+        finally
         {
-            FileName = exePath,
-            Arguments = $"run -c \"{configPath}\"",
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-
-        _process = new Process { StartInfo = psi, EnableRaisingEvents = true };
-        _process.Exited += OnExited;
-
-        _process.Start();
-
-        _logger.Information("sing-box started with PID {Pid}", _process.Id);
-
-        // Read stdout and stderr in background
-        _ = ReadStreamAsync(_process.StandardOutput, "stdout", _outputCts.Token);
-        _ = ReadStreamAsync(_process.StandardError, "stderr", _outputCts.Token);
-
-        await Task.CompletedTask;
+            _gate.Release();
+        }
     }
 
     // ── Stop ─────────────────────────────────────────────────────────────
 
     public async Task StopAsync()
     {
-        if (_process is null || _process.HasExited)
-        {
-            _logger.Debug("sing-box is not running, nothing to stop");
-            Cleanup();
-            return;
-        }
-
-        var pid = _process.Id;
-        _logger.Information("Stopping sing-box (PID {Pid})", pid);
-
+        await _gate.WaitAsync();
         try
         {
-            // Request graceful termination
-            _process.Kill();
-
-            // Wait up to the timeout for the process to exit
-            var exited = await WaitForExitAsync(_process, GracefulStopTimeoutMs);
-
-            if (!exited)
+            if (_process is null || !IsRunning)
             {
-                _logger.Warning("sing-box did not exit within {Timeout}ms, force killing", GracefulStopTimeoutMs);
-                try
-                {
-                    _process.Kill(entireProcessTree: true);
-                    await WaitForExitAsync(_process, 2000);
-                }
-                catch (InvalidOperationException)
-                {
-                    // Process already exited between the check and kill
-                }
+                _logger.Debug("sing-box is not running, nothing to stop");
+                Cleanup();
+                return;
             }
 
-            _logger.Information("sing-box (PID {Pid}) stopped", pid);
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error stopping sing-box (PID {Pid})", pid);
+            var pid = _process.Id;
+            _logger.Information("Stopping sing-box (PID {Pid})", pid);
+
+            try
+            {
+                // 1. Attempt graceful shutdown: close stdin, sing-box may interpret as shutdown signal
+                try
+                {
+                    _process.StandardInput.Close();
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Failed to close stdin for graceful shutdown");
+                }
+
+                // Wait briefly for graceful exit
+                var exited = await WaitForExitAsync(_process, GracefulStopTimeoutMs);
+
+                if (!exited)
+                {
+                    // 2. Force kill the process
+                    _logger.Debug("sing-box did not exit gracefully within {Timeout}ms, killing", GracefulStopTimeoutMs);
+                    try
+                    {
+                        _process.Kill(entireProcessTree: true);
+                        await WaitForExitAsync(_process, ForceKillTimeoutMs);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Process already exited between the check and kill
+                    }
+                }
+
+                _logger.Information("sing-box (PID {Pid}) stopped", pid);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error stopping sing-box (PID {Pid})", pid);
+            }
+            finally
+            {
+                Cleanup();
+            }
         }
         finally
         {
-            Cleanup();
+            _gate.Release();
         }
     }
 
@@ -175,7 +209,7 @@ public class SingBoxProcessManager : ISingBoxProcessManager, IDisposable
         return Path.Combine(appDir, AppDefaults.SingBoxExe);
     }
 
-    private async Task ReadStreamAsync(System.IO.StreamReader reader, string streamName, CancellationToken ct)
+    private async Task ReadStreamAsync(StreamReader reader, string streamName, CancellationToken ct)
     {
         try
         {
@@ -201,12 +235,22 @@ public class SingBoxProcessManager : ISingBoxProcessManager, IDisposable
 
     private async void OnExited(object? sender, EventArgs e)
     {
-        // Brief delay to let stderr/stdout readers drain remaining output
-        await Task.Delay(100);
+        try
+        {
+            // Brief delay to let stderr/stdout readers drain remaining output
+            await Task.Delay(100);
 
-        var exitCode = _process?.ExitCode ?? -1;
-        _logger.Information("sing-box exited with code {ExitCode}", exitCode);
-        OnProcessExited?.Invoke(exitCode);
+            var exitCode = -1;
+            try { exitCode = _process?.ExitCode ?? -1; }
+            catch (InvalidOperationException) { /* process already disposed */ }
+
+            _logger.Information("sing-box exited with code {ExitCode}", exitCode);
+            OnProcessExited?.Invoke(exitCode);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Unhandled exception in OnExited handler");
+        }
     }
 
     private static async Task<bool> WaitForExitAsync(Process process, int timeoutMs)
@@ -260,6 +304,7 @@ public class SingBoxProcessManager : ISingBoxProcessManager, IDisposable
         }
 
         Cleanup();
+        _gate.Dispose();
         GC.SuppressFinalize(this);
     }
 }

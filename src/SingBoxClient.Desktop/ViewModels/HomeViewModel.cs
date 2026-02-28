@@ -36,8 +36,8 @@ public class HomeViewModel : ViewModelBase, IDisposable
     private readonly IAnnouncementService _announcementService;
     private readonly ISingBoxConfigBuilder _configBuilder;
 
+    private readonly SemaphoreSlim _connectGate = new(1, 1);
     private DispatcherTimer? _connectionTimer;
-    private DispatcherTimer? _trafficTimer;
     private DateTime _connectedSince;
     private CancellationTokenSource? _trafficCts;
     private bool _disposed;
@@ -315,12 +315,18 @@ public class HomeViewModel : ViewModelBase, IDisposable
 
     private async Task ConnectAsync()
     {
-        IsConnecting = true;
-        ConnectionStatus = ConnectionStatus.Connecting;
-        StatusText = L("Connecting");
+        if (!await _connectGate.WaitAsync(0))
+        {
+            Logger.Debug("Connect/Disconnect already in progress, ignoring");
+            return;
+        }
 
         try
         {
+            IsConnecting = true;
+            ConnectionStatus = ConnectionStatus.Connecting;
+            StatusText = L("Connecting");
+
             // 1. Determine the best server from the selected country
             if (SelectedCountry is null)
             {
@@ -358,24 +364,31 @@ public class HomeViewModel : ViewModelBase, IDisposable
             // 4. Start sing-box
             await _processManager.StartAsync(configPath);
 
-            // 5. If proxy mode, set system proxy
+            // 5. Wait for Clash API to become available before proceeding
+            var apiReady = await WaitForClashApiAsync(TimeSpan.FromSeconds(10));
+            if (!apiReady)
+            {
+                Logger.Warning("Clash API did not become available, proceeding anyway");
+            }
+
+            // 6. If proxy mode, set system proxy
             if (IsProxyEnabled)
             {
                 _platformService.SetSystemProxy("127.0.0.1", _settingsService.Current.ProxyPort);
                 Logger.Debug("System proxy set to 127.0.0.1:{Port}", _settingsService.Current.ProxyPort);
             }
 
-            // 6. Start connection guard monitoring
+            // 7. Start connection guard monitoring
             _connectionGuard.StartMonitoring(SelectedCountry, bestServer);
 
-            // 7. Start the connection timer
+            // 8. Start the connection timer
             _connectedSince = DateTime.UtcNow;
             StartConnectionTimer();
 
-            // 8. Start traffic speed polling
-            StartTrafficPolling();
+            // 9. Start traffic speed streaming
+            StartTrafficStreaming();
 
-            // 9. Track analytics event
+            // 10. Track analytics event
             _ = _analyticsService.TrackAsync(new AnalyticsEvent
             {
                 EventName = "connect",
@@ -415,6 +428,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
         finally
         {
             IsConnecting = false;
+            _connectGate.Release();
         }
     }
 
@@ -422,13 +436,19 @@ public class HomeViewModel : ViewModelBase, IDisposable
 
     private async Task DisconnectAsync()
     {
+        if (!await _connectGate.WaitAsync(0))
+        {
+            Logger.Debug("Connect/Disconnect already in progress, ignoring");
+            return;
+        }
+
         try
         {
             Logger.Information("Disconnecting...");
             StatusText = L("Disconnecting");
 
-            // 1. Stop traffic polling
-            StopTrafficPolling();
+            // 1. Stop traffic streaming
+            StopTrafficStreaming();
 
             // 2. Stop connection timer
             StopConnectionTimer();
@@ -470,6 +490,10 @@ public class HomeViewModel : ViewModelBase, IDisposable
             Logger.Error(ex, "Error during disconnect");
             ConnectionStatus = ConnectionStatus.Error;
             StatusText = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            _connectGate.Release();
         }
     }
 
@@ -578,48 +602,46 @@ public class HomeViewModel : ViewModelBase, IDisposable
         Timer = elapsed.ToString(@"hh\:mm\:ss");
     }
 
-    // ── Traffic Speed Polling ────────────────────────────────────────────
+    // ── Traffic Streaming ──────────────────────────────────────────────
 
-    private void StartTrafficPolling()
+    private void StartTrafficStreaming()
     {
-        StopTrafficPolling();
+        StopTrafficStreaming();
 
         _trafficCts = new CancellationTokenSource();
+        var ct = _trafficCts.Token;
 
-        _trafficTimer = new DispatcherTimer
+        // Fire-and-forget: StreamTrafficAsync runs until ct is cancelled.
+        // UI updates are dispatched to the Avalonia UI thread.
+        _ = Task.Run(async () =>
         {
-            Interval = TimeSpan.FromSeconds(1)
-        };
-        _trafficTimer.Tick += OnTrafficTick;
-        _trafficTimer.Start();
+            try
+            {
+                await _clashApi.StreamTrafficAsync(stats =>
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        UploadSpeed = BytesToHumanSpeed(stats.UploadSpeed);
+                        DownloadSpeed = BytesToHumanSpeed(stats.DownloadSpeed);
+                    });
+                }, ct);
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected on disconnect
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug(ex, "Traffic streaming ended unexpectedly");
+            }
+        }, ct);
     }
 
-    private void StopTrafficPolling()
+    private void StopTrafficStreaming()
     {
         _trafficCts?.Cancel();
         _trafficCts?.Dispose();
         _trafficCts = null;
-
-        if (_trafficTimer is not null)
-        {
-            _trafficTimer.Tick -= OnTrafficTick;
-            _trafficTimer.Stop();
-            _trafficTimer = null;
-        }
-    }
-
-    private async void OnTrafficTick(object? sender, EventArgs e)
-    {
-        try
-        {
-            var stats = await _clashApi.GetTrafficAsync();
-            UploadSpeed = BytesToHumanSpeed(stats.UploadSpeed);
-            DownloadSpeed = BytesToHumanSpeed(stats.DownloadSpeed);
-        }
-        catch (Exception ex)
-        {
-            Logger.Debug(ex, "Failed to fetch traffic stats");
-        }
     }
 
     // ── Connection Guard Handler ─────────────────────────────────────────
@@ -643,7 +665,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
             if (status == ConnectionStatus.Disconnected)
             {
                 StopConnectionTimer();
-                StopTrafficPolling();
+                StopTrafficStreaming();
                 Timer = "00:00:00";
                 UploadSpeed = "0 B/s";
                 DownloadSpeed = "0 B/s";
@@ -671,6 +693,28 @@ public class HomeViewModel : ViewModelBase, IDisposable
         {
             Logger.Warning(ex, "Failed to load announcements");
         }
+    }
+
+    // ── Clash API Readiness ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Polls the Clash API health endpoint until it responds or the timeout expires.
+    /// This ensures sing-box has fully initialized before starting traffic streaming
+    /// and connection guard monitoring.
+    /// </summary>
+    private async Task<bool> WaitForClashApiAsync(TimeSpan timeout)
+    {
+        var sw = Stopwatch.StartNew();
+        while (sw.Elapsed < timeout)
+        {
+            if (await _clashApi.HealthCheckAsync())
+            {
+                Logger.Debug("Clash API ready after {Elapsed}ms", sw.ElapsedMilliseconds);
+                return true;
+            }
+            await Task.Delay(500);
+        }
+        return false;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
@@ -715,7 +759,8 @@ public class HomeViewModel : ViewModelBase, IDisposable
 
         _connectionGuard.OnStatusChanged -= OnConnectionStatusChanged;
         StopConnectionTimer();
-        StopTrafficPolling();
+        StopTrafficStreaming();
+        _connectGate.Dispose();
 
         GC.SuppressFinalize(this);
     }

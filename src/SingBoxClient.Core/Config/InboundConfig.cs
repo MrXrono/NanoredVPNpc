@@ -47,7 +47,10 @@ public static class InboundConfig
             ["auto_route"] = true,
             ["strict_route"] = true,
             ["inet4_address"] = "172.19.0.1/30",
-            ["stack"] = "system"
+            ["inet6_address"] = "fdfe:dcba:9876::1/126",
+            ["stack"] = "system",
+            ["sniff"] = true,
+            ["sniff_override_destination"] = true
         };
 
         if (includeProcess is { Count: > 0 })

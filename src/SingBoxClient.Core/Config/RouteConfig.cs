@@ -6,21 +6,28 @@ namespace SingBoxClient.Core.Config;
 /// <summary>
 /// Builds the sing-box route section from user and remote routing rules.
 /// Converts <see cref="RoutingRule"/> objects into sing-box native JSON rule format.
+/// GeoIP/GeoSite rules are emitted as rule_set references (sing-box v1.8+).
 /// </summary>
 public static class RouteConfig
 {
     /// <summary>
-    /// Builds the complete route configuration object.
-    /// Rule evaluation order: DNS interception -> user/remote rules -> private IP direct -> final proxy.
+    /// sing-box rule-set source URL template for SagerNet community sets.
     /// </summary>
-    /// <param name="rules">
-    /// List of routing rules to include. Only enabled rules are processed.
-    /// Rules are sorted by priority (lower value = higher priority).
-    /// </param>
-    /// <returns>JsonObject representing the route section of sing-box config.</returns>
+    private const string RuleSetUrlTemplate =
+        "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/{0}.srs";
+
+    private const string GeoIpRuleSetUrlTemplate =
+        "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/{0}.srs";
+
+    /// <summary>
+    /// Builds the complete route configuration object.
+    /// Rule evaluation order: DNS interception → user/remote rules → private IP direct → final proxy.
+    /// </summary>
     public static JsonObject Build(List<RoutingRule> rules)
     {
         var rulesArray = new JsonArray();
+        var ruleSets = new JsonArray();
+        var ruleSetTags = new HashSet<string>();
 
         // DNS protocol interception — route all DNS queries to the sing-box DNS engine
         rulesArray.Add(new JsonObject
@@ -37,8 +44,6 @@ public static class RouteConfig
         });
 
         // Group enabled rules by (type + action) to merge values into single rules
-        // This produces compact config: e.g. one rule with domain_suffix: [".ru", ".su"]
-        // instead of separate rules per domain
         var grouped = rules
             .Where(r => r.IsEnabled)
             .OrderBy(r => r.Priority)
@@ -46,37 +51,87 @@ public static class RouteConfig
 
         foreach (var group in grouped)
         {
-            var ruleObj = new JsonObject();
-            var values = new JsonArray();
+            var type = group.Key.Type;
+            var outbound = group.Key.Action.ToString().ToLower();
 
-            foreach (var rule in group)
+            // GeoIP / GeoSite / RuleSet → emit as rule_set references
+            if (type is RuleType.GeoIP or RuleType.GeoSite or RuleType.RuleSet)
             {
-                values.Add(rule.Value);
+                var tags = new JsonArray();
+
+                foreach (var rule in group)
+                {
+                    var tag = $"rs-{type.ToString().ToLower()}-{rule.Value}";
+
+                    tags.Add(tag);
+
+                    // Register rule_set source (deduplicated)
+                    if (ruleSetTags.Add(tag))
+                    {
+                        var url = type == RuleType.GeoIP
+                            ? string.Format(GeoIpRuleSetUrlTemplate, rule.Value)
+                            : type == RuleType.GeoSite
+                                ? string.Format(RuleSetUrlTemplate, rule.Value)
+                                : rule.Value; // RuleSet type: Value is the full URL
+
+                        ruleSets.Add(new JsonObject
+                        {
+                            ["tag"] = tag,
+                            ["type"] = "remote",
+                            ["format"] = "binary",
+                            ["url"] = url,
+                            ["download_detour"] = "proxy"
+                        });
+                    }
+                }
+
+                rulesArray.Add(new JsonObject
+                {
+                    ["rule_set"] = tags,
+                    ["outbound"] = outbound
+                });
             }
-
-            string fieldName = group.Key.Type switch
+            else
             {
-                RuleType.Domain => "domain",
-                RuleType.DomainSuffix => "domain_suffix",
-                RuleType.IpCidr => "ip_cidr",
-                RuleType.GeoIP => "geoip",
-                RuleType.GeoSite => "geosite",
-                _ => throw new ArgumentOutOfRangeException(
-                    nameof(rules),
-                    $"Unsupported rule type: {group.Key.Type}")
-            };
+                // Domain, DomainSuffix, IpCidr → standard inline rules
+                var ruleObj = new JsonObject();
+                var values = new JsonArray();
 
-            ruleObj[fieldName] = values;
-            ruleObj["outbound"] = group.Key.Action.ToString().ToLower();
+                foreach (var rule in group)
+                {
+                    values.Add(rule.Value);
+                }
 
-            rulesArray.Add(ruleObj);
+                string fieldName = type switch
+                {
+                    RuleType.Domain => "domain",
+                    RuleType.DomainSuffix => "domain_suffix",
+                    RuleType.IpCidr => "ip_cidr",
+                    _ => throw new ArgumentOutOfRangeException(
+                        nameof(rules),
+                        $"Unsupported rule type: {type}")
+                };
+
+                ruleObj[fieldName] = values;
+                ruleObj["outbound"] = outbound;
+
+                rulesArray.Add(ruleObj);
+            }
         }
 
-        return new JsonObject
+        var route = new JsonObject
         {
             ["rules"] = rulesArray,
             ["auto_detect_interface"] = true,
             ["final"] = "proxy"
         };
+
+        // Attach rule_set definitions if any were generated
+        if (ruleSets.Count > 0)
+        {
+            route["rule_set"] = ruleSets;
+        }
+
+        return route;
     }
 }
