@@ -64,10 +64,11 @@ class Program
         if (!createdNew)
             return;
 
-        // 2. Setup Serilog
+        // 2. Setup Serilog (absolute path — UAC changes working dir to System32)
+        var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs", "app.log");
         Serilog.Log.Logger = new Serilog.LoggerConfiguration()
             .MinimumLevel.Information()
-            .WriteTo.File("Logs/app.log",
+            .WriteTo.File(logPath,
                 rollingInterval: Serilog.RollingInterval.Infinite,
                 fileSizeLimitBytes: 10_485_760,
                 retainedFileCountLimit: 3,

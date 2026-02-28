@@ -1,10 +1,18 @@
+using System;
+using System.IO;
+
 namespace SingBoxClient.Core.Constants;
 
 /// <summary>
 /// Application-wide default constants and configuration values.
+/// All directory paths are absolute (based on the EXE location) to avoid
+/// working-directory issues when the app is launched with UAC elevation.
 /// </summary>
 public static class AppDefaults
 {
+    // ── Base directory (EXE location) ─────────────────────────────────
+    public static readonly string BaseDir = AppDomain.CurrentDomain.BaseDirectory;
+
     // ── Version ──────────────────────────────────────────────────────────
     public const string Version = "1.0.0";
 
@@ -43,18 +51,19 @@ public static class AppDefaults
     // ── TUN Mode ────────────────────────────────────────────────────────
     public const string TunAddress = "172.19.0.1/30";
 
-    // ── File Names / Paths ──────────────────────────────────────────────
+    // ── File Names ───────────────────────────────────────────────────────
     public const string SingBoxExe = "sing-box.exe";
     public const string ConfigFileName = "config.json";
     public const string SettingsFileName = "settings.json";
     public const string ServersFileName = "servers.json";
     public const string RoutingFileName = "routing.json";
-    public const string ConfigDir = "Configuration";
-    public const string LogsDir = "Logs";
 
-    /// <summary>Kept for migration — old data directory path.</summary>
-    [Obsolete("Use ConfigDir / LogsDir instead")]
-    public const string DataDir = "data";
+    // ── Absolute Directory Paths ─────────────────────────────────────────
+    /// <summary>Absolute path to Configuration/ directory (next to .exe).</summary>
+    public static readonly string ConfigDir = Path.Combine(BaseDir, "Configuration");
+
+    /// <summary>Absolute path to Logs/ directory (next to .exe).</summary>
+    public static readonly string LogsDir = Path.Combine(BaseDir, "Logs");
 
     // ── HTTP ─────────────────────────────────────────────────────────────
     public const string UserAgent = "NanoredVPN/1.0.0";
