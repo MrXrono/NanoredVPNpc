@@ -11,12 +11,12 @@ public class SubscriptionData
     public string Id { get; set; } = string.Empty;
 
     /// <summary>
-    /// Subscription expiration date (UTC).
+    /// Subscription expiration date (UTC). Null if the provider did not send expiration info.
     /// </summary>
-    public DateTime ExpiresAt { get; set; }
+    public DateTime? ExpiresAt { get; set; }
 
     /// <summary>
-    /// Total traffic allowance in bytes.
+    /// Total traffic allowance in bytes. 0 means unlimited.
     /// </summary>
     public long TotalTraffic { get; set; }
 
@@ -34,4 +34,29 @@ public class SubscriptionData
     /// Human-readable profile/subscription title.
     /// </summary>
     public string ProfileTitle { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Support URL from the provider (support-url header).
+    /// </summary>
+    public string SupportUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Subscription management web page URL (profile-web-page-url header).
+    /// </summary>
+    public string WebPageUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Announcement text from the provider (announce header).
+    /// </summary>
+    public string Announce { get; set; } = string.Empty;
+
+    /// <summary>
+    /// True if the subscription has expired.
+    /// </summary>
+    public bool IsExpired => ExpiresAt.HasValue && ExpiresAt.Value < DateTime.UtcNow;
+
+    /// <summary>
+    /// True if traffic is unlimited (total = 0).
+    /// </summary>
+    public bool IsUnlimitedTraffic => TotalTraffic <= 0;
 }

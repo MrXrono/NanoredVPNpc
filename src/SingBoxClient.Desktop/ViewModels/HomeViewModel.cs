@@ -172,26 +172,35 @@ public class HomeViewModel : ViewModelBase, IDisposable
     public string SubscriptionId => SubscriptionInfo?.Id ?? "—";
 
     /// <summary>Formatted expiration date from SubscriptionInfo, or "—" if unavailable.</summary>
-    public string ExpiresAt => SubscriptionInfo is not null
-        ? SubscriptionInfo.ExpiresAt.ToString("yyyy-MM-dd")
-        : "—";
+    public string ExpiresAt
+    {
+        get
+        {
+            if (SubscriptionInfo?.ExpiresAt is not { } expires)
+                return "—";
+            return expires.ToString("yyyy-MM-dd");
+        }
+    }
 
-    /// <summary>Human-readable traffic usage, e.g. "1.2 GB / 50.0 GB".</summary>
+    /// <summary>Human-readable traffic usage, e.g. "1.2 GB / 50.0 GB" or "44.8 MB / Unlimited".</summary>
     public string TrafficUsageText
     {
         get
         {
             if (SubscriptionInfo is null) return "— / —";
-            return $"{BytesToGb(SubscriptionInfo.UsedTraffic)} / {BytesToGb(SubscriptionInfo.TotalTraffic)}";
+            var used = BytesToHumanSize(SubscriptionInfo.UsedTraffic);
+            if (SubscriptionInfo.IsUnlimitedTraffic)
+                return $"{used} / {L("Unlimited")}";
+            return $"{used} / {BytesToHumanSize(SubscriptionInfo.TotalTraffic)}";
         }
     }
 
-    /// <summary>Traffic usage as a percentage (0–100) for the progress bar.</summary>
+    /// <summary>Traffic usage as a percentage (0–100) for the progress bar. 0 for unlimited plans.</summary>
     public double TrafficPercent
     {
         get
         {
-            if (SubscriptionInfo is null || SubscriptionInfo.TotalTraffic <= 0) return 0;
+            if (SubscriptionInfo is null || SubscriptionInfo.IsUnlimitedTraffic) return 0;
             var pct = (double)SubscriptionInfo.UsedTraffic / SubscriptionInfo.TotalTraffic * 100;
             return Math.Clamp(pct, 0, 100);
         }
@@ -296,8 +305,8 @@ public class HomeViewModel : ViewModelBase, IDisposable
             }
         }, canToggle);
 
-        // Renew command: placeholder for future subscription renewal flow
-        RenewCommand = ReactiveCommand.Create(() => { });
+        // Renew command: opens support URL or subscription management page
+        RenewCommand = ReactiveCommand.Create(OpenRenewUrl);
 
         // Subscribe to connection guard status changes
         _connectionGuard.OnStatusChanged += OnConnectionStatusChanged;
@@ -326,6 +335,15 @@ public class HomeViewModel : ViewModelBase, IDisposable
             IsConnecting = true;
             ConnectionStatus = ConnectionStatus.Connecting;
             StatusText = L("Connecting");
+
+            // 0. Check subscription expiration
+            if (SubscriptionInfo is { IsExpired: true })
+            {
+                Logger.Warning("Subscription expired at {ExpiresAt}", SubscriptionInfo.ExpiresAt);
+                StatusText = L("SubscriptionExpired");
+                ConnectionStatus = ConnectionStatus.Error;
+                return;
+            }
 
             // 1. Determine the best server from the selected country
             if (SelectedCountry is null)
@@ -720,12 +738,48 @@ public class HomeViewModel : ViewModelBase, IDisposable
     // ── Helpers ──────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Convert a byte count to a human-readable GB string (e.g. "12.3 GB").
+    /// Convert a byte count to a human-readable size string (e.g. "44.8 MB", "12.3 GB", "1.2 TB").
     /// </summary>
-    private static string BytesToGb(long bytes)
+    private static string BytesToHumanSize(long bytes)
     {
-        var gb = bytes / (1024.0 * 1024 * 1024);
-        return $"{gb:F1} GB";
+        if (bytes <= 0) return "0 B";
+
+        string[] units = { "B", "KB", "MB", "GB", "TB" };
+        double value = bytes;
+        int unitIndex = 0;
+
+        while (value >= 1024 && unitIndex < units.Length - 1)
+        {
+            value /= 1024;
+            unitIndex++;
+        }
+
+        return $"{value:F1} {units[unitIndex]}";
+    }
+
+    /// <summary>
+    /// Open the subscription renewal/support URL in the default browser.
+    /// </summary>
+    private void OpenRenewUrl()
+    {
+        var url = SubscriptionInfo?.SupportUrl;
+        if (string.IsNullOrEmpty(url))
+            url = SubscriptionInfo?.WebPageUrl;
+
+        if (string.IsNullOrEmpty(url))
+        {
+            Logger.Debug("No support or web page URL available for renewal");
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "Failed to open renewal URL: {Url}", url);
+        }
     }
 
     /// <summary>

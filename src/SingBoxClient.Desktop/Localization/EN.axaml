@@ -30,6 +30,8 @@
     <sys:String x:Key="Expires">Expires:</sys:String>
     <sys:String x:Key="Traffic">Traffic:</sys:String>
     <sys:String x:Key="Renew">Renew</sys:String>
+    <sys:String x:Key="Unlimited">Unlimited</sys:String>
+    <sys:String x:Key="SubscriptionExpired">Subscription expired</sys:String>
     <sys:String x:Key="InformationServer">Information Server</sys:String>
     <sys:String x:Key="NoAnnouncements">No announcements</sys:String>
     <sys:String x:Key="SelectServer">Select Server</sys:String>

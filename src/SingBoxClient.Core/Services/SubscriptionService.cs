@@ -109,13 +109,17 @@ public class SubscriptionService : ISubscriptionService
             return null;
 
         var data = new SubscriptionData();
+        var hasAnyData = false;
 
         // profile-update-interval (hours)
         if (response.Headers.TryGetValues("profile-update-interval", out var intervalValues))
         {
             var raw = intervalValues.FirstOrDefault();
             if (int.TryParse(raw, out var hours))
+            {
                 data.UpdateInterval = hours;
+                hasAnyData = true;
+            }
         }
 
         // profile-title (may be "base64:..." encoded)
@@ -130,12 +134,14 @@ public class SubscriptionService : ISubscriptionService
             {
                 data.ProfileTitle = titleRaw;
             }
+            hasAnyData = true;
         }
 
         // content-disposition: attachment; filename=XXXXXX (use as subscription ID)
         if (response.Content.Headers.ContentDisposition?.FileName is { } filename)
         {
             data.Id = filename.Trim('"');
+            hasAnyData = true;
         }
 
         // subscription-userinfo: upload=N; download=N; total=N; expire=N
@@ -143,10 +149,45 @@ public class SubscriptionService : ISubscriptionService
         {
             var raw = userInfoValues.FirstOrDefault();
             if (!string.IsNullOrWhiteSpace(raw))
+            {
                 ParseUserInfo(raw, data);
+                hasAnyData = true;
+            }
         }
 
-        return data;
+        // support-url: URL for support/renewal
+        if (response.Headers.TryGetValues("support-url", out var supportValues))
+        {
+            data.SupportUrl = supportValues.FirstOrDefault() ?? string.Empty;
+            if (!string.IsNullOrEmpty(data.SupportUrl))
+                hasAnyData = true;
+        }
+
+        // profile-web-page-url: subscription management page
+        if (response.Headers.TryGetValues("profile-web-page-url", out var webPageValues))
+        {
+            data.WebPageUrl = webPageValues.FirstOrDefault() ?? string.Empty;
+            if (!string.IsNullOrEmpty(data.WebPageUrl))
+                hasAnyData = true;
+        }
+
+        // announce: provider announcement (may be "base64:..." encoded)
+        if (response.Headers.TryGetValues("announce", out var announceValues))
+        {
+            var announceRaw = announceValues.FirstOrDefault() ?? string.Empty;
+            if (announceRaw.StartsWith("base64:", StringComparison.OrdinalIgnoreCase))
+            {
+                data.Announce = Base64Helper.Decode(announceRaw[7..]) ?? announceRaw;
+            }
+            else
+            {
+                data.Announce = announceRaw;
+            }
+            if (!string.IsNullOrEmpty(data.Announce))
+                hasAnyData = true;
+        }
+
+        return hasAnyData ? data : null;
     }
 
     // ── Private: Retry Logic ─────────────────────────────────────────────
@@ -260,7 +301,7 @@ public class SubscriptionService : ISubscriptionService
                     break;
 
                 case "expire":
-                    if (long.TryParse(value, out var expire))
+                    if (long.TryParse(value, out var expire) && expire > 0)
                         data.ExpiresAt = DateTimeOffset.FromUnixTimeSeconds(expire).UtcDateTime;
                     break;
             }

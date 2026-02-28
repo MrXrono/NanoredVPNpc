@@ -30,6 +30,8 @@
     <sys:String x:Key="Expires">Истекает:</sys:String>
     <sys:String x:Key="Traffic">Трафик:</sys:String>
     <sys:String x:Key="Renew">Продлить</sys:String>
+    <sys:String x:Key="Unlimited">Безлимит</sys:String>
+    <sys:String x:Key="SubscriptionExpired">Подписка истекла</sys:String>
     <sys:String x:Key="InformationServer">Информация</sys:String>
     <sys:String x:Key="NoAnnouncements">Нет объявлений</sys:String>
     <sys:String x:Key="SelectServer">Выбор сервера</sys:String>
