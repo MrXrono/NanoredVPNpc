@@ -84,6 +84,10 @@ dotnet publish ../src/SingBoxClient.Desktop -c Release -r $RID \
 # Copy runtime files
 cp "$SINGBOX_SRC" "$DIST/"
 
+# ── Clean up debug symbols ────────────────────────────────────────────
+echo "Removing .pdb debug symbols..."
+rm -f "$DIST"/*.pdb
+
 # ── Organize files into subdirectories ─────────────────────────────────
 echo "Organizing files..."
 mkdir -p "$DIST/Core"
