@@ -77,12 +77,12 @@ public static class SingBoxConfigBuilder
 
         // --- Outbounds ---
         // Order matters: sing-box uses the first outbound as default if no route matches
+        // Block and DNS outbounds replaced by route rule actions (sing-box 1.11+):
+        // "block" → route rule "action":"reject", "dns-out" → route rule "action":"hijack-dns"
         var outbounds = new JsonArray
         {
             OutboundConfig.BuildServerOutbound(server),
-            OutboundConfig.BuildDirect(),
-            OutboundConfig.BuildBlock(),
-            OutboundConfig.BuildDns()
+            OutboundConfig.BuildDirect()
         };
 
         config["outbounds"] = outbounds;

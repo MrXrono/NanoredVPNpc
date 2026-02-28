@@ -4,13 +4,13 @@ namespace SingBoxClient.Core.Config;
 
 /// <summary>
 /// Builds the sing-box DNS configuration section.
-/// Uses DNS-over-HTTPS (DoH) for proxied queries and a direct DNS for local resolution.
+/// Uses new DNS server format (sing-box 1.12+) with typed servers and address_resolver.
 /// Supports FakeIP mode for TUN operation.
 /// </summary>
 public static class DnsConfig
 {
     /// <summary>
-    /// Builds the DNS configuration with DoH servers and routing rules.
+    /// Builds the DNS configuration with typed DoH servers and routing rules.
     /// </summary>
     /// <param name="useFakeIp">
     /// When true, enables FakeIP for TUN mode. A synthetic IP range (198.18.0.0/15)
@@ -20,22 +20,26 @@ public static class DnsConfig
     /// <returns>JsonObject representing the dns section of sing-box config.</returns>
     public static JsonObject Build(bool useFakeIp = false)
     {
-        // --- DNS Servers ---
+        // --- DNS Servers (new typed format, sing-box 1.12+) ---
         var servers = new JsonArray();
 
         // Primary: Google DoH routed through the proxy tunnel
         servers.Add(new JsonObject
         {
             ["tag"] = "google-doh",
-            ["address"] = "https://dns.google/dns-query",
-            ["detour"] = "proxy"
+            ["type"] = "https",
+            ["server"] = "dns.google",
+            ["server_port"] = 443,
+            ["detour"] = "proxy",
+            ["address_resolver"] = "direct-dns"
         });
 
-        // Fallback: Direct DNS for local/private domain resolution
+        // Fallback: Direct UDP DNS for local/private domain resolution and DoH bootstrap
         servers.Add(new JsonObject
         {
             ["tag"] = "direct-dns",
-            ["address"] = "223.5.5.5",
+            ["type"] = "udp",
+            ["server"] = "223.5.5.5",
             ["detour"] = "direct"
         });
 
@@ -45,7 +49,8 @@ public static class DnsConfig
             servers.Add(new JsonObject
             {
                 ["tag"] = "fakeip",
-                ["address"] = "fakeip"
+                ["type"] = "fakeip",
+                ["inet4_range"] = "198.18.0.0/15"
             });
         }
 
@@ -76,15 +81,6 @@ public static class DnsConfig
             });
         }
 
-        // 3. Fallback: queries triggered by any outbound (e.g. direct) use direct DNS
-        // This MUST be last — it matches all remaining queries.
-        // Note: sing-box DNS rules use "outbound" as a string match, not an array.
-        rules.Add(new JsonObject
-        {
-            ["outbound"] = "any",
-            ["server"] = "direct-dns"
-        });
-
         // --- Assemble DNS config ---
         var dns = new JsonObject
         {
@@ -93,16 +89,6 @@ public static class DnsConfig
             ["final"] = "google-doh",
             ["independent_cache"] = true
         };
-
-        // FakeIP configuration block
-        if (useFakeIp)
-        {
-            dns["fakeip"] = new JsonObject
-            {
-                ["enabled"] = true,
-                ["inet4_range"] = "198.18.0.0/15"
-            };
-        }
 
         return dns;
     }

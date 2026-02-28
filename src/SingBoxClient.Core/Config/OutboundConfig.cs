@@ -160,13 +160,16 @@ public static class OutboundConfig
             ["server_name"] = tls.ServerName
         };
 
-        // uTLS browser fingerprint
-        if (!string.IsNullOrEmpty(tls.Fingerprint))
+        // uTLS browser fingerprint (required for REALITY)
+        var fingerprint = !string.IsNullOrEmpty(tls.Fingerprint) ? tls.Fingerprint
+            : tls.IsReality ? "chrome" : null;
+
+        if (fingerprint != null)
         {
             tlsObj["utls"] = new JsonObject
             {
                 ["enabled"] = true,
-                ["fingerprint"] = tls.Fingerprint
+                ["fingerprint"] = fingerprint
             };
         }
 

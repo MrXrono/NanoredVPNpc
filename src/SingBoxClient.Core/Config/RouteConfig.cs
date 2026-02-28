@@ -29,11 +29,11 @@ public static class RouteConfig
         var ruleSets = new JsonArray();
         var ruleSetTags = new HashSet<string>();
 
-        // DNS protocol interception — route all DNS queries to the sing-box DNS engine
+        // DNS protocol interception — hijack DNS queries to the sing-box DNS engine (rule action, sing-box 1.11+)
         rulesArray.Add(new JsonObject
         {
             ["protocol"] = "dns",
-            ["outbound"] = "dns-out"
+            ["action"] = "hijack-dns"
         });
 
         // Private/internal IP ranges — always go direct to avoid routing loops
@@ -52,7 +52,7 @@ public static class RouteConfig
         foreach (var group in grouped)
         {
             var type = group.Key.Type;
-            var outbound = group.Key.Action.ToString().ToLower();
+            var action = group.Key.Action;
 
             // GeoIP / GeoSite / RuleSet → emit as rule_set references
             if (type is RuleType.GeoIP or RuleType.GeoSite or RuleType.RuleSet)
@@ -85,11 +85,9 @@ public static class RouteConfig
                     }
                 }
 
-                rulesArray.Add(new JsonObject
-                {
-                    ["rule_set"] = tags,
-                    ["outbound"] = outbound
-                });
+                var ruleSetRule = new JsonObject { ["rule_set"] = tags };
+                ApplyRuleAction(ruleSetRule, action);
+                rulesArray.Add(ruleSetRule);
             }
             else
             {
@@ -113,7 +111,7 @@ public static class RouteConfig
                 };
 
                 ruleObj[fieldName] = values;
-                ruleObj["outbound"] = outbound;
+                ApplyRuleAction(ruleObj, action);
 
                 rulesArray.Add(ruleObj);
             }
@@ -123,6 +121,7 @@ public static class RouteConfig
         {
             ["rules"] = rulesArray,
             ["auto_detect_interface"] = true,
+            ["default_domain_resolver"] = "direct-dns",
             ["final"] = "proxy"
         };
 
@@ -133,5 +132,22 @@ public static class RouteConfig
         }
 
         return route;
+    }
+
+    /// <summary>
+    /// Applies the correct action/outbound to a route rule object.
+    /// Block uses "action":"reject" (sing-box 1.11+ rule action, replacing legacy block outbound).
+    /// Proxy/Direct use traditional "outbound" field.
+    /// </summary>
+    private static void ApplyRuleAction(JsonObject ruleObj, RuleAction action)
+    {
+        if (action == RuleAction.Block)
+        {
+            ruleObj["action"] = "reject";
+        }
+        else
+        {
+            ruleObj["outbound"] = action.ToString().ToLower();
+        }
     }
 }

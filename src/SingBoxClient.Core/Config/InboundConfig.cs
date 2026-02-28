@@ -46,8 +46,7 @@ public static class InboundConfig
             ["tag"] = "tun-in",
             ["auto_route"] = true,
             ["strict_route"] = true,
-            ["inet4_address"] = "172.19.0.1/30",
-            ["inet6_address"] = "fdfe:dcba:9876::1/126",
+            ["address"] = new JsonArray { "172.19.0.1/30", "fdfe:dcba:9876::1/126" },
             ["stack"] = "system",
             ["sniff"] = true,
             ["sniff_override_destination"] = true
