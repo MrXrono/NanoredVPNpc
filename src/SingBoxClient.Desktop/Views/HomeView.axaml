@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
+             xmlns:local="using:SingBoxClient.Desktop"
              xmlns:conv="using:SingBoxClient.Desktop.Converters"
              x:Class="SingBoxClient.Desktop.Views.HomeView"
              x:DataType="vm:HomeViewModel"
@@ -24,16 +25,16 @@
                  Mode Bar
                  ═══════════════════════════════════════════════════════ -->
             <StackPanel Orientation="Horizontal" Spacing="16">
-                <TextBlock Text="Mode"
+                <TextBlock Text="{Binding [Mode], Source={x:Static local:LocalizationManager.Instance}}"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            FontSize="13"
                            VerticalAlignment="Center" />
-                <CheckBox Content="Proxy"
+                <CheckBox Content="{Binding [Proxy], Source={x:Static local:LocalizationManager.Instance}}"
                           IsChecked="{Binding IsProxyEnabled}"
                           Foreground="{StaticResource TextPrimaryBrush}"
                           FontSize="13"
                           VerticalAlignment="Center" />
-                <CheckBox Content="TUN"
+                <CheckBox Content="{Binding [TUN], Source={x:Static local:LocalizationManager.Instance}}"
                           IsChecked="{Binding IsTunEnabled}"
                           Foreground="{StaticResource TextPrimaryBrush}"
                           FontSize="13"
@@ -136,7 +137,7 @@
                         CornerRadius="12"
                         Padding="16,14">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="Subscription Info"
+                        <TextBlock Text="{Binding [SubscriptionInfo], Source={x:Static local:LocalizationManager.Instance}}"
                                    Foreground="{StaticResource TextPrimaryBrush}"
                                    FontSize="14"
                                    FontWeight="SemiBold" />
@@ -158,7 +159,7 @@
                         <!-- Expires row -->
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
-                                       Text="Expires:"
+                                       Text="{Binding [Expires], Source={x:Static local:LocalizationManager.Instance}}"
                                        Foreground="{StaticResource TextMutedBrush}"
                                        FontSize="12"
                                        Width="70" />
@@ -171,7 +172,7 @@
                         <!-- Traffic row -->
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
-                                       Text="Traffic:"
+                                       Text="{Binding [Traffic], Source={x:Static local:LocalizationManager.Instance}}"
                                        Foreground="{StaticResource TextMutedBrush}"
                                        FontSize="12"
                                        Width="70" />
@@ -191,7 +192,7 @@
                                      Background="{StaticResource BgInputBrush}" />
 
                         <!-- Renew button -->
-                        <Button Content="Renew"
+                        <Button Content="{Binding [Renew], Source={x:Static local:LocalizationManager.Instance}}"
                                 HorizontalAlignment="Left"
                                 Background="{StaticResource AccentBrush}"
                                 Foreground="White"
@@ -210,7 +211,7 @@
                         CornerRadius="12"
                         Padding="16,14">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="Information Server"
+                        <TextBlock Text="{Binding [InformationServer], Source={x:Static local:LocalizationManager.Instance}}"
                                    Foreground="{StaticResource TextPrimaryBrush}"
                                    FontSize="14"
                                    FontWeight="SemiBold" />
@@ -244,7 +245,7 @@
                         </ItemsControl>
 
                         <!-- No announcements fallback -->
-                        <TextBlock Text="No announcements"
+                        <TextBlock Text="{Binding [NoAnnouncements], Source={x:Static local:LocalizationManager.Instance}}"
                                    Foreground="{StaticResource TextMutedBrush}"
                                    FontSize="12"
                                    IsVisible="{Binding !HasAnnouncements}"
@@ -262,7 +263,7 @@
                     CornerRadius="12"
                     Padding="16,14">
                 <StackPanel Spacing="10">
-                    <TextBlock Text="Select Server"
+                    <TextBlock Text="{Binding [SelectServer], Source={x:Static local:LocalizationManager.Instance}}"
                                Foreground="{StaticResource TextPrimaryBrush}"
                                FontSize="14"
                                FontWeight="SemiBold" />

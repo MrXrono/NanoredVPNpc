@@ -3,6 +3,7 @@ namespace SingBoxClient.Desktop.Converters;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 using SingBoxClient.Core.Models;
+using SingBoxClient.Desktop;
 using System;
 using System.Globalization;
 
@@ -11,19 +12,21 @@ using System.Globalization;
 /// </summary>
 public class ConnectionStatusToStringConverter : IValueConverter
 {
+    private static string L(string key) => LocalizationManager.Instance[key];
+
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is not ConnectionStatus status)
-            return "Unknown";
+            return L("Unknown");
 
         return status switch
         {
-            ConnectionStatus.Disconnected => "Disconnected",
-            ConnectionStatus.Connecting   => "Connecting...",
-            ConnectionStatus.Connected    => "Connected",
-            ConnectionStatus.Disconnecting => "Disconnecting...",
-            ConnectionStatus.Error        => "Connection Error",
-            _ => "Unknown"
+            ConnectionStatus.Disconnected => L("Disconnected"),
+            ConnectionStatus.Connecting   => L("Connecting"),
+            ConnectionStatus.Connected    => L("Connected"),
+            ConnectionStatus.Disconnecting => L("Disconnecting"),
+            ConnectionStatus.Error        => L("ConnectionError"),
+            _ => L("Unknown")
         };
     }
 

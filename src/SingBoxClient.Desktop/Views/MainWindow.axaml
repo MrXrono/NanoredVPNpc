@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
+        xmlns:local="using:SingBoxClient.Desktop"
         xmlns:views="using:SingBoxClient.Desktop.Views"
         x:Class="SingBoxClient.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
@@ -48,7 +49,7 @@
                             BorderThickness="1"
                             CornerRadius="8"
                             Padding="10,5"
-                            ToolTip.Tip="Toggle Theme"
+                            ToolTip.Tip="{Binding [ToggleTheme], Source={x:Static local:LocalizationManager.Instance}}"
                             Command="{Binding ToggleThemeCommand}">
                         <Panel>
                             <TextBlock Text="&#x2600;"
@@ -66,7 +67,7 @@
 
                     <!-- Minimize -->
                     <Button Classes="titlebar-btn"
-                            ToolTip.Tip="Minimize"
+                            ToolTip.Tip="{Binding [Minimize], Source={x:Static local:LocalizationManager.Instance}}"
                             Command="{Binding MinimizeCommand}">
                         <TextBlock Text="&#x2500;"
                                    Foreground="{StaticResource TextPrimaryBrush}"
@@ -75,7 +76,7 @@
 
                     <!-- Maximize -->
                     <Button Classes="titlebar-btn"
-                            ToolTip.Tip="Maximize"
+                            ToolTip.Tip="{Binding [Maximize], Source={x:Static local:LocalizationManager.Instance}}"
                             Command="{Binding MaximizeCommand}">
                         <TextBlock Text="&#x25A1;"
                                    Foreground="{StaticResource TextPrimaryBrush}"
@@ -84,7 +85,7 @@
 
                     <!-- Close -->
                     <Button Classes="titlebar-btn close-btn"
-                            ToolTip.Tip="Close"
+                            ToolTip.Tip="{Binding [Close], Source={x:Static local:LocalizationManager.Instance}}"
                             Command="{Binding CloseCommand}">
                         <TextBlock Text="&#x2715;"
                                    Foreground="{StaticResource TextPrimaryBrush}"
@@ -113,14 +114,14 @@
                     <Button Classes="nav-button"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="Home"
-                            ToolTip.Tip="Home"
+                            ToolTip.Tip="{Binding [Home], Source={x:Static local:LocalizationManager.Instance}}"
                             IsEnabled="{Binding IsNotNavigating}">
                         <StackPanel HorizontalAlignment="Center" Spacing="2">
                             <TextBlock Text="&#x2302;"
                                        FontSize="20"
                                        HorizontalAlignment="Center"
                                        Foreground="{StaticResource TextSecondaryBrush}" />
-                            <TextBlock Text="Home"
+                            <TextBlock Text="{Binding [Home], Source={x:Static local:LocalizationManager.Instance}}"
                                        FontSize="9"
                                        HorizontalAlignment="Center"
                                        Foreground="{StaticResource TextMutedBrush}" />
@@ -131,14 +132,14 @@
                     <Button Classes="nav-button"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="Routing"
-                            ToolTip.Tip="Routing"
+                            ToolTip.Tip="{Binding [Routing], Source={x:Static local:LocalizationManager.Instance}}"
                             IsEnabled="{Binding IsNotNavigating}">
                         <StackPanel HorizontalAlignment="Center" Spacing="2">
                             <TextBlock Text="&#x21C4;"
                                        FontSize="20"
                                        HorizontalAlignment="Center"
                                        Foreground="{StaticResource TextSecondaryBrush}" />
-                            <TextBlock Text="Route"
+                            <TextBlock Text="{Binding [Route], Source={x:Static local:LocalizationManager.Instance}}"
                                        FontSize="9"
                                        HorizontalAlignment="Center"
                                        Foreground="{StaticResource TextMutedBrush}" />
@@ -149,14 +150,14 @@
                     <Button Classes="nav-button"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="TunSettings"
-                            ToolTip.Tip="TUN Settings"
+                            ToolTip.Tip="{Binding [TunSettings], Source={x:Static local:LocalizationManager.Instance}}"
                             IsEnabled="{Binding IsNotNavigating}">
                         <StackPanel HorizontalAlignment="Center" Spacing="2">
                             <TextBlock Text="&#x26A1;"
                                        FontSize="20"
                                        HorizontalAlignment="Center"
                                        Foreground="{StaticResource TextSecondaryBrush}" />
-                            <TextBlock Text="TUN"
+                            <TextBlock Text="{Binding [TUN], Source={x:Static local:LocalizationManager.Instance}}"
                                        FontSize="9"
                                        HorizontalAlignment="Center"
                                        Foreground="{StaticResource TextMutedBrush}" />
@@ -167,14 +168,14 @@
                     <Button Classes="nav-button"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="Logs"
-                            ToolTip.Tip="Logs"
+                            ToolTip.Tip="{Binding [Logs], Source={x:Static local:LocalizationManager.Instance}}"
                             IsEnabled="{Binding IsNotNavigating}">
                         <StackPanel HorizontalAlignment="Center" Spacing="2">
                             <TextBlock Text="&#x2263;"
                                        FontSize="20"
                                        HorizontalAlignment="Center"
                                        Foreground="{StaticResource TextSecondaryBrush}" />
-                            <TextBlock Text="Logs"
+                            <TextBlock Text="{Binding [Logs], Source={x:Static local:LocalizationManager.Instance}}"
                                        FontSize="9"
                                        HorizontalAlignment="Center"
                                        Foreground="{StaticResource TextMutedBrush}" />
@@ -185,14 +186,14 @@
                     <Button Classes="nav-button"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="Settings"
-                            ToolTip.Tip="Settings"
+                            ToolTip.Tip="{Binding [Settings], Source={x:Static local:LocalizationManager.Instance}}"
                             IsEnabled="{Binding IsNotNavigating}">
                         <StackPanel HorizontalAlignment="Center" Spacing="2">
                             <TextBlock Text="&#x2699;"
                                        FontSize="20"
                                        HorizontalAlignment="Center"
                                        Foreground="{StaticResource TextSecondaryBrush}" />
-                            <TextBlock Text="Setup"
+                            <TextBlock Text="{Binding [Setup], Source={x:Static local:LocalizationManager.Instance}}"
                                        FontSize="9"
                                        HorizontalAlignment="Center"
                                        Foreground="{StaticResource TextMutedBrush}" />

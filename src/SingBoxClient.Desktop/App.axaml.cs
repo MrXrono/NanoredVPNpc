@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Markup.Xaml.Styling;
+using Avalonia.Styling;
 using Microsoft.Extensions.DependencyInjection;
 using SingBoxClient.Core.Services;
 using SingBoxClient.Core.Platform;
@@ -8,6 +10,7 @@ using SingBoxClient.Desktop.Services;
 using SingBoxClient.Desktop.ViewModels;
 using SingBoxClient.Desktop.Views;
 using System;
+using System.Globalization;
 using System.Runtime.InteropServices;
 
 namespace SingBoxClient.Desktop;
@@ -31,6 +34,12 @@ public partial class App : Application
         var settingsService = Services.GetRequiredService<ISettingsService>();
         settingsService.Load();
 
+        // Apply saved theme
+        ApplyTheme(settingsService.Current.Theme == "dark");
+
+        // Apply saved language
+        ApplyLanguage(settingsService.Current.Language);
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = new MainWindow
@@ -42,6 +51,38 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    /// <summary>
+    /// Switch theme at runtime by swapping the ResourceDictionary and Avalonia theme variant.
+    /// </summary>
+    public void ApplyTheme(bool isDark)
+    {
+        var themeUri = isDark
+            ? new Uri("avares://SingBoxClient.Desktop/Themes/DarkTheme.axaml")
+            : new Uri("avares://SingBoxClient.Desktop/Themes/LightTheme.axaml");
+
+        var merged = Resources.MergedDictionaries;
+        merged.Clear();
+        merged.Add(new ResourceInclude(themeUri) { Source = themeUri });
+
+        RequestedThemeVariant = isDark ? ThemeVariant.Dark : ThemeVariant.Light;
+    }
+
+    /// <summary>
+    /// Switch UI language at runtime.
+    /// </summary>
+    public void ApplyLanguage(string langCode)
+    {
+        var culture = langCode switch
+        {
+            "ru" => new CultureInfo("ru-RU"),
+            _ => new CultureInfo("en-US")
+        };
+
+        CultureInfo.CurrentUICulture = culture;
+        Thread.CurrentThread.CurrentUICulture = culture;
+        LocalizationManager.Instance.SetCulture(culture);
     }
 
     private void ConfigureServices(ServiceCollection services)

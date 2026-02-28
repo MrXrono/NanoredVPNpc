@@ -144,6 +144,10 @@ public class SettingsViewModel : ViewModelBase
 
             _settingsService.Save();
 
+            // Apply language change immediately
+            if (Avalonia.Application.Current is App app)
+                app.ApplyLanguage(s.Language);
+
             // Apply autostart to the platform (registry / startup folder)
             try
             {

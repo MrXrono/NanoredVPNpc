@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
+             xmlns:local="using:SingBoxClient.Desktop"
              x:Class="SingBoxClient.Desktop.Views.TunSettingsView"
              x:DataType="vm:TunSettingsViewModel"
              mc:Ignorable="d"
@@ -14,11 +15,11 @@
              Header
              ═══════════════════════════════════════════════════════ -->
         <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,16">
-            <TextBlock Text="TUN — Per-App Rules"
+            <TextBlock Text="{Binding [TunPerAppRules], Source={x:Static local:LocalizationManager.Instance}}"
                        Foreground="{StaticResource TextPrimaryBrush}"
                        FontSize="18"
                        FontWeight="SemiBold" />
-            <TextBlock Text="Specify one application per line (process name or full path). Rules apply in TUN mode only."
+            <TextBlock Text="{Binding [TunDescription], Source={x:Static local:LocalizationManager.Instance}}"
                        Foreground="{StaticResource TextMutedBrush}"
                        FontSize="12"
                        TextWrapping="Wrap" />
@@ -32,7 +33,7 @@
             <Border Background="{StaticResource BgInputBrush}"
                     CornerRadius="8"
                     Padding="12,8">
-                <TextBlock Text="Note: Process names are case-insensitive. Use the full executable name (e.g., chrome.exe, firefox.exe). Changes take effect after reconnecting."
+                <TextBlock Text="{Binding [TunNote], Source={x:Static local:LocalizationManager.Instance}}"
                            Foreground="{StaticResource TextMutedBrush}"
                            FontSize="11"
                            TextWrapping="Wrap" />
@@ -42,14 +43,14 @@
             <StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Right"
                         Spacing="10">
-                <Button Content="Cancel"
+                <Button Content="{Binding [Cancel], Source={x:Static local:LocalizationManager.Instance}}"
                         Background="{StaticResource BgInputBrush}"
                         Foreground="{StaticResource TextSecondaryBrush}"
                         CornerRadius="8"
                         Padding="20,8"
                         FontSize="13"
                         Command="{Binding CancelCommand}" />
-                <Button Content="Save"
+                <Button Content="{Binding [Save], Source={x:Static local:LocalizationManager.Instance}}"
                         Background="{StaticResource AccentBrush}"
                         Foreground="White"
                         CornerRadius="8"
@@ -78,12 +79,12 @@
                                 CornerRadius="4"
                                 Padding="8,4"
                                 HorizontalAlignment="Left">
-                            <TextBlock Text="Bypass Proxy"
+                            <TextBlock Text="{Binding [BypassProxy], Source={x:Static local:LocalizationManager.Instance}}"
                                        Foreground="White"
                                        FontSize="12"
                                        FontWeight="SemiBold" />
                         </Border>
-                        <TextBlock Text="These apps will NOT use the VPN tunnel."
+                        <TextBlock Text="{Binding [BypassDescription], Source={x:Static local:LocalizationManager.Instance}}"
                                    Foreground="{StaticResource TextMutedBrush}"
                                    FontSize="11"
                                    TextWrapping="Wrap" />
@@ -119,12 +120,12 @@
                                 CornerRadius="4"
                                 Padding="8,4"
                                 HorizontalAlignment="Left">
-                            <TextBlock Text="Route via Proxy"
+                            <TextBlock Text="{Binding [RouteViaProxy], Source={x:Static local:LocalizationManager.Instance}}"
                                        Foreground="White"
                                        FontSize="12"
                                        FontWeight="SemiBold" />
                         </Border>
-                        <TextBlock Text="Only these apps will use the VPN tunnel."
+                        <TextBlock Text="{Binding [RouteViaDescription], Source={x:Static local:LocalizationManager.Instance}}"
                                    Foreground="{StaticResource TextMutedBrush}"
                                    FontSize="11"
                                    TextWrapping="Wrap" />
@@ -160,12 +161,12 @@
                                 CornerRadius="4"
                                 Padding="8,4"
                                 HorizontalAlignment="Left">
-                            <TextBlock Text="Block Traffic"
+                            <TextBlock Text="{Binding [BlockTraffic], Source={x:Static local:LocalizationManager.Instance}}"
                                        Foreground="White"
                                        FontSize="12"
                                        FontWeight="SemiBold" />
                         </Border>
-                        <TextBlock Text="All traffic from these apps will be blocked."
+                        <TextBlock Text="{Binding [BlockDescription], Source={x:Static local:LocalizationManager.Instance}}"
                                    Foreground="{StaticResource TextMutedBrush}"
                                    FontSize="11"
                                    TextWrapping="Wrap" />

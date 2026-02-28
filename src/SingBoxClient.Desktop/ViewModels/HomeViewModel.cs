@@ -98,7 +98,9 @@ public class HomeViewModel : ViewModelBase, IDisposable
     /// </summary>
     public ConnectionStatus Status => ConnectionStatus;
 
-    private string _statusText = "Disconnected";
+    private static string L(string key) => LocalizationManager.Instance[key];
+
+    private string _statusText = L("Disconnected");
     public string StatusText
     {
         get => _statusText;
@@ -214,8 +216,8 @@ public class HomeViewModel : ViewModelBase, IDisposable
     /// <summary>Button label: "Connect" when disconnected, "Disconnect" when connected.</summary>
     public string ConnectButtonText => ConnectionStatus == ConnectionStatus.Connected
                                      || ConnectionStatus == ConnectionStatus.Reconnecting
-        ? "Disconnect"
-        : "Connect";
+        ? L("Disconnect")
+        : L("Connect");
 
     // ── Commands ──────────────────────────────────────────────────────────
 
@@ -307,7 +309,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
     {
         IsConnecting = true;
         ConnectionStatus = ConnectionStatus.Connecting;
-        StatusText = "Connecting...";
+        StatusText = L("Connecting");
 
         try
         {
@@ -315,7 +317,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
             if (SelectedCountry is null)
             {
                 Logger.Warning("No country selected, cannot connect");
-                StatusText = "Select a server";
+                StatusText = L("SelectServer");
                 ConnectionStatus = ConnectionStatus.Disconnected;
                 return;
             }
@@ -330,7 +332,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
             if (bestServer is null)
             {
                 Logger.Error("No reachable server found in {Country}", SelectedCountry.DisplayName);
-                StatusText = "No reachable server";
+                StatusText = L("ConnectionError");
                 ConnectionStatus = ConnectionStatus.Error;
                 return;
             }
@@ -380,7 +382,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
 
             // Update state
             ConnectionStatus = ConnectionStatus.Connected;
-            StatusText = "Connected";
+            StatusText = L("Connected");
             ConnectedCountry = SelectedCountry.DisplayName;
 
             // Persist mode to settings
@@ -415,7 +417,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
         try
         {
             Logger.Information("Disconnecting...");
-            StatusText = "Disconnecting...";
+            StatusText = L("Disconnecting");
 
             // 1. Stop traffic polling
             StopTrafficPolling();
@@ -447,7 +449,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
 
             // Reset state
             ConnectionStatus = ConnectionStatus.Disconnected;
-            StatusText = "Disconnected";
+            StatusText = L("Disconnected");
             ConnectedCountry = string.Empty;
             Timer = "00:00:00";
             UploadSpeed = "0 B/s";
@@ -612,12 +614,12 @@ public class HomeViewModel : ViewModelBase, IDisposable
             ConnectionStatus = status;
             StatusText = status switch
             {
-                ConnectionStatus.Connected => "Connected",
-                ConnectionStatus.Connecting => "Connecting...",
-                ConnectionStatus.Reconnecting => "Reconnecting...",
-                ConnectionStatus.Disconnecting => "Disconnecting...",
-                ConnectionStatus.Disconnected => "Disconnected",
-                ConnectionStatus.Error => "Connection lost",
+                ConnectionStatus.Connected => L("Connected"),
+                ConnectionStatus.Connecting => L("Connecting"),
+                ConnectionStatus.Reconnecting => L("Reconnecting"),
+                ConnectionStatus.Disconnecting => L("Disconnecting"),
+                ConnectionStatus.Disconnected => L("Disconnected"),
+                ConnectionStatus.Error => L("ConnectionLost"),
                 _ => status.ToString()
             };
 

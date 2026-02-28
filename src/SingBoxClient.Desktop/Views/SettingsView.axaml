@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
+             xmlns:local="using:SingBoxClient.Desktop"
              x:Class="SingBoxClient.Desktop.Views.SettingsView"
              x:DataType="vm:SettingsViewModel"
              mc:Ignorable="d"
@@ -16,7 +17,7 @@
                  Header
                  ═══════════════════════════════════════════════════════ -->
             <TextBlock DockPanel.Dock="Top"
-                       Text="Settings"
+                       Text="{Binding [Settings], Source={x:Static local:LocalizationManager.Instance}}"
                        Foreground="{StaticResource TextPrimaryBrush}"
                        FontSize="18"
                        FontWeight="SemiBold"
@@ -30,14 +31,14 @@
                         HorizontalAlignment="Right"
                         Spacing="10"
                         Margin="0,20,0,0">
-                <Button Content="Cancel"
+                <Button Content="{Binding [Cancel], Source={x:Static local:LocalizationManager.Instance}}"
                         Background="{StaticResource BgInputBrush}"
                         Foreground="{StaticResource TextSecondaryBrush}"
                         CornerRadius="8"
                         Padding="20,8"
                         FontSize="13"
                         Command="{Binding CancelCommand}" />
-                <Button Content="Save"
+                <Button Content="{Binding [Save], Source={x:Static local:LocalizationManager.Instance}}"
                         Background="{StaticResource AccentBrush}"
                         Foreground="White"
                         CornerRadius="8"
@@ -58,14 +59,14 @@
                         CornerRadius="12"
                         Padding="18,14">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="Proxy Configuration"
+                        <TextBlock Text="{Binding [ProxyConfiguration], Source={x:Static local:LocalizationManager.Instance}}"
                                    Foreground="{StaticResource TextPrimaryBrush}"
                                    FontSize="14"
                                    FontWeight="SemiBold" />
 
                         <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto">
                             <TextBlock Grid.Column="0"
-                                       Text="Local Proxy Port"
+                                       Text="{Binding [LocalProxyPort], Source={x:Static local:LocalizationManager.Instance}}"
                                        Foreground="{StaticResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
@@ -95,7 +96,7 @@
                         CornerRadius="12"
                         Padding="18,14">
                     <StackPanel Spacing="14">
-                        <TextBlock Text="General"
+                        <TextBlock Text="{Binding [General], Source={x:Static local:LocalizationManager.Instance}}"
                                    Foreground="{StaticResource TextPrimaryBrush}"
                                    FontSize="14"
                                    FontWeight="SemiBold" />
@@ -103,7 +104,7 @@
                         <!-- Language -->
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
-                                       Text="Language"
+                                       Text="{Binding [Language], Source={x:Static local:LocalizationManager.Instance}}"
                                        Foreground="{StaticResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
@@ -124,7 +125,7 @@
                         <!-- Minimize to tray -->
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
-                                       Text="Minimize to tray"
+                                       Text="{Binding [MinimizeToTray], Source={x:Static local:LocalizationManager.Instance}}"
                                        Foreground="{StaticResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
@@ -139,7 +140,7 @@
                         <!-- Start with Windows -->
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
-                                       Text="Start with Windows"
+                                       Text="{Binding [StartWithWindows], Source={x:Static local:LocalizationManager.Instance}}"
                                        Foreground="{StaticResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
@@ -154,7 +155,7 @@
                         <!-- Auto-connect -->
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
-                                       Text="Auto-connect"
+                                       Text="{Binding [AutoConnect], Source={x:Static local:LocalizationManager.Instance}}"
                                        Foreground="{StaticResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
@@ -169,7 +170,7 @@
                         <!-- Debug mode -->
                         <Grid ColumnDefinitions="Auto,*">
                             <TextBlock Grid.Column="0"
-                                       Text="Debug mode"
+                                       Text="{Binding [DebugMode], Source={x:Static local:LocalizationManager.Instance}}"
                                        Foreground="{StaticResource TextSecondaryBrush}"
                                        FontSize="13"
                                        VerticalAlignment="Center"
@@ -190,7 +191,7 @@
                         CornerRadius="12"
                         Padding="18,14">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="Subscription"
+                        <TextBlock Text="{Binding [Subscription], Source={x:Static local:LocalizationManager.Instance}}"
                                    Foreground="{StaticResource TextPrimaryBrush}"
                                    FontSize="14"
                                    FontWeight="SemiBold" />
@@ -205,9 +206,9 @@
                                      CornerRadius="8"
                                      Padding="12,8"
                                      FontSize="12"
-                                     Watermark="No subscription URL configured" />
+                                     Watermark="{Binding [NoSubscriptionUrl], Source={x:Static local:LocalizationManager.Instance}}" />
                             <Button Grid.Column="1"
-                                    Content="Copy"
+                                    Content="{Binding [Copy], Source={x:Static local:LocalizationManager.Instance}}"
                                     Background="{StaticResource AccentBrush}"
                                     Foreground="White"
                                     CornerRadius="8"
@@ -217,7 +218,7 @@
                                     Command="{Binding CopySubscriptionUrlCommand}" />
                         </Grid>
 
-                        <TextBlock Text="This URL is used to fetch server configurations. Share it carefully."
+                        <TextBlock Text="{Binding [SubscriptionUrlNote], Source={x:Static local:LocalizationManager.Instance}}"
                                    Foreground="{StaticResource TextMutedBrush}"
                                    FontSize="11"
                                    TextWrapping="Wrap" />

@@ -174,6 +174,9 @@ public class MainViewModel : ViewModelBase, IDisposable
             _settingsService.Current.Theme = IsDarkTheme ? "dark" : "light";
             _settingsService.Save();
 
+            if (Avalonia.Application.Current is App app)
+                app.ApplyTheme(IsDarkTheme);
+
             Logger.Information("Theme toggled to {Theme}", IsDarkTheme ? "dark" : "light");
         }
         catch (Exception ex)

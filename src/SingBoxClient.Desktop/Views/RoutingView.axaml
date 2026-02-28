@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:SingBoxClient.Desktop.ViewModels"
+             xmlns:local="using:SingBoxClient.Desktop"
              xmlns:models="using:SingBoxClient.Core.Models"
              x:Class="SingBoxClient.Desktop.Views.RoutingView"
              x:DataType="vm:RoutingViewModel"
@@ -17,7 +18,7 @@
         <StackPanel DockPanel.Dock="Top" Spacing="12" Margin="0,0,0,16">
             <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Grid.Column="0"
-                           Text="Routing Rules"
+                           Text="{Binding [RoutingRules], Source={x:Static local:LocalizationManager.Instance}}"
                            Foreground="{StaticResource TextPrimaryBrush}"
                            FontSize="18"
                            FontWeight="SemiBold"
@@ -28,7 +29,7 @@
                             Spacing="12"
                             VerticalAlignment="Center">
                     <!-- Remote config toggle -->
-                    <TextBlock Text="Remote Config"
+                    <TextBlock Text="{Binding [RemoteConfig], Source={x:Static local:LocalizationManager.Instance}}"
                                Foreground="{StaticResource TextSecondaryBrush}"
                                FontSize="12"
                                VerticalAlignment="Center" />
@@ -38,7 +39,7 @@
                                   VerticalAlignment="Center" />
 
                     <!-- Sync button -->
-                    <Button Content="Sync"
+                    <Button Content="{Binding [Sync], Source={x:Static local:LocalizationManager.Instance}}"
                             Background="{StaticResource AccentBrush}"
                             Foreground="White"
                             CornerRadius="8"
@@ -48,7 +49,7 @@
                 </StackPanel>
             </Grid>
 
-            <TextBlock Text="Configure how traffic is routed through the VPN tunnel."
+            <TextBlock Text="{Binding [RoutingDescription], Source={x:Static local:LocalizationManager.Instance}}"
                        Foreground="{StaticResource TextMutedBrush}"
                        FontSize="12" />
         </StackPanel>
@@ -61,14 +62,14 @@
                     HorizontalAlignment="Right"
                     Spacing="10"
                     Margin="0,16,0,0">
-            <Button Content="Cancel"
+            <Button Content="{Binding [Cancel], Source={x:Static local:LocalizationManager.Instance}}"
                     Background="{StaticResource BgInputBrush}"
                     Foreground="{StaticResource TextSecondaryBrush}"
                     CornerRadius="8"
                     Padding="20,8"
                     FontSize="13"
                     Command="{Binding CancelCommand}" />
-            <Button Content="Save"
+            <Button Content="{Binding [Save], Source={x:Static local:LocalizationManager.Instance}}"
                     Background="{StaticResource AccentBrush}"
                     Foreground="White"
                     CornerRadius="8"
@@ -89,7 +90,7 @@
                 Margin="0,12,0,0">
             <Grid ColumnDefinitions="*,12,Auto">
                 <TextBox Grid.Column="0"
-                         Watermark="Enter domain, IP CIDR, or GeoIP code..."
+                         Watermark="{Binding [RulePlaceholder], Source={x:Static local:LocalizationManager.Instance}}"
                          Text="{Binding NewRuleValue}"
                          Background="{StaticResource BgInputBrush}"
                          Foreground="{StaticResource TextPrimaryBrush}"
@@ -98,7 +99,7 @@
                          Padding="12,8"
                          FontSize="13" />
                 <Button Grid.Column="2"
-                        Content="+ Add Rule"
+                        Content="{Binding [AddRule], Source={x:Static local:LocalizationManager.Instance}}"
                         Background="{StaticResource AccentBrush}"
                         Foreground="White"
                         CornerRadius="8"
