@@ -3,6 +3,9 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
+using Avalonia;
+using Avalonia.ReactiveUI;
+using Serilog;
 
 namespace SingBoxClient.Desktop;
 
