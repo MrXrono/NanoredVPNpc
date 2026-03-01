@@ -47,9 +47,7 @@ public static class InboundConfig
             ["auto_route"] = true,
             ["strict_route"] = true,
             ["address"] = new JsonArray { "172.19.0.1/30", "fdfe:dcba:9876::1/126" },
-            ["stack"] = "system",
-            ["sniff"] = true,
-            ["sniff_override_destination"] = true
+            ["stack"] = "system"
         };
 
         if (includeProcess is { Count: > 0 })

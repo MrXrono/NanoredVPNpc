@@ -111,9 +111,6 @@ public class SingBoxProcessManager : ISingBoxProcessManager, IDisposable
                 RedirectStandardInput = true, // Needed for graceful shutdown via stdin close
             };
 
-            // sing-box ≥1.11.0 requires this env var for dns/block outbound types
-            psi.EnvironmentVariables["ENABLE_DEPRECATED_SPECIAL_OUTBOUNDS"] = "true";
-
             _process = new Process { StartInfo = psi, EnableRaisingEvents = true };
             _process.Exited += OnExited;
 

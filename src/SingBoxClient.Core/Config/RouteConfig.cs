@@ -29,6 +29,13 @@ public static class RouteConfig
         var ruleSets = new JsonArray();
         var ruleSetTags = new HashSet<string>();
 
+        // Protocol sniffing — replaces deprecated inbound.sniff fields (sing-box 1.11+)
+        rulesArray.Add(new JsonObject
+        {
+            ["action"] = "sniff",
+            ["timeout"] = "300ms"
+        });
+
         // DNS protocol interception — hijack DNS queries to the sing-box DNS engine (rule action, sing-box 1.11+)
         rulesArray.Add(new JsonObject
         {
