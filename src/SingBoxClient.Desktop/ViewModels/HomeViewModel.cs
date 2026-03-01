@@ -51,7 +51,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
         get => _isProxyEnabled;
         set
         {
-            // Don't allow unchecking if TUN is also off — at least one mode must be active
+            // At least one mode must be active
             if (!value && !IsTunEnabled)
             {
                 this.RaisePropertyChanged(nameof(IsProxyEnabled));
@@ -59,7 +59,6 @@ public class HomeViewModel : ViewModelBase, IDisposable
             }
 
             this.RaiseAndSetIfChanged(ref _isProxyEnabled, value);
-            if (value) IsTunEnabled = false;
         }
     }
 
@@ -69,7 +68,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
         get => _isTunEnabled;
         set
         {
-            // Don't allow unchecking if Proxy is also off — at least one mode must be active
+            // At least one mode must be active
             if (!value && !IsProxyEnabled)
             {
                 this.RaisePropertyChanged(nameof(IsTunEnabled));
@@ -77,7 +76,6 @@ public class HomeViewModel : ViewModelBase, IDisposable
             }
 
             this.RaiseAndSetIfChanged(ref _isTunEnabled, value);
-            if (value) IsProxyEnabled = false;
         }
     }
 
@@ -443,7 +441,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
                     ["country"] = SelectedCountry.Code,
                     ["server"] = bestServer.Name,
                     ["protocol"] = bestServer.Protocol.ToString(),
-                    ["mode"] = IsProxyEnabled ? "proxy" : "tun"
+                    ["mode"] = IsProxyEnabled && IsTunEnabled ? "mixed" : IsProxyEnabled ? "proxy" : "tun"
                 }
             });
 
