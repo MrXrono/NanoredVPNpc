@@ -105,6 +105,10 @@
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="12"
                                        VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding SessionUpload, StringFormat='({0})'}"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       FontSize="10"
+                                       VerticalAlignment="Center" />
                         </StackPanel>
                         <StackPanel Grid.Column="1"
                                     Orientation="Horizontal"
@@ -117,6 +121,10 @@
                             <TextBlock Text="{Binding DownloadSpeed}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="12"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding SessionDownload, StringFormat='({0})'}"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       FontSize="10"
                                        VerticalAlignment="Center" />
                         </StackPanel>
                     </Grid>

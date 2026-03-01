@@ -141,6 +141,23 @@ public class HomeViewModel : ViewModelBase, IDisposable
         set => this.RaiseAndSetIfChanged(ref _downloadSpeed, value);
     }
 
+    private long _sessionUploadBytes;
+    private long _sessionDownloadBytes;
+
+    private string _sessionUpload = "0 B";
+    public string SessionUpload
+    {
+        get => _sessionUpload;
+        set => this.RaiseAndSetIfChanged(ref _sessionUpload, value);
+    }
+
+    private string _sessionDownload = "0 B";
+    public string SessionDownload
+    {
+        get => _sessionDownload;
+        set => this.RaiseAndSetIfChanged(ref _sessionDownload, value);
+    }
+
     private ObservableCollection<CountryGroup> _countries = new();
     public ObservableCollection<CountryGroup> Countries
     {
@@ -511,6 +528,10 @@ public class HomeViewModel : ViewModelBase, IDisposable
             Timer = "00:00:00";
             UploadSpeed = "0 B/s";
             DownloadSpeed = "0 B/s";
+            _sessionUploadBytes = 0;
+            _sessionDownloadBytes = 0;
+            SessionUpload = "0 B";
+            SessionDownload = "0 B";
 
             Logger.Information("Disconnected successfully");
         }
@@ -648,10 +669,15 @@ public class HomeViewModel : ViewModelBase, IDisposable
             {
                 await _clashApi.StreamTrafficAsync(stats =>
                 {
+                    _sessionUploadBytes += stats.UploadSpeed;
+                    _sessionDownloadBytes += stats.DownloadSpeed;
+
                     Dispatcher.UIThread.Post(() =>
                     {
                         UploadSpeed = BytesToHumanSpeed(stats.UploadSpeed);
                         DownloadSpeed = BytesToHumanSpeed(stats.DownloadSpeed);
+                        SessionUpload = BytesToHumanSize(_sessionUploadBytes);
+                        SessionDownload = BytesToHumanSize(_sessionDownloadBytes);
                     });
                 }, ct);
             }
@@ -802,6 +828,26 @@ public class HomeViewModel : ViewModelBase, IDisposable
 
         string[] units = { "B/s", "KB/s", "MB/s", "GB/s" };
         double value = bytesPerSecond;
+        int unitIndex = 0;
+
+        while (value >= 1024 && unitIndex < units.Length - 1)
+        {
+            value /= 1024;
+            unitIndex++;
+        }
+
+        return $"{value:F1} {units[unitIndex]}";
+    }
+
+    /// <summary>
+    /// Convert byte count to a human-readable size string (no "/s").
+    /// </summary>
+    private static string BytesToHumanSize(long bytes)
+    {
+        if (bytes <= 0) return "0 B";
+
+        string[] units = { "B", "KB", "MB", "GB", "TB" };
+        double value = bytes;
         int unitIndex = 0;
 
         while (value >= 1024 && unitIndex < units.Length - 1)
