@@ -178,22 +178,29 @@ public class HomeViewModel : ViewModelBase, IDisposable
     /// <summary>Subscription ID extracted from SubscriptionInfo, or "—" if unavailable.</summary>
     public string SubscriptionId => SubscriptionInfo?.Id ?? "—";
 
-    /// <summary>Formatted expiration info: "14 дней (14-03-2026)" or "—" if unavailable.</summary>
+    /// <summary>Formatted expiration info: "14 дней в 18:09 (14-03-2026)" or "—" if unavailable.</summary>
     public string ExpiresAt
     {
         get
         {
-            if (SubscriptionInfo?.ExpiresAt is not { } expires)
+            if (SubscriptionInfo?.ExpiresAt is not { } expiresUtc)
                 return "—";
 
-            var daysLeft = (int)Math.Ceiling((expires - DateTime.UtcNow).TotalDays);
+            var local = expiresUtc.Kind == DateTimeKind.Utc
+                ? expiresUtc.ToLocalTime()
+                : expiresUtc;
+
+            var remaining = local - DateTime.Now;
+            var daysLeft = (int)Math.Ceiling(remaining.TotalDays);
             if (daysLeft < 0) daysLeft = 0;
 
             var lang = _settingsService.Current.Language;
             var daysWord = lang == "ru" ? PluralizeRu(daysLeft, "день", "дня", "дней") : (daysLeft == 1 ? "day" : "days");
-            var dateStr = expires.ToString("dd-MM-yyyy");
+            var timeStr = local.ToString("HH:mm");
+            var dateStr = local.ToString("dd-MM-yyyy");
+            var atWord = lang == "ru" ? "в" : "at";
 
-            return $"{daysLeft} {daysWord}  ({dateStr})";
+            return $"{daysLeft} {daysWord} {atWord} {timeStr}  ({dateStr})";
         }
     }
 
