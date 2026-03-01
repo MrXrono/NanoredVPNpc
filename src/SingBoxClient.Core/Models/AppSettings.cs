@@ -99,6 +99,36 @@ public class AppSettings
     public string SubscriptionUrl { get; set; } = string.Empty;
 
     /// <summary>
+    /// Saved window width (0 = use default).
+    /// </summary>
+    [JsonPropertyName("window_width")]
+    public double WindowWidth { get; set; }
+
+    /// <summary>
+    /// Saved window height (0 = use default).
+    /// </summary>
+    [JsonPropertyName("window_height")]
+    public double WindowHeight { get; set; }
+
+    /// <summary>
+    /// Saved window X position (NaN = center on screen).
+    /// </summary>
+    [JsonPropertyName("window_x")]
+    public double WindowX { get; set; } = double.NaN;
+
+    /// <summary>
+    /// Saved window Y position (NaN = center on screen).
+    /// </summary>
+    [JsonPropertyName("window_y")]
+    public double WindowY { get; set; } = double.NaN;
+
+    /// <summary>
+    /// Whether the window was maximized.
+    /// </summary>
+    [JsonPropertyName("window_maximized")]
+    public bool WindowMaximized { get; set; }
+
+    /// <summary>
     /// Settings schema version for migration support.
     /// </summary>
     [JsonPropertyName("settings_version")]

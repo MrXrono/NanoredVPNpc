@@ -1,6 +1,8 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Microsoft.Extensions.DependencyInjection;
+using SingBoxClient.Core.Services;
 using SingBoxClient.Desktop.Services;
 using SingBoxClient.Desktop.ViewModels;
 
@@ -8,6 +10,8 @@ namespace SingBoxClient.Desktop.Views;
 
 public partial class MainWindow : Window
 {
+    private ISettingsService? _settings;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -47,6 +51,59 @@ public partial class MainWindow : Window
     {
         var trayService = App.Services?.GetService<TrayIconService>();
         trayService?.Initialize(this);
+
+        // Restore saved window state
+        _settings = App.Services?.GetService<ISettingsService>();
+        RestoreWindowState();
+    }
+
+    private void RestoreWindowState()
+    {
+        if (_settings is null) return;
+
+        var s = _settings.Current;
+
+        // Restore size if saved
+        if (s.WindowWidth > 0 && s.WindowHeight > 0)
+        {
+            Width = s.WindowWidth;
+            Height = s.WindowHeight;
+        }
+
+        // Restore position if saved
+        if (!double.IsNaN(s.WindowX) && !double.IsNaN(s.WindowY))
+        {
+            Position = new PixelPoint((int)s.WindowX, (int)s.WindowY);
+        }
+
+        // Restore maximized state
+        if (s.WindowMaximized)
+        {
+            WindowState = WindowState.Maximized;
+        }
+    }
+
+    /// <summary>
+    /// Save current window geometry to settings. Called from App shutdown.
+    /// </summary>
+    public void SaveWindowState()
+    {
+        if (_settings is null) return;
+
+        var s = _settings.Current;
+
+        s.WindowMaximized = WindowState == WindowState.Maximized;
+
+        // Save size/position only when not maximized (to preserve the "normal" bounds)
+        if (WindowState != WindowState.Maximized)
+        {
+            s.WindowWidth = Width;
+            s.WindowHeight = Height;
+            s.WindowX = Position.X;
+            s.WindowY = Position.Y;
+        }
+
+        _settings.Save();
     }
 
     private void SubscribeToViewModelEvents()

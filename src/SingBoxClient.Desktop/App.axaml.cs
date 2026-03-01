@@ -158,6 +158,13 @@ public partial class App : Application
             var platform = Services.GetService<IPlatformService>();
             platform?.ClearSystemProxy();
 
+            // Save window geometry before persisting settings
+            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+                && desktop.MainWindow is Views.MainWindow mainWindow)
+            {
+                mainWindow.SaveWindowState();
+            }
+
             var settings = Services.GetService<ISettingsService>();
             settings?.Save();
 
