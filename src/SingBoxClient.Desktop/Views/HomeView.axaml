@@ -170,7 +170,7 @@
                                        Text="{DynamicResource Expires}"
                                        Foreground="{DynamicResource TextMutedBrush}"
                                        FontSize="12"
-                                       Width="70" />
+                                       Margin="0,0,6,0" />
                             <TextBlock Grid.Column="1"
                                        Text="{Binding ExpiresAt}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"

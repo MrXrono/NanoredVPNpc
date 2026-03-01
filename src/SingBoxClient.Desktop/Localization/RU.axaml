@@ -27,7 +27,7 @@
     <sys:String x:Key="Mode">Режим</sys:String>
     <sys:String x:Key="Proxy">Прокси</sys:String>
     <sys:String x:Key="SubscriptionInfo">Подписка</sys:String>
-    <sys:String x:Key="Expires">Истекает:</sys:String>
+    <sys:String x:Key="Expires">Истекает через:</sys:String>
     <sys:String x:Key="Traffic">Трафик:</sys:String>
     <sys:String x:Key="Renew">Продлить</sys:String>
     <sys:String x:Key="Unlimited">Безлимит</sys:String>

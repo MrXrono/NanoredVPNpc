@@ -178,15 +178,36 @@ public class HomeViewModel : ViewModelBase, IDisposable
     /// <summary>Subscription ID extracted from SubscriptionInfo, or "—" if unavailable.</summary>
     public string SubscriptionId => SubscriptionInfo?.Id ?? "—";
 
-    /// <summary>Formatted expiration date from SubscriptionInfo, or "—" if unavailable.</summary>
+    /// <summary>Formatted expiration info: "14 дней (14-03-2026)" or "—" if unavailable.</summary>
     public string ExpiresAt
     {
         get
         {
             if (SubscriptionInfo?.ExpiresAt is not { } expires)
                 return "—";
-            return expires.ToString("yyyy-MM-dd");
+
+            var daysLeft = (int)Math.Ceiling((expires - DateTime.UtcNow).TotalDays);
+            if (daysLeft < 0) daysLeft = 0;
+
+            var lang = _settingsService.Current.Language;
+            var daysWord = lang == "ru" ? PluralizeRu(daysLeft, "день", "дня", "дней") : (daysLeft == 1 ? "day" : "days");
+            var dateStr = expires.ToString("dd-MM-yyyy");
+
+            return $"{daysLeft} {daysWord}  ({dateStr})";
         }
+    }
+
+    private static string PluralizeRu(int n, string one, string few, string many)
+    {
+        var abs = Math.Abs(n) % 100;
+        if (abs is >= 11 and <= 19) return many;
+        var last = abs % 10;
+        return last switch
+        {
+            1 => one,
+            >= 2 and <= 4 => few,
+            _ => many
+        };
     }
 
     /// <summary>Human-readable traffic usage, e.g. "1.2 GB / 50.0 GB" or "44.8 MB / Unlimited".</summary>
