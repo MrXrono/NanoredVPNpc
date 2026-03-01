@@ -502,35 +502,37 @@ dist/win-x64/
   "log": { "level": "debug", "timestamp": true },
   "dns": {
     "servers": [
-      { "tag": "google-doh", "address": "https://dns.google/dns-query", "detour": "proxy" },
-      { "tag": "direct-dns", "address": "223.5.5.5", "detour": "direct" }
+      { "tag": "google-doh", "type": "https", "server": "dns.google", "server_port": 443, "detour": "proxy" },
+      { "tag": "direct-dns", "type": "udp", "server": "223.5.5.5", "detour": "direct" }
     ],
     "rules": [
-      { "domain_suffix": [".local",".localhost"], "server": "direct-dns" },
-      { "outbound": "any", "server": "direct-dns" }
-    ]
+      { "domain": ["dns.google"], "server": "direct-dns" },
+      { "domain_suffix": [".local",".localhost",".internal",".lan"], "server": "direct-dns" }
+    ],
+    "final": "google-doh",
+    "independent_cache": true
   },
   "inbounds": [
     { "type": "mixed", "tag": "mixed-in", "listen": "127.0.0.1", "listen_port": 2080 },
-    { "type": "tun", "tag": "tun-in", "auto_route": true, "strict_route": true, "inet4_address": "172.19.0.1/30" }
+    { "type": "tun", "tag": "tun-in", "auto_route": true, "strict_route": true, "address": ["172.19.0.1/30", "fdfe:dcba:9876::1/126"], "stack": "system" }
   ],
   "outbounds": [
     { "type": "vless", "tag": "proxy", "server": "de-vless-1.example.com", "server_port": 443, "uuid": "..." },
-    { "type": "direct", "tag": "direct" },
-    { "type": "block", "tag": "block" },
-    { "type": "dns", "tag": "dns-out" }
+    { "type": "direct", "tag": "direct" }
   ],
   "route": {
     "rules": [
-      { "protocol": "dns", "outbound": "dns-out" },
+      { "action": "sniff", "timeout": "300ms" },
+      { "protocol": "dns", "action": "hijack-dns" },
       { "ip_is_private": true, "outbound": "direct" },
       { "domain_suffix": [".youtube.com",".google.com"], "outbound": "proxy" }
     ],
     "auto_detect_interface": true,
+    "default_domain_resolver": "direct-dns",
     "final": "proxy"
   },
   "experimental": {
-    "clash_api": { "external_controller": "127.0.0.1:9090" },
+    "clash_api": { "external_controller": "127.0.0.1:9090", "secret": "" },
     "cache_file": { "enabled": true, "path": "cache.db" }
   }
 }
