@@ -10,7 +10,7 @@
         mc:Ignorable="d"
         d:DesignWidth="960" d:DesignHeight="640"
         Title="NanoredVPN v1.0.0"
-        Width="960" Height="640"
+        Width="960" Height="740"
         MinWidth="800" MinHeight="550"
         Background="{DynamicResource BgMainBrush}"
         WindowStartupLocation="CenterScreen"
