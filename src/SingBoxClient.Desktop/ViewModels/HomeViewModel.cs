@@ -49,34 +49,14 @@ public class HomeViewModel : ViewModelBase, IDisposable
     public bool IsProxyEnabled
     {
         get => _isProxyEnabled;
-        set
-        {
-            // At least one mode must be active
-            if (!value && !IsTunEnabled)
-            {
-                this.RaisePropertyChanged(nameof(IsProxyEnabled));
-                return;
-            }
-
-            this.RaiseAndSetIfChanged(ref _isProxyEnabled, value);
-        }
+        set => this.RaiseAndSetIfChanged(ref _isProxyEnabled, value);
     }
 
     private bool _isTunEnabled;
     public bool IsTunEnabled
     {
         get => _isTunEnabled;
-        set
-        {
-            // At least one mode must be active
-            if (!value && !IsProxyEnabled)
-            {
-                this.RaisePropertyChanged(nameof(IsTunEnabled));
-                return;
-            }
-
-            this.RaiseAndSetIfChanged(ref _isTunEnabled, value);
-        }
+        set => this.RaiseAndSetIfChanged(ref _isTunEnabled, value);
     }
 
     private ConnectionStatus _connectionStatus = ConnectionStatus.Disconnected;
@@ -356,7 +336,16 @@ public class HomeViewModel : ViewModelBase, IDisposable
             ConnectionStatus = ConnectionStatus.Connecting;
             StatusText = L("Connecting");
 
-            // 0. Check subscription expiration
+            // 0. At least one mode must be selected to start
+            if (!IsProxyEnabled && !IsTunEnabled)
+            {
+                Logger.Warning("No connection mode selected, cannot connect");
+                StatusText = L("SelectMode");
+                ConnectionStatus = ConnectionStatus.Disconnected;
+                return;
+            }
+
+            // 0a. Check subscription expiration
             if (SubscriptionInfo is { IsExpired: true })
             {
                 Logger.Warning("Subscription expired at {ExpiresAt}", SubscriptionInfo.ExpiresAt);

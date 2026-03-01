@@ -35,6 +35,7 @@
     <sys:String x:Key="InformationServer">Информация</sys:String>
     <sys:String x:Key="NoAnnouncements">Нет объявлений</sys:String>
     <sys:String x:Key="SelectServer">Выбор сервера</sys:String>
+    <sys:String x:Key="SelectMode">Выберите режим</sys:String>
 
     <!-- Routing -->
     <sys:String x:Key="RoutingRules">Правила маршрутизации</sys:String>

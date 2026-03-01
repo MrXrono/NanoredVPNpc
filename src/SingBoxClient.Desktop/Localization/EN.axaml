@@ -35,6 +35,7 @@
     <sys:String x:Key="InformationServer">Information Server</sys:String>
     <sys:String x:Key="NoAnnouncements">No announcements</sys:String>
     <sys:String x:Key="SelectServer">Select Server</sys:String>
+    <sys:String x:Key="SelectMode">Select Mode</sys:String>
 
     <!-- Routing -->
     <sys:String x:Key="RoutingRules">Routing Rules</sys:String>
