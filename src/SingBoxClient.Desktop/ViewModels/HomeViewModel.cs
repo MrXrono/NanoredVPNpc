@@ -41,6 +41,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
     private DateTime _connectedSince;
     private CancellationTokenSource? _trafficCts;
     private string? _lastSubscriptionUrl;
+    private ServerNode? _connectedServer;
     private bool _disposed;
 
     // ── Properties ────────────────────────────────────────────────────────
@@ -49,14 +50,24 @@ public class HomeViewModel : ViewModelBase, IDisposable
     public bool IsProxyEnabled
     {
         get => _isProxyEnabled;
-        set => this.RaiseAndSetIfChanged(ref _isProxyEnabled, value);
+        set
+        {
+            if (_isProxyEnabled == value) return;
+            this.RaiseAndSetIfChanged(ref _isProxyEnabled, value);
+            _ = ApplyModeChangeAsync();
+        }
     }
 
     private bool _isTunEnabled;
     public bool IsTunEnabled
     {
         get => _isTunEnabled;
-        set => this.RaiseAndSetIfChanged(ref _isTunEnabled, value);
+        set
+        {
+            if (_isTunEnabled == value) return;
+            this.RaiseAndSetIfChanged(ref _isTunEnabled, value);
+            _ = ApplyModeChangeAsync();
+        }
     }
 
     private ConnectionStatus _connectionStatus = ConnectionStatus.Disconnected;
@@ -336,16 +347,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
             ConnectionStatus = ConnectionStatus.Connecting;
             StatusText = L("Connecting");
 
-            // 0. At least one mode must be selected to start
-            if (!IsProxyEnabled && !IsTunEnabled)
-            {
-                Logger.Warning("No connection mode selected, cannot connect");
-                StatusText = L("SelectMode");
-                ConnectionStatus = ConnectionStatus.Disconnected;
-                return;
-            }
-
-            // 0a. Check subscription expiration
+            // 0. Check subscription expiration
             if (SubscriptionInfo is { IsExpired: true })
             {
                 Logger.Warning("Subscription expired at {ExpiresAt}", SubscriptionInfo.ExpiresAt);
@@ -380,6 +382,8 @@ public class HomeViewModel : ViewModelBase, IDisposable
 
             Logger.Information("Connecting to {Server} in {Country}",
                 bestServer.Name, SelectedCountry.DisplayName);
+
+            _connectedServer = bestServer;
 
             // 2. Sync current mode toggles into settings before config build
             _settingsService.Current.ProxyEnabled = IsProxyEnabled;
@@ -430,7 +434,10 @@ public class HomeViewModel : ViewModelBase, IDisposable
                     ["country"] = SelectedCountry.Code,
                     ["server"] = bestServer.Name,
                     ["protocol"] = bestServer.Protocol.ToString(),
-                    ["mode"] = IsProxyEnabled && IsTunEnabled ? "mixed" : IsProxyEnabled ? "proxy" : "tun"
+                    ["mode"] = IsProxyEnabled && IsTunEnabled ? "mixed"
+                              : IsProxyEnabled ? "proxy"
+                              : IsTunEnabled ? "tun"
+                              : "none"
                 }
             });
 
@@ -509,6 +516,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
             });
 
             // Reset state
+            _connectedServer = null;
             ConnectionStatus = ConnectionStatus.Disconnected;
             StatusText = L("Disconnected");
             ConnectedCountry = string.Empty;
@@ -531,6 +539,63 @@ public class HomeViewModel : ViewModelBase, IDisposable
         finally
         {
             _connectGate.Release();
+        }
+    }
+
+    // ── Live Mode Switching ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Rebuilds sing-box config and restarts the process to apply mode changes
+    /// while the connection is active. Also manages the system proxy setting.
+    /// </summary>
+    private async Task ApplyModeChangeAsync()
+    {
+        if (ConnectionStatus != ConnectionStatus.Connected
+            && ConnectionStatus != ConnectionStatus.Reconnecting)
+            return;
+
+        if (_connectedServer is null)
+            return;
+
+        Logger.Information("Applying mode change: proxy={Proxy}, tun={Tun}", IsProxyEnabled, IsTunEnabled);
+
+        try
+        {
+            // 1. Stop traffic streaming during restart
+            StopTrafficStreaming();
+
+            // 2. Sync mode flags to settings
+            _settingsService.Current.ProxyEnabled = IsProxyEnabled;
+            _settingsService.Current.TunEnabled = IsTunEnabled;
+            _settingsService.Save();
+
+            // 3. Rebuild config and restart sing-box
+            var configPath = _configBuilder.BuildAndSave(_connectedServer);
+            await _processManager.RestartAsync(configPath);
+
+            // 4. Wait for Clash API
+            await WaitForClashApiAsync(TimeSpan.FromSeconds(10));
+
+            // 5. Manage system proxy
+            if (IsProxyEnabled)
+            {
+                _platformService.SetSystemProxy("127.0.0.1", _settingsService.Current.ProxyPort);
+                Logger.Debug("System proxy enabled");
+            }
+            else
+            {
+                _platformService.ClearSystemProxy();
+                Logger.Debug("System proxy cleared");
+            }
+
+            // 6. Resume traffic streaming
+            StartTrafficStreaming();
+
+            Logger.Information("Mode change applied successfully");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to apply mode change");
         }
     }
 
