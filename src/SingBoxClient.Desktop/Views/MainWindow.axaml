@@ -31,8 +31,9 @@
          ═══════════════════════════════════════════════════════════════════ -->
     <DockPanel LastChildFill="True">
 
-        <!-- ── Title Bar ────────────────────────────────────────────── -->
+        <!-- ── Title Bar (draggable) ───────────────────────────────── -->
         <Border DockPanel.Dock="Top"
+                x:Name="TitleBar"
                 Background="{DynamicResource BgSidebarBrush}"
                 Height="40"
                 BorderBrush="{DynamicResource BorderBrush}"
