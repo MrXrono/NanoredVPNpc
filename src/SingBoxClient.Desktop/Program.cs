@@ -80,7 +80,8 @@ class Program
                 rollingInterval: Serilog.RollingInterval.Infinite,
                 fileSizeLimitBytes: 10_485_760,
                 retainedFileCountLimit: 3,
-                rollOnFileSizeLimit: true)
+                rollOnFileSizeLimit: true,
+                flushToDiskInterval: TimeSpan.FromSeconds(2))
             .WriteTo.Console()
             .CreateLogger();
 

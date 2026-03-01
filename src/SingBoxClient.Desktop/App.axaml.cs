@@ -52,6 +52,9 @@ public partial class App : Application
             };
 
             desktop.ShutdownRequested += OnShutdownRequested;
+
+            // Start UI thread watchdog — detects hangs and writes FATAL log from background thread
+            Services.GetRequiredService<UiWatchdogService>().Start();
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -133,6 +136,7 @@ public partial class App : Application
 
         // Desktop Services
         services.AddSingleton<TrayIconService>();
+        services.AddSingleton<UiWatchdogService>();
 
         // ViewModels
         services.AddTransient<MainViewModel>();
@@ -159,6 +163,9 @@ public partial class App : Application
 
             var analytics = Services.GetService<IAnalyticsService>();
             analytics?.FlushAsync().GetAwaiter().GetResult();
+
+            var watchdog = Services.GetService<UiWatchdogService>();
+            watchdog?.Dispose();
 
             var trayService = Services.GetService<TrayIconService>();
             trayService?.Dispose();
