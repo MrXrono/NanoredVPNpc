@@ -61,16 +61,22 @@
                             ToolTip.Tip="{DynamicResource ToggleTheme}"
                             Command="{Binding ToggleThemeCommand}">
                         <Panel>
-                            <TextBlock Text="&#x2600;"
-                                       IsVisible="{Binding IsDarkTheme}"
-                                       Foreground="{DynamicResource YellowBrush}"
-                                       FontSize="16"
-                                       VerticalAlignment="Center" />
-                            <TextBlock Text="&#x263E;"
-                                       IsVisible="{Binding !IsDarkTheme}"
-                                       Foreground="{DynamicResource AccentLightBrush}"
-                                       FontSize="16"
-                                       VerticalAlignment="Center" />
+                            <!-- Sun icon (dark theme active → switch to light) -->
+                            <Path Data="M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"
+                                  Fill="{DynamicResource YellowBrush}"
+                                  IsVisible="{Binding IsDarkTheme}"
+                                  Width="16" Height="16"
+                                  Stretch="Uniform"
+                                  VerticalAlignment="Center"
+                                  HorizontalAlignment="Center" />
+                            <!-- Moon icon (light theme active → switch to dark) -->
+                            <Path Data="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+                                  Fill="{DynamicResource AccentLightBrush}"
+                                  IsVisible="{Binding !IsDarkTheme}"
+                                  Width="16" Height="16"
+                                  Stretch="Uniform"
+                                  VerticalAlignment="Center"
+                                  HorizontalAlignment="Center" />
                         </Panel>
                     </Button>
 
