@@ -34,12 +34,12 @@ public static class DnsConfig
         });
 
         // Fallback: Direct UDP DNS for local/private domain resolution and DoH bootstrap
+        // No detour — sing-box v1.12+ rejects detour to an empty direct outbound
         servers.Add(new JsonObject
         {
             ["tag"] = "direct-dns",
             ["type"] = "udp",
-            ["server"] = "223.5.5.5",
-            ["detour"] = "direct"
+            ["server"] = "223.5.5.5"
         });
 
         // FakeIP server for TUN mode — assigns synthetic IPs from a reserved range
