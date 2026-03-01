@@ -16,8 +16,8 @@
       </xsd:complexType>
     </xsd:element>
   </xsd:schema>
-  <data name="Connect"><value>Подключить</value></data>
-  <data name="Disconnect"><value>Отключить</value></data>
+  <data name="Connect"><value>Старт</value></data>
+  <data name="Disconnect"><value>Стоп</value></data>
   <data name="Connected"><value>Подключено</value></data>
   <data name="Disconnected"><value>Отключено</value></data>
   <data name="Connecting"><value>Подключение...</value></data>

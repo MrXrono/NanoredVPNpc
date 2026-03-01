@@ -73,6 +73,7 @@
                             FontSize="14"
                             FontWeight="SemiBold"
                             Foreground="White"
+                            HorizontalContentAlignment="Center"
                             Command="{Binding ToggleConnectionCommand}"
                             Content="{Binding ConnectButtonText}">
                         <Button.Background>
