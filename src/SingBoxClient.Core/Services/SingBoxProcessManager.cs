@@ -89,6 +89,9 @@ public class SingBoxProcessManager : ISingBoxProcessManager, IDisposable
                 return;
             }
 
+            // Kill orphan sing-box processes left from previous sessions (crash, force close, etc.)
+            KillOrphanSingBoxProcesses();
+
             var exePath = ResolveSingBoxPath();
             if (!File.Exists(exePath))
                 throw new FileNotFoundException($"sing-box executable not found at {exePath}");
@@ -202,6 +205,37 @@ public class SingBoxProcessManager : ISingBoxProcessManager, IDisposable
     }
 
     // ── Private helpers ──────────────────────────────────────────────────
+
+    private void KillOrphanSingBoxProcesses()
+    {
+        try
+        {
+            var singBoxName = Path.GetFileNameWithoutExtension(AppDefaults.SingBoxExe);
+            var orphans = Process.GetProcessesByName(singBoxName);
+
+            foreach (var proc in orphans)
+            {
+                try
+                {
+                    _logger.Warning("Killing orphan sing-box process (PID {Pid})", proc.Id);
+                    proc.Kill(entireProcessTree: true);
+                    proc.WaitForExit(ForceKillTimeoutMs);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Failed to kill orphan sing-box (PID {Pid})", proc.Id);
+                }
+                finally
+                {
+                    proc.Dispose();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Debug(ex, "Failed to enumerate orphan sing-box processes");
+        }
+    }
 
     private string ResolveSingBoxPath()
     {
